@@ -68,7 +68,7 @@ def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_prim
 def main(inpath, outpath, fwd_primer, cDNA_primer, logfile):
     print("calling Motifbinner")
     search = os.path.join(inpath, '*R1.fastq')
-    fwd_primer = fwd_primer.upper
+    fwd_primer = fwd_primer.upper()
     cDNA_primer = cDNA_primer.upper()
     fwd_primer_lens, fwd_primer_score = get_primer_lens_score(fwd_primer)
     cDNA_primer_lens, cDNA_primer_score = get_primer_lens_score(cDNA_primer)
