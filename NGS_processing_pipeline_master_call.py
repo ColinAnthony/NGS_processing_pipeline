@@ -16,14 +16,14 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     main_path = os.path.join(path, name)
     logfile = os.path.join(main_path, "logfile.txt")
     with open(logfile, 'w') as handle:
-        handle.write("Initializing log file")
+        handle.write("Initializing log file \n")
 
     # call MotifBinner
     gene_region_folder = os.path.join(main_path, gene_region)
     inpath = os.path.join(gene_region_folder, '1raw')
     cons_outpath = os.path.join(gene_region_folder, '2consensus')
     motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
-    cmd2 = 'python {0} -p {1} -n {2} -g {3}'.format(motifbinner, logfile, inpath, cons_outpath, fwd_primer, cDNA_primer)
+    cmd2 = 'python3 {0} -p {1} -n {2} -g {3}'.format(motifbinner, logfile, inpath, cons_outpath, fwd_primer, cDNA_primer)
     subprocess.call(cmd2, shell=True)
 
     # copy data from nested binned folders into 2consensus folder
@@ -49,9 +49,9 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
     clean_path = os.path.join(gene_region_folder, '3cleaned')
     for fasta_file in glob(fastq_path + '*.fasta'):
-        cmd4 = 'python {0} -i {1} -o {2} -f {3} -s {4} -l {5] -lf {6}'.format(remove_bad_seqs, fasta_file, clean_path,
+        cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s {4} -l {5] -lf {6}'.format(remove_bad_seqs, fasta_file, clean_path,
                                                                               frame, stops, length, logfile)
-        subprocess.call(cmd2, shell=True)
+        subprocess.call(cmd4, shell=True)
 
     # call cat all cleaned files into one file
     all_clean_path = os.path.join(gene_region_folder, '3cleaned')
@@ -75,14 +75,14 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         # infile, outpath, name, loop, v_loop_align, dna, aligner
         inpath, fname = os.path.split(infile)
         fname = name.replace(".fasta", "_aligned.fasta")
-        cmd = 'mafft {0} > {1}'.format(align_all, infile, aln_path, fname)
+        cmd = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, infile, aln_path, fname)
         subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
     else:
         align_all = os.path.join(script_folder, 'align_all_samples.py')
         infile = move_file
         inpath, fname = os.path.split(infile)
         fname = name.replace(".fasta", "_aligned.fasta")
-        cmd = 'mafft {0} > {1}'.format(align_all, infile, aln_path, fname)
+        cmd = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, infile, aln_path, fname)
         subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
 
 
