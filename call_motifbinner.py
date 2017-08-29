@@ -87,6 +87,6 @@ if __name__ == "__main__":
     outpath = args.outpath
     fwd_primer = args.fwd_primer
     cDNA_primer = args.cDNA_primer
-    logfile_path = args.logfile_path
+    logfile = args.logfile
 
-    main(logfile_path, inpath, outpath, fwd_primer, cDNA_primer)
+    main(inpath, outpath, fwd_primer, cDNA_primer, logfile)
