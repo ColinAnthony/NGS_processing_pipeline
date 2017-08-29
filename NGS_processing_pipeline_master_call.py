@@ -105,7 +105,7 @@ if __name__ == "__main__":
                         help='The fwd primer for these samples', required=True)
     parser.add_argument('-r', '--cDNA_primer', default=argparse.SUPPRESS, type=str,
                         help='The cDNA primer for these samples', required=True)
-    parser.add_argument('-f', '--frame', type=int,
+    parser.add_argument('-fr', '--frame', type=int,
                         help='The reading frame (1, 2 or 3)', default=1, required=False)
     parser.add_argument('-s', '--stops', default=False, action='store_true',
                         help='Remove sequences with stop codons?)', required=False)
