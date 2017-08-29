@@ -42,9 +42,9 @@ def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, cDNA_pri
           '--rev_primer_lens={6} ' \
           '--rev_primer_min_score={7} ' \
           '--fwd_pid_in_which_fragment={8} ' \
-          '--rev_pid_in_which_fragment={} ' \
-          '--output_dir={} ' \
-          '--base_for_names={} ' \
+          '--rev_pid_in_which_fragment={9} ' \
+          '--output_dir={10} ' \
+          '--base_for_names={11} ' \
           '--ncpu=3 ' \
           '--min_read_length=290 ' \
           '--overlapping'.format(fwd_read, fwd_primer, fwd_primer_lens, fwd_primer_score, rev_read, cDNA_primer,
@@ -60,12 +60,10 @@ def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, cDNA_pri
 def main(inpath, outpath, fwd_primer, cDNA_primer, logfile):
     print("calling Motifbinner")
     search = os.path.join(inpath, '*R1.fastq')
-    print(search)
     for file in glob(search):
         read1 = file
         read2 = file.replace("R1.fastq", "R2.fastq")
-        name_prefix = file.replace("R1.fastq", "")
-        print(read1, '\n', read2, '\n', name_prefix)
+        name_prefix = file.replace("_R1.fastq", "")
         run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix)
 
 
