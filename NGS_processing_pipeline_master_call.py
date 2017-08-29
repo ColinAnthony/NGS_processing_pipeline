@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 from __future__ import print_function
 from __future__ import division
 import os
@@ -94,18 +94,18 @@ if __name__ == "__main__":
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('-p', '--path', default=argparse.SUPPRESS, type=str,
-                        help='The path where the folders will be created', required=True)
+                        help='The path where you created the folders', required=True)
     parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=str,
                         help='the name of the participant', required=True)
     parser.add_argument('-g', '--gene_region', default=argparse.SUPPRESS, type=str,
                         help='the genomic region being sequenced', required=True)
-    parser.add_argument('-f', '--script_folder', default=argparse.SUPPRESS, type=str,
+    parser.add_argument('-sf', '--script_folder', default=argparse.SUPPRESS, type=str,
                         help='the path to the folder containing the pipeline scripts', required=True)
     parser.add_argument('-f', '--fwd_primer', default=argparse.SUPPRESS, type=str,
                         help='The fwd primer for these samples', required=True)
     parser.add_argument('-r', '--cDNA_primer', default=argparse.SUPPRESS, type=str,
                         help='The cDNA primer for these samples', required=True)
-    parser.add_argument('-f', '--frame', type=int,
+    parser.add_argument('-fr', '--frame', type=int,
                         help='The reading frame (1, 2 or 3)', default=1, required=False)
     parser.add_argument('-s', '--stops', default=False, action='store_true',
                         help='Remove sequences with stop codons?)', required=False)

@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/NGS_post_PID_bin_cleanup.iml" filepath="$PROJECT_DIR$/.idea/NGS_post_PID_bin_cleanup.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../NGS_processing_pipeline/.idea/NGS_processing_pipeline.iml" filepath="$PROJECT_DIR$/../NGS_processing_pipeline/.idea/NGS_processing_pipeline.iml" />
     </modules>
   </component>
 </project>
