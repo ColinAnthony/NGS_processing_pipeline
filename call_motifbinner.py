@@ -46,7 +46,7 @@ def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_prim
     fwd_pid = 'NULL'
     rev_pid_fragment = 2
     cmd = 'MotifBinner2.R --fwd_file={0} ' \
-          '--fwd_primer_seq ={1} ' \
+          '--fwd_primer_seq={1} ' \
           '--fwd_primer_lens={2} ' \
           '--fwd_primer_min_score={3} ' \
           '--rev_file={4} ' \
