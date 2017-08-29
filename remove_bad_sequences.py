@@ -125,13 +125,12 @@ def length_check(d):
     return n_d, bad_d, short
 
 
-def main(infile, outp, frame, stops, length):
+def main(infile, outp, frame, stops, length, logfile):
     print('')
     print(infile)
 
     # set outfile names
     n = infile.split('.')[:-1]
-    log = n + '_cleanup.log'
     out_gd = n + '_clean.fa'
     out_bd = n + '_dirty.fa'
     outfile_good = os.path.join(outp, out_gd)
@@ -193,8 +192,8 @@ def main(infile, outp, frame, stops, length):
         percent_short = None
     percent_kept = round((kept / inseq_no) * 100, 2)
     percent_tot_rem = round((removed / inseq_no) * 100, 2)
-    with open(log, 'a') as handle:
-        handle.write("File = {}\n".format(infile))
+    with open(logfile, 'a') as handle:
+        handle.write("\n{0}\nFile = {1}\n".format(infile, "-"*40))
         handle.write("Number of input sequences                    = {0}          \n".format(inseq_no))
         handle.write("Number of sequences with degenerate bases    = {0} - ({1} %)\n".format(degen_no, percent_degen))
         if stops:
@@ -209,7 +208,7 @@ def main(infile, outp, frame, stops, length):
         handle.write("\n")
 
     print("Sequences kept = {0} - ({1} %)".format(kept, percent_kept))
-    print("--------------------------------------------\n")
+    print("-"*40 + "\n")
 
 
 if __name__ == "__main__":
@@ -226,6 +225,8 @@ if __name__ == "__main__":
                         help='Remove sequences with stop codons?)', required=False)
     parser.add_argument('-l', '--length', type=int,
                         help='The minimum read length)', required=False)
+    parser.add_argument('-lf', '--logfile', default=argparse.SUPPRESS, type=str,
+                        help='The path and name of the log file', required=True)
 
 
     args = parser.parse_args()
@@ -234,6 +235,7 @@ if __name__ == "__main__":
     frame = args.frame
     stops = args.stops
     length = args.length
+    logfile_path = args.logfile_path
 
 
-    main(infile, outpath, frame, stops, length)
+    main(infile, outpath, frame, stops, length, logfile_path)
