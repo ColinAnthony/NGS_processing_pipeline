@@ -10,7 +10,7 @@ import collections
 from Bio import SeqIO
 
 
-__author__ = 'colin.anthony001@gmail.com'
+__author__ = 'Colin Anthony'
 
 
 def fasta_to_dct_rev(fn):

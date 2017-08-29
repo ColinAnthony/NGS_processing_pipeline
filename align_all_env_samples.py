@@ -10,7 +10,8 @@ import sys
 import collections
 import regex
 from Bio import SeqIO
-from pprint import pprint
+
+
 __author__ = 'Colin Anthony'
 
 
