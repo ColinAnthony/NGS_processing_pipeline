@@ -45,7 +45,8 @@ def main(your_path, gene_region, fnames):
                 make_folder = os.path.join(second_level_dir, folder)
                 if not os.path.exists(make_folder):
                     os.makedirs(make_folder)
-    print("Done")
+
+    print("Folders have been created")
 
 
 if __name__ == "__main__":
