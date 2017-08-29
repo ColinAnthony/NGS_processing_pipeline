@@ -28,7 +28,6 @@ def get_primer_lens_score(primer):
         print("could not find primer ID in primer")
         sys.exit()
     total = len(primer)
-    print(total)
 
     if non_Ns < 0:
         print("Error in primer {}".format(primer))
