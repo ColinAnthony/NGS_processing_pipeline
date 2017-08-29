@@ -23,7 +23,8 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     inpath = os.path.join(gene_region_folder, '1raw')
     cons_outpath = os.path.join(gene_region_folder, '2consensus')
     motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
-    cmd2 = 'python3 {0} -p {1} -n {2} -g {3}'.format(motifbinner, logfile, inpath, cons_outpath, fwd_primer, cDNA_primer)
+    cmd2 = 'python3 {0} -i {1} -o {2} -f {3} -r {4} -l {5}'.format(motifbinner, inpath, cons_outpath, fwd_primer,
+                                                     cDNA_primer, logfile)
     subprocess.call(cmd2, shell=True)
 
     # # copy data from nested binned folders into 2consensus folder
