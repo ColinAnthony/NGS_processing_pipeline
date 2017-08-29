@@ -29,7 +29,7 @@ def get_primer_lens_score(primer):
         sys.exit()
     total = len(primer)
     print(total)
-    non_Ns = total - count_Ns - 1
+
     if non_Ns < 0:
         print("Error in primer {}".format(primer))
     primer_lens = '1,' + str(count_Ns - 1) + "," + str(non_Ns)
