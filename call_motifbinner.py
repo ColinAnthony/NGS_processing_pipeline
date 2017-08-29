@@ -14,8 +14,9 @@ __author__ = 'Colin Anthony'
 
 def get_primer_lens_score(primer):
     count_Ns = 0
+
     bases = ['A', 'C', 'G', 'T']
-    for base in primer:
+    for base in str(primer):
         if base not in bases:
             count_Ns += 1
     if count_Ns == 0:
