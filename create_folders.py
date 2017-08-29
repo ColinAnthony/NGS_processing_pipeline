@@ -45,6 +45,7 @@ def main(your_path, gene_region, fnames):
                 make_folder = os.path.join(second_level_dir, folder)
                 if not os.path.exists(make_folder):
                     os.makedirs(make_folder)
+    print("Done")
 
 
 if __name__ == "__main__":
@@ -55,7 +56,7 @@ if __name__ == "__main__":
                         help='The path where the folders will be created', required=True)
     parser.add_argument('-g', '--gene_region', default=argparse.SUPPRESS, type=str,
                         help='the genomic region being sequenced', required=True)
-    parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=list,
+    parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=str, nargs='+',
                         help='the name of the participant', required=True)
 
     args = parser.parse_args()

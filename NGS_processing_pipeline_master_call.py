@@ -10,7 +10,7 @@ from glob import glob
 __author__ = 'Colin Anthony'
 
 
-def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length):
+def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope):
 
     # initialize the log file
     main_path = os.path.join(path, name)
@@ -69,12 +69,21 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     os.rename(all_cleaned_outname, move_file)
 
     # call align all samples
-    align_all = os.path.join(script_folder, 'align_all_samples.py')
-    infile = move_file
-    inpath, fname = os.path.split(infile)
-    fname = name.replace(".fasta", "_aligned.fasta")
-    cmd = 'mafft {0} > {1}'.format(align_all, infile, aln_path, fname)
-    subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
+    if envelope:
+        align_all = os.path.join(script_folder, 'align_all_env_samples.py')
+        infile = move_file
+        # infile, outpath, name, loop, v_loop_align, dna, aligner
+        inpath, fname = os.path.split(infile)
+        fname = name.replace(".fasta", "_aligned.fasta")
+        cmd = 'mafft {0} > {1}'.format(align_all, infile, aln_path, fname)
+        subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
+    else:
+        align_all = os.path.join(script_folder, 'align_all_samples.py')
+        infile = move_file
+        inpath, fname = os.path.split(infile)
+        fname = name.replace(".fasta", "_aligned.fasta")
+        cmd = 'mafft {0} > {1}'.format(align_all, infile, aln_path, fname)
+        subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
 
 
 if __name__ == "__main__":
@@ -102,6 +111,8 @@ if __name__ == "__main__":
                         help='Remove sequences with stop codons?)', required=False)
     parser.add_argument('-l', '--length', type=int,
                         help='The minimum read length)', required=False)
+    parser.add_argument('-e', '--envelope', default=False, action='store_true',
+                        help='are these sequences from HIV envelope?)', required=False)
 
     args = parser.parse_args()
     path = args.path
@@ -113,5 +124,6 @@ if __name__ == "__main__":
     frame = args.frame
     stops = args.stops
     length = args.length
+    envelope = args.envelope
 
-    main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length)
+    main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope)
