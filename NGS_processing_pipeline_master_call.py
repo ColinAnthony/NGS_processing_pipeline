@@ -87,9 +87,9 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Call make_folders script BEFORE running this script                  '
-                                                 'Then copy your data into the ~/1raw/ folder                          '
-                                                 'This script runs the NGS data processing pipeline.                   '
+    parser = argparse.ArgumentParser(description='Call make_folders script BEFORE running this script '
+                                                 'Then copy your data into the /1raw/ folder'
+                                                 'This script runs the NGS data processing pipeline. '
                                                  'Run this script using screen or nohup',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
