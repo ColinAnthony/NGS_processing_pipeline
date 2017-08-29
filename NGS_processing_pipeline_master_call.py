@@ -35,7 +35,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         os.rename(cons_file, new_name)
 
     # convert to fasta
-    fastq_path = os.path.join(gene_region_folder, '2cons')
+    fastq_path = os.path.join(gene_region_folder, '2consensus')
     for fastq in glob(fastq_path + '*.fastq'):
         fasta = fastq.replace("fastq", "fasta")
         cmd3 = 'seqmagick convert {0} {1}'.format(fastq, fasta)
