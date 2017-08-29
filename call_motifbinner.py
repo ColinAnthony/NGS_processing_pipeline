@@ -58,12 +58,12 @@ def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, cDNA_pri
 
 
 def main(logfile, inpath, outpath, fwd_primer, cDNA_primer):
-
+    print("calling Motifbinner")
     for file in glob(inpath + '*R1.fastq'):
         read1 = file
         read2 = file.replace("R1.fastq", "R2.fastq")
         name_prefix = file.replace("R1.fastq", "")
-
+        print(read1, '\n', read2, '\n', name_prefix)
         run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix)
 
 
