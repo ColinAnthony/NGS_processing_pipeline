@@ -49,7 +49,7 @@ def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, cDNA_pri
           '--min_read_length=290 ' \
           '--overlapping'.format(fwd_read, fwd_primer, fwd_primer_lens, fwd_primer_score, rev_read, cDNA_primer,
                                  cDNA_primer_lens, cDNA_primer_score, fwd_pid, rev_pid_fragment, outpath, name_prefix)
-
+    print(cmd)
     if os.path.exists(logfile):
         with open(logfile, 'a') as handle:
             handle.write("MotifBinner2 commands:\n{}".format(cmd))
