@@ -13,9 +13,11 @@ __author__ = 'Colin Anthony'
 
 
 def get_primer_lens_score(primer):
+
     count_Ns = 0
 
     bases = ['A', 'C', 'G', 'T']
+    print(primer)
     for base in str(primer):
         if base not in bases:
             count_Ns += 1
@@ -31,11 +33,12 @@ def get_primer_lens_score(primer):
     return primer_lens, primer_score
 
 
-def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix):
+def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
+                    cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix):
+
     fwd_read = os.path.join(inpath, read1)
-    fwd_primer_lens, fwd_primer_score = get_primer_lens_score(fwd_primer)
     rev_read = os.path.join(inpath, read2)
-    cDNA_primer_lens, cDNA_primer_score  = get_primer_lens_score(cDNA_primer)
+
     fwd_pid = 'NULL'
     rev_pid_fragment = 2
     cmd = 'MotifBinner2.R --fwd_file={0} ' \
@@ -67,11 +70,14 @@ def main(inpath, outpath, fwd_primer, cDNA_primer, logfile):
     search = os.path.join(inpath, '*R1.fastq')
     fwd_primer = fwd_primer.upper
     cDNA_primer = cDNA_primer.upper()
+    fwd_primer_lens, fwd_primer_score = get_primer_lens_score(fwd_primer)
+    cDNA_primer_lens, cDNA_primer_score = get_primer_lens_score(cDNA_primer)
     for file in glob(search):
         read1 = file
         read2 = file.replace("R1.fastq", "R2.fastq")
         name_prefix = file.replace("_R1.fastq", "")
-        run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix)
+        run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
+                        cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix)
 
 
 if __name__ == "__main__":
