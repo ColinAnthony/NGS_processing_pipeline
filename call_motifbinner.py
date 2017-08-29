@@ -15,20 +15,25 @@ __author__ = 'Colin Anthony'
 def get_primer_lens_score(primer):
 
     count_Ns = 0
-
+    non_Ns = 0
     bases = ['A', 'C', 'G', 'T']
-    print(primer)
+
     for base in str(primer):
         if base not in bases:
+            print(base)
             count_Ns += 1
+        else:
+            non_Ns += 1
+
     if count_Ns == 0:
         print("could not find primer ID in primer")
         sys.exit()
     total = len(primer)
+    print(total)
     non_Ns = total - count_Ns - 1
     if non_Ns < 0:
         print("Error in primer {}".format(primer))
-    primer_lens = '1' + str(count_Ns) + "," + str(non_Ns)
+    primer_lens = '1,' + str(count_Ns) + "," + str(non_Ns)
     primer_score = str(count_Ns + int((non_Ns * 0.8)))
     return primer_lens, primer_score
 
