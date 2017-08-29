@@ -13,7 +13,11 @@ __author__ = 'Colin Anthony'
 
 
 def get_primer_lens_score(primer):
-    count_Ns = primer.count("N")
+    count_Ns = 0
+    bases = ['A', 'C', 'G', 'T']
+    for base in primer:
+        if base not in bases:
+            count_Ns += 1
     if count_Ns == 0:
         print("could not find primer ID in primer")
         sys.exit()
@@ -54,12 +58,14 @@ def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, cDNA_pri
         with open(logfile, 'a') as handle:
             handle.write("MotifBinner2 commands:\n{}".format(cmd))
 
-    subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
+    subprocess.call(cmd, shell=True)
 
 
 def main(inpath, outpath, fwd_primer, cDNA_primer, logfile):
     print("calling Motifbinner")
     search = os.path.join(inpath, '*R1.fastq')
+    fwd_primer = fwd_primer.upper
+    cDNA_primer = cDNA_primer.upper()
     for file in glob(search):
         read1 = file
         read2 = file.replace("R1.fastq", "R2.fastq")
