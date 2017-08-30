@@ -57,8 +57,9 @@ def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_prim
           '--output_dir={10} ' \
           '--base_for_names={11} ' \
           '--ncpu=3 ' \
-          '--min_read_length=290 ' \
-          '--overlapping'.format(fwd_read, fwd_primer, fwd_primer_lens, fwd_primer_score, rev_read, cDNA_primer,
+          '--min_read_length=290 '\
+          '--merged_read_length=240 '\
+          '--overlapping '.format(fwd_read, fwd_primer, fwd_primer_lens, fwd_primer_score, rev_read, cDNA_primer,
                                  cDNA_primer_lens, cDNA_primer_score, fwd_pid, rev_pid_fragment, outpath, name_prefix)
     print(cmd)
     if os.path.exists(logfile):

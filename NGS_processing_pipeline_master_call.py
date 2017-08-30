@@ -15,7 +15,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     # initialize the log file
     logfile = os.path.join(path, (gene_region + "_logfile.txt"))
     with open(logfile, 'w') as handle:
-        handle.write("Initializing log file \n")
+        handle.write("Initializing log file for {0}_{1}:\n".format(name, gene_region))
 
     # call MotifBinner
     inpath = os.path.join(path, '1raw')
