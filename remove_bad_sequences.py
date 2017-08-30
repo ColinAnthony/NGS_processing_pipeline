@@ -150,7 +150,7 @@ def main(infile, outp, frame, stops, length, logfile):
             print("Warning, no reading frame was specified, using reading frame 1 as default")
             frame = 0
         else:
-            frame -= 1
+            frame = int(frame) - 1
         cln2_d, bad_d2, stops_no = stops_remove(cln1_d, frame)
     else:
         cln2_d = cln1_d
@@ -223,7 +223,7 @@ if __name__ == "__main__":
                         help='The input .fastq file', required=True)
     parser.add_argument('-o', '--outpath', type=str,
                         help='The path to where the output files will be created', required=True)
-    parser.add_argument('-f', '--frame', type=int,
+    parser.add_argument('-f', '--frame',
                         help='The reading frame (1, 2 or 3)', required=False)
     parser.add_argument('-s', '--stops', default=False, action='store_true',
                         help='Remove sequences with stop codons?)', required=False)
