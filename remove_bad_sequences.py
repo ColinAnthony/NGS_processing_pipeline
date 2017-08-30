@@ -193,18 +193,19 @@ def main(infile, outp, frame, stops, length, logfile):
     percent_kept = round((kept / inseq_no) * 100, 2)
     percent_tot_rem = round((removed / inseq_no) * 100, 2)
     with open(logfile, 'a') as handle:
-        handle.write("\n{0}\nFile                                  = {1}          \n".format(infile, "-"*40))
-        handle.write("Number of input sequences                    = {0}          \n".format(inseq_no))
-        handle.write("Number of sequences with degenerate bases    = {0} - ({1} %)\n".format(degen_no, percent_degen))
+        handle.write("\n{0}\nFile:                             = {1}          \n".format(("-"*40), infile))
+        handle.write("Number of input sequences                = {0}          \n".format(inseq_no))
+        handle.write("Number of sequences with non ACGT bases  = {0} - ({1} %)\n".format(degen_no, percent_degen))
         if stops:
             handle.write(" of sequences with stop codons           = {0} - ({1} %)\n".format(stops_no, percent_stop))
         if length is not None:
             handle.write("Number of short sequences                = {0} - ({1} %)\n".format(short_no, percent_short))
-        handle.write("Total number of sequences removed            = {0} - ({1} %)\n".format(removed, percent_tot_rem))
-        handle.write("Total number of sequences kept               = {0} - ({1} %)\n".format(kept, percent_kept))
+        handle.write("Total number of sequences removed        = {0} - ({1} %)\n".format(removed, percent_tot_rem))
+        handle.write("Total number of sequences kept           = {0} - ({1} %)\n".format(kept, percent_kept))
         handle.write("\n")
-        handle.write("Note, any frame shift errors not introducing stop codons will remain\n")
-        handle.write("\n")
+        if stops:
+            handle.write("Note, any frame shift errors not introducing stop codons will remain\n")
+            handle.write("\n")
 
     print("Sequences kept = {0} - ({1} %)".format(kept, percent_kept))
     print("-"*40 + "\n")
