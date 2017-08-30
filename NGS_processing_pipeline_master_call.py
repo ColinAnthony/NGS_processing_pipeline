@@ -116,7 +116,9 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     # call funcion to calculate sequencing stats
     call_stats_calc = os.path.join(script_folder, 'ngs_stats_calculator.py')
     stats_outfname = (name + gene_region + '_sequencing_stats.csv')
+    print("name", stats_outfname)
     stats_outpath = os.path.join(script_folder, stats_outfname)
+    print("path", stats_outpath)
     cmd6 = 'python3 {0} -i {1} -o {2}'.format(call_stats_calc, path, stats_outpath)
     subprocess.call(cmd6, shell=True)
 

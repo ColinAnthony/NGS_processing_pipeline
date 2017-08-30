@@ -36,7 +36,7 @@ def fastq_to_dct(fn):
     return dct
 
 
-def main(inpath, outpath):
+def main(inpath, outfile):
     print("Calculating sequencing depth and yield statistics")
 
     # initialize master dict to return
@@ -100,7 +100,8 @@ def main(inpath, outpath):
         stats_d[name].append(total_clean)
 
     # write the stats to the log file
-    with open(outpath, 'w') as handle:
+    with open(outfile, 'w') as handle:
+        print("writing to file:", outfile)
         headers_to_write = ",".join(stats_d["headers"])
         handle.write(headers_to_write + "\n")
         del stats_d["headers"]
