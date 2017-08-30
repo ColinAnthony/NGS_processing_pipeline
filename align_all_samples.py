@@ -21,9 +21,8 @@ def fasta_to_dct_rev(fn):
 
     dct = collections.defaultdict(list)
     for seq_record in SeqIO.parse(open(fn), "fasta"):
-        print(str(seq_record.seq))
-        dct[str(seq_record.seq).replace("-", "").upper()].append([seq_record.description.replace(" ", "_")])
-    print("indict", dct)
+        dct[str(seq_record.seq).upper()].append(seq_record.description.replace(" ", "_"))
+
     return dct
 
 
@@ -35,22 +34,20 @@ def align_dna(dna_dict, tmp_file):
     :return: (dict) dictionary of aligned sequences for all conserved regions
     '''
     # write temp outfile
-    print(dna_dict.keys())
-
     tmp_file_in = os.path.join(tmp_file + '.fasta')
     tmp_file_out = os.path.join(tmp_file + '.aln')
-    print(tmp_file_in, tmp_file_out)
     for seq, name_list in dna_dict.items():
         print('first name:', name_list[0])
         with open(tmp_file_in, 'a') as handle1:
-            handle1.write('>' + name_list[0] + '\n' + str(seq) + '\n')
+            handle1.write('>' + str(name_list[0]) + '\n' + str(seq) + '\n')
 
     cmd = 'mafft {0} > {1}'.format(tmp_file_in, tmp_file_out)
     subprocess.call(cmd, shell=True) #, stdout=DEVNULL, stderr=DEVNULL)
     print("Aligning the sequences, please wait")
 
+    # import the aligned file
     aln_seqs = fasta_to_dct_rev(tmp_file_out)
-    print(aln_seqs)
+
     # remove the temp files
     os.remove(tmp_file_in)
     os.remove(tmp_file_out)
@@ -66,16 +63,17 @@ def align_dna(dna_dict, tmp_file):
 
 
 def main(infile, outpath, name):
-    print("aligning: ", infile)
+
     outfile = os.path.join(outpath, name)
     tmp_path = tempfile.gettempdir()
     tmp_file = os.path.join(tmp_path, name)
 
     # import sequences into dictionary
     d = fasta_to_dct_rev(infile)
+
     # run mafft alignment on sequences
     align_d = align_dna(d, tmp_file)
-    print(align_d)
+
     # overwrite existing file if present
     with open(outfile, 'w') as handle:
         handle.write('')
