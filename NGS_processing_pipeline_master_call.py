@@ -13,78 +13,76 @@ __author__ = 'Colin Anthony'
 def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope):
 
     # initialize the log file
-    main_path = os.path.join(path, name)
-    logfile = os.path.join(main_path, "logfile.txt")
+    logfile = os.path.join(path, (gene_region + "_logfile.txt"))
     with open(logfile, 'w') as handle:
         handle.write("Initializing log file \n")
 
     # call MotifBinner
-    gene_region_folder = os.path.join(main_path, gene_region)
-    inpath = os.path.join(gene_region_folder, '1raw')
-    cons_outpath = os.path.join(gene_region_folder, '2consensus')
+    inpath = os.path.join(path, '1raw')
+    cons_outpath = os.path.join(path, '2consensus', 'binned')
     motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
     cmd2 = 'python3 {0} -i {1} -o {2} -f {3} -r {4} -l {5}'.format(motifbinner, inpath, cons_outpath, fwd_primer,
-                                                     cDNA_primer, logfile)
+                                                                   cDNA_primer, logfile)
     subprocess.call(cmd2, shell=True)
 
-    # # copy data from nested binned folders into 2consensus folder
-    # path_to_consensus = '2consensus/*/n028_cons_seqLength/*kept_cons_seqLength.fastq/'
-    # desired_path = cons_outpath
-    # for cons_file in glob(path_to_consensus):
-    #     oldpath, oldname = os.path.split(cons_file)
-    #     new_name = os.path.join(desired_path, oldname)
-    #     os.rename(cons_file, new_name)
-    #
-    # # convert to fasta
-    # fastq_path = os.path.join(gene_region_folder, '2consensus')
-    # for fastq in glob(fastq_path + '*.fastq'):
-    #     fasta = fastq.replace("fastq", "fasta")
-    #     cmd3 = 'seqmagick convert {0} {1}'.format(fastq, fasta)
-    #     subprocess.call(cmd3, shell=True)
-    #
-    # # remove the fastq files
-    # remove_fastq = os.path.join(fastq_path, '*.fastq')
-    # os.remove(remove_fastq)
-    #
-    # # call remove bad sequences
-    # remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
-    # clean_path = os.path.join(gene_region_folder, '3cleaned')
-    # for fasta_file in glob(fastq_path + '*.fasta'):
-    #     cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s {4} -l {5] -lf {6}'.format(remove_bad_seqs, fasta_file, clean_path,
-    #                                                                           frame, stops, length, logfile)
-    #     subprocess.call(cmd4, shell=True)
-    #
-    # # call cat all cleaned files into one file
-    # all_clean_path = os.path.join(gene_region_folder, '3cleaned')
-    # clean_name = name + "_" + gene_region + ".fasta"
-    # all_cleaned_outname = os.path.join(all_clean_path, clean_name)
-    # with open(all_cleaned_outname, 'w') as outfile:
-    #     for fasta_file in glob(clean_path + '*clean.fa'):
-    #         with open(fasta_file) as infile:
-    #             for line in infile:
-    #                 outfile.write(line)
-    #
-    # # move concatenated file to 4aligned
-    # aln_path = os.path.join(gene_region_folder, '4aligned')
-    # move_file = os.path.join(aln_path, clean_name)
-    # os.rename(all_cleaned_outname, move_file)
-    #
-    # # call align all samples
-    # if envelope:
-    #     align_all = os.path.join(script_folder, 'align_all_env_samples.py')
-    #     infile = move_file
-    #     # infile, outpath, name, loop, v_loop_align, dna, aligner
-    #     inpath, fname = os.path.split(infile)
-    #     fname = name.replace(".fasta", "_aligned.fasta")
-    #     cmd = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, infile, aln_path, fname)
-    #     subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
-    # else:
-    #     align_all = os.path.join(script_folder, 'align_all_samples.py')
-    #     infile = move_file
-    #     inpath, fname = os.path.split(infile)
-    #     fname = name.replace(".fasta", "_aligned.fasta")
-    #     cmd = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, infile, aln_path, fname)
-    #     subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
+    # copy data from nested binned folders into 2consensus folder
+    path_to_consensus = os.path.join(path, '2consensus/binned/*/n028_cons_seqLength/*kept_cons_seqLength.fastq')
+    desired_path = cons_outpath
+    for cons_file in glob(path_to_consensus):
+        oldpath, oldname = os.path.split(cons_file)
+        new_name = os.path.join(desired_path, oldname)
+        os.rename(cons_file, new_name)
+
+    # convert to fasta
+    fastq_path = os.path.join(path, '2consensus')
+    for fastq in glob(fastq_path + '*.fastq'):
+        fasta = fastq.replace("fastq", "fasta")
+        cmd3 = 'seqmagick convert {0} {1}'.format(fastq, fasta)
+        subprocess.call(cmd3, shell=True)
+
+    # remove the fastq files
+    remove_fastq = os.path.join(fastq_path, '*.fastq')
+    os.remove(remove_fastq)
+
+    # call remove bad sequences
+    remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
+    clean_path = os.path.join(path, '3cleaned')
+    for fasta_file in glob(fastq_path + '*.fasta'):
+        cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s {4} -l {5] -lf {6}'.format(remove_bad_seqs, fasta_file, clean_path,
+                                                                               frame, stops, length, logfile)
+        subprocess.call(cmd4, shell=True)
+
+    # call cat all cleaned files into one file
+    all_clean_path = os.path.join(path, '3cleaned')
+    clean_name = name + "_" + gene_region + "_all.fasta"
+    all_cleaned_outname = os.path.join(all_clean_path, clean_name)
+    with open(all_cleaned_outname, 'w') as outfile:
+        for fasta_file in glob(clean_path + '*clean.fa'):
+            with open(fasta_file) as infile:
+                for line in infile:
+                    outfile.write(line)
+
+    # move concatenated file to 4aligned
+    aln_path = os.path.join(path, '4aligned')
+    move_file = os.path.join(aln_path, clean_name)
+    os.rename(all_cleaned_outname, move_file)
+
+    # call align all samples
+    if envelope:
+        align_all = os.path.join(script_folder, 'align_all_env_samples.py')
+        infile = move_file
+        # infile, outpath, name, loop, v_loop_align, dna, aligner
+        inpath, fname = os.path.split(infile)
+        fname = fname.replace(".fasta", "_aligned.fasta")
+        cmd = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, infile, aln_path, fname)
+        subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
+    else:
+        align_all = os.path.join(script_folder, 'align_all_samples.py')
+        infile = move_file
+        inpath, fname = os.path.split(infile)
+        fname = fname.replace(".fasta", "_aligned.fasta")
+        cmd = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, infile, aln_path, fname)
+        subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
 
 
 if __name__ == "__main__":
@@ -95,9 +93,9 @@ if __name__ == "__main__":
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('-p', '--path', default=argparse.SUPPRESS, type=str,
-                        help='The path where you created the folders', required=True)
+                        help='The path to the gene region subfolder (GAG1/ or C1C2/ or POL1/...)', required=True)
     parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=str,
-                        help='the name of the participant', required=True)
+                        help='the prefix name of your outfile', required=True)
     parser.add_argument('-g', '--gene_region', default=argparse.SUPPRESS, type=str,
                         help='the genomic region being sequenced', required=True)
     parser.add_argument('-sf', '--script_folder', default=argparse.SUPPRESS, type=str,
@@ -107,7 +105,7 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--cDNA_primer', default=argparse.SUPPRESS, type=str,
                         help='The cDNA primer for these samples', required=True)
     parser.add_argument('-fr', '--frame', type=int,
-                        help='The reading frame (1, 2 or 3)', default=1, required=False)
+                        help='The reading frame (1, 2 or 3)', required=False)
     parser.add_argument('-s', '--stops', default=False, action='store_true',
                         help='Remove sequences with stop codons?)', required=False)
     parser.add_argument('-l', '--length', type=int,
