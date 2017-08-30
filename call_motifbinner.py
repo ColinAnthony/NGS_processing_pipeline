@@ -67,7 +67,7 @@ def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_prim
         with open(logfile, 'a') as handle:
             handle.write("MotifBinner2 commands:\n{0}\n".format(cmd))
 
-    # subprocess.call(cmd, shell=True)
+    subprocess.call(cmd, shell=True)
 
 
 def main(inpath, outpath, fwd_primer, cDNA_primer, logfile):
