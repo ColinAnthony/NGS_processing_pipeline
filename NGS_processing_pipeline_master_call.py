@@ -2,6 +2,7 @@
 from __future__ import print_function
 from __future__ import division
 import os
+from shutil import copyfile
 import argparse
 import subprocess
 from subprocess import DEVNULL
@@ -32,7 +33,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     for cons_file in glob(path_to_consensus):
         old_path, old_name = os.path.split(cons_file)
         new_name = os.path.join(fastq_path, old_name)
-        os.rename(cons_file, new_name)
+        copyfile(cons_file, new_name)
 
     # convert to fasta
     print("Converting fastq to fasta")
