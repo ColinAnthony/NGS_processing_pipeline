@@ -193,7 +193,7 @@ def main(infile, outp, frame, stops, length, logfile):
     percent_kept = round((kept / inseq_no) * 100, 2)
     percent_tot_rem = round((removed / inseq_no) * 100, 2)
     with open(logfile, 'a') as handle:
-        handle.write("\n{0}\nFile:                             = {1}          \n".format(("-"*40), infile))
+        handle.write("\n{0}\nFile:                                    = {1}          \n".format(("-"*40), infile))
         handle.write("Number of input sequences                = {0}          \n".format(inseq_no))
         handle.write("Number of sequences with non ACGT bases  = {0} - ({1} %)\n".format(degen_no, percent_degen))
         if stops:
