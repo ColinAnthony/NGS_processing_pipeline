@@ -41,8 +41,6 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     search_path = os.path.join(fastq_path, '*.fastq')
     for fastq in glob(search_path):
         fasta = fastq.replace("fastq", "fasta")
-        print(fastq)
-        print(fasta)
         cmd3 = 'seqmagick convert {0} {1}'.format(fastq, fasta)
         subprocess.call(cmd3, shell=True)
 
@@ -50,7 +48,6 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     print("Removing the copied fastq files")
     remove_fastq = search_path
     for old_fastq_copy in glob(remove_fastq):
-        print(old_fastq_copy)
         os.remove(old_fastq_copy)
 
     # call remove bad sequences
@@ -58,7 +55,9 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
     clean_path = os.path.join(path, '3cleaned')
     fasta_path = os.path.join(fastq_path, '*.fasta')
+
     for fasta_file in glob(fasta_path):
+        print(remove_bad_seqs, fasta_file, clean_path, frame, stops, length, logfile)
         cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s {4} -l {5] -lf {6}'.format(remove_bad_seqs, fasta_file, clean_path,
                                                                                frame, stops, length, logfile)
         subprocess.call(cmd4, shell=True)
