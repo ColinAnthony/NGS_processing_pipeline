@@ -35,9 +35,9 @@ def align_dna(DNA_dict, tmp_file):
     :return: (dict) dictionary of aligned sequences for all conserved regions
     '''
     # write temp outfile
-    tmp_file_in = tmp_file + '.fas'
-    tmp_file_out = tmp_file + '.aln'
-
+    tmp_file_in = os.path.join(tmp_file + '.fas')
+    tmp_file_out = os.path.join(tmp_file + '.aln')
+    print(tmp_file_in, tmp_file_out)
     for seq, name_list in DNA_dict.items():
         with open(tmp_file_in, 'a') as handle1:
             handle1.write('>' + name_list[0] + '\n' + str(seq) + '\n')
@@ -46,9 +46,8 @@ def align_dna(DNA_dict, tmp_file):
     subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
     print("Aligning the sequences, please wait")
 
-    aln_seqs = collections.defaultdict()
     aln_seqs = fasta_to_dct_rev(tmp_file_out)
-
+    print(aln_seqs)
     # remove the temp files
     os.remove(tmp_file_in)
     os.remove(tmp_file_out)
@@ -74,17 +73,17 @@ def main(infile, outpath, name):
 
     # run mafft alignment on sequences
     align_d = align_dna(d, tmp_file)
-
+    print(align_d)
     # overwrite existing file if present
     with open(outfile, 'w') as handle:
         handle.write('')
 
     # write aligned sequences to file
-    with open(outfile, 'a') as handle:
+    with open(outfile, 'w') as handle:
         for seq, name_list in align_d.items():
-            for name in name_list:
-                out_name = '>' + name + '\n'
-                handle.write(out_name + seq)
+            for seq_name in name_list:
+                out_name = '>' + seq_name + '\n'
+                handle.write(out_name + seq + '\n')
 
     print("{} has been aligned".format(infile))
 
