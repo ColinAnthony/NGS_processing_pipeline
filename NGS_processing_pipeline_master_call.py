@@ -102,29 +102,32 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     # move concatenated file to 4aligned
     print("moving concatenated file to 4aligned folder")
     aln_path = os.path.join(path, '4aligned')
-    print("aln path", aln_path)
+    print("aln out path", aln_path)
     move_file = os.path.join(aln_path, clean_name)
     os.rename(all_cleaned_outname, move_file)
 
     # call alignment script
     print("Aligning the sequences")
     to_align = move_file
-    print("path to align file", to_align)
+    print("align infile", to_align)
     inpath, fname = os.path.split(to_align)
     fname = fname.replace(".fasta", "_aligned.fasta")
-    print("align file name", fname)
+    print("align outfile name", fname)
+    print("envelope", envelope)
     if envelope is not None:
         align_all = os.path.join(script_folder, 'align_all_env_samples.py')
 
         cmd5 = 'python3 {0}  -i {1} -o {2} -l {3}'.format(align_all, to_align, aln_path, fname, envelope)
     else:
         align_all = os.path.join(script_folder, 'align_all_samples.py')
+        print("running", align_all)
         cmd5 = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
 
     subprocess.call(cmd5, shell=True, stdout=DEVNULL, stderr=DEVNULL)
 
 
     # call funcion to calculate sequencing stats
+    print("Calculating alignment stats")
     call_stats_calc = os.path.join(script_folder, 'ngs_stats_calculator.py')
     stats_outfname = (name + "_" + gene_region + '_sequencing_stats.csv')
     print("name", stats_outfname)
