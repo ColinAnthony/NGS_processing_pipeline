@@ -79,7 +79,8 @@ def main(inpath, outpath, fwd_primer, cDNA_primer, logfile):
     for file in glob(search):
         read1 = file
         read2 = file.replace("R1.fastq", "R2.fastq")
-        name_prefix = file.replace("_R1.fastq", "")
+
+        name_prefix = os.path.split(file)[-1].replace("_R1.fastq", "")
         run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
                         cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix)
 
