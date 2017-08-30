@@ -21,26 +21,26 @@ def fasta_to_dct_rev(fn):
 
     dct = collections.defaultdict(list)
     for seq_record in SeqIO.parse(open(fn), "fasta"):
-        # TODO replace the list of lists, with a list of strings.
+        print(str(seq_record.seq))
         dct[str(seq_record.seq).replace("-", "").upper()].append([seq_record.description.replace(" ", "_")])
-    print("")
+    print("indict", dct)
     return dct
 
 
-def align_dna(DNA_dict, tmp_file):
+def align_dna(dna_dict, tmp_file):
     '''
     does a mafft multiple sequence alignment on a fasta file
-    :param DNA_dict (dict) dictionary containing the conserved regions f the sequence
+    :param dna_dict (dict) dictionary containing the conserved regions f the sequence
     :param tmp_file: (srt) path to temp folder
     :return: (dict) dictionary of aligned sequences for all conserved regions
     '''
     # write temp outfile
-    print(DNA_dict.keys())
+    print(dna_dict.keys())
 
     tmp_file_in = os.path.join(tmp_file + '.fasta')
     tmp_file_out = os.path.join(tmp_file + '.aln')
     print(tmp_file_in, tmp_file_out)
-    for seq, name_list in DNA_dict.items():
+    for seq, name_list in dna_dict.items():
         print('first name:', name_list[0])
         with open(tmp_file_in, 'a') as handle1:
             handle1.write('>' + name_list[0] + '\n' + str(seq) + '\n')
@@ -59,7 +59,7 @@ def align_dna(DNA_dict, tmp_file):
     new_aln_seqs = collections.defaultdict()
     for seq in aln_seqs.keys():
         lookup_sequence = seq.replace("-", "")
-        names_list = DNA_dict[lookup_sequence]
+        names_list = dna_dict[lookup_sequence]
         new_aln_seqs[seq] = names_list
 
     return new_aln_seqs
