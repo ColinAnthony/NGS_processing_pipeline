@@ -16,16 +16,16 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     # initialize the log file
     logfile = os.path.join(path, (gene_region + "_logfile.txt"))
-    # with open(logfile, 'w') as handle:
-    #     handle.write("Initializing log file for {0}_{1}:\n".format(name, gene_region))
-    #
-    # # run the call_MotifBinner script which will floop over fastq files in the target folder
-    # inpath = os.path.join(path, '1raw')
-    # cons_outpath = os.path.join(path, '2consensus', 'binned')
-    # motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
-    # cmd2 = 'python3 {0} -i {1} -o {2} -f {3} -r {4} -l {5}'.format(motifbinner, inpath, cons_outpath, fwd_primer,
-    #                                                                cDNA_primer, logfile)
-    # subprocess.call(cmd2, shell=True)
+    with open(logfile, 'w') as handle:
+        handle.write("Log File,{0}_{1}\n".format(name, gene_region))
+
+    # run the call_MotifBinner script which will floop over fastq files in the target folder
+    inpath = os.path.join(path, '1raw')
+    cons_outpath = os.path.join(path, '2consensus', 'binned')
+    motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
+    cmd2 = 'python3 {0} -i {1} -o {2} -f {3} -r {4} -l {5}'.format(motifbinner, inpath, cons_outpath, fwd_primer,
+                                                                   cDNA_primer, logfile)
+    subprocess.call(cmd2, shell=True)
 
     # copy data from nested binned folders into 2consensus folder
     print("Copy fastq files from nested folders to '2consensus' folder")
@@ -57,11 +57,27 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     fasta_path = os.path.join(fastq_path, '*.fasta')
 
     for fasta_file in glob(fasta_path):
-        print(remove_bad_seqs, fasta_file, clean_path, frame, stops, length, logfile)
-        cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s {4} -l {5} -lf {6}'.format(remove_bad_seqs, fasta_file, clean_path,
-                                                                               frame, stops, length, logfile)
+        if stops:
+            cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s {4} -l {5} -lf {6}'.format(remove_bad_seqs,
+                                                                                   fasta_file,
+                                                                                   clean_path,
+                                                                                   frame,
+                                                                                   stops,
+                                                                                   length,
+                                                                                   logfile)
+        else:
+            cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -l {4} -lf {5}'.format(remove_bad_seqs,
+                                                                            fasta_file,
+                                                                            clean_path,
+                                                                            frame,
+                                                                            length,
+                                                                            logfile)
+
         print(cmd4)
         subprocess.call(cmd4, shell=True)
+        if os.path.exists(logfile):
+            with open(logfile, 'a') as handle:
+                handle.write("\nremove_bad_sequences commands:\n{}\n".format(cmd4))
 
     # call cat all cleaned files into one file
     print("merging all cleaned fasta files into one file")
@@ -89,14 +105,22 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         # infile, outpath, name, loop, v_loop_align, dna, aligner
         inpath, fname = os.path.split(to_align)
         fname = fname.replace(".fasta", "_aligned.fasta")
-        cmd = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
-        subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
+        cmd5 = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
     else:
         align_all = os.path.join(script_folder, 'align_all_samples.py')
         inpath, fname = os.path.split(to_align)
         fname = fname.replace(".fasta", "_aligned.fasta")
-        cmd = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
-        subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
+        cmd5 = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
+
+    subprocess.call(cmd5, shell=True, stdout=DEVNULL, stderr=DEVNULL)
+
+
+    # call funcion to calculate sequencing stats
+    call_stats_calc = os.path.join(script_folder, 'ngs_stats_calculator.py')
+    stats_outfname = (name + gene_region + '_sequencing_stats.csv')
+    stats_outpath = os.path.join(script_folder, stats_outfname)
+    cmd6 = 'python3 {0} -i {1} -o {2}'.format(call_stats_calc, path, stats_outpath)
+    subprocess.call(cmd6, shell=True)
 
     print("The sample processing has completed")
 

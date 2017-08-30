@@ -37,7 +37,7 @@ def get_primer_lens_score(primer):
 
 
 def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
-                    cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix):
+                    cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix, counter):
 
     fwd_read = os.path.join(inpath, read1)
     rev_read = os.path.join(inpath, read2)
@@ -60,11 +60,12 @@ def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_prim
           '--min_read_length=290 '\
           '--merged_read_length=240 '\
           '--overlapping '.format(fwd_read, fwd_primer, fwd_primer_lens, fwd_primer_score, rev_read, cDNA_primer,
-                                 cDNA_primer_lens, cDNA_primer_score, fwd_pid, rev_pid_fragment, outpath, name_prefix)
-    print(cmd)
-    if os.path.exists(logfile):
+                                  cDNA_primer_lens, cDNA_primer_score, fwd_pid, rev_pid_fragment, outpath, name_prefix)
+
+    # only write to log file if this is the first iteration
+    if os.path.exists(logfile) and counter == 0:
         with open(logfile, 'a') as handle:
-            handle.write("MotifBinner2 commands:\n{}\n".format(cmd))
+            handle.write("MotifBinner2 commands:\n{0}\n".format(cmd))
 
     subprocess.call(cmd, shell=True)
 
@@ -76,17 +77,22 @@ def main(inpath, outpath, fwd_primer, cDNA_primer, logfile):
     cDNA_primer = cDNA_primer.upper()
     fwd_primer_lens, fwd_primer_score = get_primer_lens_score(fwd_primer)
     cDNA_primer_lens, cDNA_primer_score = get_primer_lens_score(cDNA_primer)
+
+    # set counter to keep track if iterations
+    counter = 0
+
     for file in glob(search):
         read1 = file
         read2 = file.replace("R1.fastq", "R2.fastq")
 
         name_prefix = os.path.split(file)[-1].replace("_R1.fastq", "")
         run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
-                        cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix)
+                        cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix, counter)
+        counter += 1
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='',
+    parser = argparse.ArgumentParser(description='Calls the MotifBinner.R script to bin sequences by primer ID',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('-i', '--inpath', default=argparse.SUPPRESS, type=str,

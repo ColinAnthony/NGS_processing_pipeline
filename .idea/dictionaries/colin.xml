@@ -3,6 +3,8 @@
     <words>
       <w>acgt</w>
       <w>fname</w>
+      <w>inpath</w>
+      <w>subfolder</w>
     </words>
   </dictionary>
 </component>

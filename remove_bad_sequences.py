@@ -9,7 +9,7 @@ import collections
 __author__ = 'Colin Anthony'
 
 
-def fasta_to_dct(fn, frame):
+def fasta_to_dct(fn):
     '''
     :param fn: (str)infile name
     :param frame: (int) reading frame (1, 2 or 3)
@@ -17,7 +17,7 @@ def fasta_to_dct(fn, frame):
     '''
     dct = {}
     for seq_record in SeqIO.parse(open(fn), "fasta"):
-        dct[seq_record.description.replace(" ", "_")] = str(seq_record.seq[frame:]).replace("-", "").upper()
+        dct[seq_record.description.replace(" ", "_")] = str(seq_record.seq).replace("-", "").upper()
     return dct
 
 
@@ -137,7 +137,7 @@ def main(infile, outp, frame, stops, length, logfile):
     # out_bd = n.replace(".fasta", '_dirty.fa')
     outfile_good = os.path.join(outp, out_gd)
     # outfile_bad = os.path.join(outp, out_bd)
-    d = fasta_to_dct(infile, frame)
+    d = fasta_to_dct(infile)
     inseq_no = len(d)
 
     # remove sequences with degenerate bases
