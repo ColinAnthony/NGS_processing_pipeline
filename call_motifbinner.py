@@ -64,7 +64,7 @@ def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_prim
     print(cmd)
     if os.path.exists(logfile):
         with open(logfile, 'a') as handle:
-            handle.write("MotifBinner2 commands:\n{}".format(cmd))
+            handle.write("MotifBinner2 commands:\n{}\n".format(cmd))
 
     subprocess.call(cmd, shell=True)
 

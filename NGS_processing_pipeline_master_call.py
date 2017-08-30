@@ -2,6 +2,7 @@
 from __future__ import print_function
 from __future__ import division
 import os
+import sys
 from shutil import copyfile
 import argparse
 import subprocess
@@ -47,8 +48,10 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     # remove the fastq files
     print("Removing the copied fastq files")
     remove_fastq = os.path.join(fastq_path, '*.fastq')
-    os.remove(remove_fastq)
-
+    for old_fastq_copy in glob(remove_fastq):
+        print(old_fastq_copy)
+        # os.remove(old_fastq_copy)
+    sys.exit()
     # call remove bad sequences
     print("Removing 'bad' sequences")
     remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
