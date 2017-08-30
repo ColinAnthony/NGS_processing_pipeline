@@ -35,10 +35,13 @@ def align_dna(DNA_dict, tmp_file):
     :return: (dict) dictionary of aligned sequences for all conserved regions
     '''
     # write temp outfile
-    tmp_file_in = os.path.join(tmp_file + '.fas')
+    print(DNA_dict.keys())
+
+    tmp_file_in = os.path.join(tmp_file + '.fasta')
     tmp_file_out = os.path.join(tmp_file + '.aln')
     print(tmp_file_in, tmp_file_out)
     for seq, name_list in DNA_dict.items():
+        print('first name:', name_list[0])
         with open(tmp_file_in, 'a') as handle1:
             handle1.write('>' + name_list[0] + '\n' + str(seq) + '\n')
 
@@ -70,7 +73,6 @@ def main(infile, outpath, name):
 
     # import sequences into dictionary
     d = fasta_to_dct_rev(infile)
-
     # run mafft alignment on sequences
     align_d = align_dna(d, tmp_file)
     print(align_d)
