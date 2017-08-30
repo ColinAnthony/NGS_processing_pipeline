@@ -69,7 +69,7 @@ def main(inpath, outpath):
             print("Can't match name for merged file with parent file name")
             sys.exit()
 
-        merged_d = fastq_to_dct(path_split2)
+        merged_d = fastq_to_dct(name)
         total_merged = len(merged_d.keys())
         stats_d[name].append(total_merged)
 
