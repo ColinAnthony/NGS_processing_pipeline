@@ -42,8 +42,8 @@ def main(inpath, outpath):
     # initialize master dict to return
     stats_d = collections.defaultdict(list)
 
-    all_names = collections.defaultdict(str
-                                        )
+    all_names = collections.defaultdict(str)
+
     # calculate number of raw sequences
     stats_d["headers"].append("raw_sequences")
     raw_files = os.path.join(inpath, "1raw", "*_R1.fastq")
@@ -51,7 +51,7 @@ def main(inpath, outpath):
         name = os.path.split(raw_file)[-1].replace("_R1.fastq", "")
         all_names[name] = name
         raw_d = fastq_to_dct(raw_file)
-        total_raw = len(raw_d.keys())
+        total_raw = str(len(raw_d.keys()))
         stats_d[name].append(total_raw)
 
     # calculate number of merged sequences
@@ -70,7 +70,7 @@ def main(inpath, outpath):
             sys.exit()
 
         merged_d = fastq_to_dct(merged_file)
-        total_merged = len(merged_d.keys())
+        total_merged = str(len(merged_d.keys()))
         stats_d[name].append(total_merged)
 
     # calculate number of consensus sequences
@@ -83,7 +83,7 @@ def main(inpath, outpath):
             print(name)
             sys.exit()
         consensus_d = fastq_to_dct(consensus_file)
-        total_consensus = len(consensus_d.keys())
+        total_consensus = str(len(consensus_d.keys()))
         stats_d[name].append(total_consensus)
 
     # calculate number of cleaned sequences
@@ -96,7 +96,7 @@ def main(inpath, outpath):
             print(name)
             sys.exit()
         clean_d = fasta_to_dct(cleaned_file)
-        total_clean = len(clean_d.keys())
+        total_clean = str(len(clean_d.keys()))
         stats_d[name].append(total_clean)
 
     # write the stats to the log file
