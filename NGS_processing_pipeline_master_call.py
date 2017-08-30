@@ -117,7 +117,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     else:
         align_all = os.path.join(script_folder, 'align_all_samples.py')
         cmd5 = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
-    print(cmd5)
+
     subprocess.call(cmd5, shell=True)
 
 

@@ -43,7 +43,7 @@ def align_dna(DNA_dict, tmp_file):
             handle1.write('>' + name_list[0] + '\n' + str(seq) + '\n')
 
     cmd = 'mafft {0} > {1}'.format(tmp_file_in, tmp_file_out)
-    subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
+    subprocess.call(cmd, shell=True) #, stdout=DEVNULL, stderr=DEVNULL)
     print("Aligning the sequences, please wait")
 
     aln_seqs = fasta_to_dct_rev(tmp_file_out)
