@@ -38,7 +38,8 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     # convert to fasta
     print("Converting fastq to fasta")
-    for fastq in glob(fastq_path + '*.fastq'):
+    search_path = os.path.join(fastq_path, '*.fastq')
+    for fastq in glob(search_path):
         fasta = fastq.replace("fastq", "fasta")
         print(fastq)
         print(fasta)
@@ -47,10 +48,10 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     # remove the fastq files
     print("Removing the copied fastq files")
-    remove_fastq = os.path.join(fastq_path, '*.fastq')
+    remove_fastq = search_path
     for old_fastq_copy in glob(remove_fastq):
         print(old_fastq_copy)
-        # os.remove(old_fastq_copy)
+        os.remove(old_fastq_copy)
     sys.exit()
     # call remove bad sequences
     print("Removing 'bad' sequences")
