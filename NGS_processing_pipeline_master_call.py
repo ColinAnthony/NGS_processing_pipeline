@@ -39,6 +39,8 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     print("Converting fastq to fasta")
     for fastq in glob(fastq_path + '*.fastq'):
         fasta = fastq.replace("fastq", "fasta")
+        print(fastq)
+        print(fasta)
         cmd3 = 'seqmagick convert {0} {1}'.format(fastq, fasta)
         subprocess.call(cmd3, shell=True)
 
