@@ -97,7 +97,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         for fasta_file in glob(cleaned_files):
             with open(fasta_file) as infile:
                 for line in infile:
-                    outfile.write(line)
+                    outfile.write(line + "\n")
 
     # move concatenated file to 4aligned
     print("moving concatenated file to 4aligned folder")
