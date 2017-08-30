@@ -134,7 +134,7 @@ def main(infile, outp, frame, stops, length, logfile):
     out_gd = n + '_clean.fa'
     out_bd = n + '_dirty.fa'
     outfile_good = os.path.join(outp, out_gd)
-    outfile_bad = os.path.join(outp, out_bd)
+    # outfile_bad = os.path.join(outp, out_bd)
     d = fasta_to_dct(infile, frame - 1)
     inseq_no = len(d)
 
@@ -164,10 +164,6 @@ def main(infile, outp, frame, stops, length, logfile):
         cln3_d, bad_d3, short_no = length_check(cln2_d)
 
 
-    # merge the 'bad sequence' dictionaries
-    bad_part = dict(bad_d1, **bad_d2)
-    all_bad = dict(bad_part, **bad_d3)
-
     kept = len(cln3_d)
     removed = inseq_no - kept
 
@@ -176,6 +172,9 @@ def main(infile, outp, frame, stops, length, logfile):
         for seq_name, seq in cln3_d.items():
             handle.write(">{0}\n{1}\n".format(seq_name, seq))
 
+    ## merge the 'bad sequence' dictionaries
+    # bad_part = dict(bad_d1, **bad_d2)
+    # all_bad = dict(bad_part, **bad_d3)
     ## write the bad sequences to file
     # with open(outfile_bad, "w") as handle:
     #     for seq_name1, seq in all_bad.items():
@@ -193,14 +192,13 @@ def main(infile, outp, frame, stops, length, logfile):
     percent_kept = round((kept / inseq_no) * 100, 2)
     percent_tot_rem = round((removed / inseq_no) * 100, 2)
     with open(logfile, 'a') as handle:
-        handle.write("\n{0}\nFile = {1}\n".format(infile, "-"*40))
+        handle.write("\n{0}\nFile                                  = {1}          \n".format(infile, "-"*40))
         handle.write("Number of input sequences                    = {0}          \n".format(inseq_no))
         handle.write("Number of sequences with degenerate bases    = {0} - ({1} %)\n".format(degen_no, percent_degen))
         if stops:
-            handle.write(" of sequences with stop codons         = {0} - ({1} %)\n".format(stops_no, percent_stop))
+            handle.write(" of sequences with stop codons           = {0} - ({1} %)\n".format(stops_no, percent_stop))
         if length is not None:
-            handle.write("Number of short sequences                    = {0} - ({1} %)\n"
-                         .format(short_no, percent_short))
+            handle.write("Number of short sequences                = {0} - ({1} %)\n".format(short_no, percent_short))
         handle.write("Total number of sequences removed            = {0} - ({1} %)\n".format(removed, percent_tot_rem))
         handle.write("Total number of sequences kept               = {0} - ({1} %)\n".format(kept, percent_kept))
         handle.write("\n")
