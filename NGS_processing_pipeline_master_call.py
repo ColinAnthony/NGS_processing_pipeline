@@ -36,7 +36,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         new_name = os.path.join(fastq_path, old_name)
         copyfile(cons_file, new_name)
 
-    # convert to fasta
+    # convert copied fastq to fasta
     print("Converting fastq to fasta")
     search_path = os.path.join(fastq_path, '*.fastq')
     for fastq in glob(search_path):
@@ -46,7 +46,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         cmd3 = 'seqmagick convert {0} {1}'.format(fastq, fasta)
         subprocess.call(cmd3, shell=True)
 
-    # remove the fastq files
+    # remove the copied fastq files
     print("Removing the copied fastq files")
     remove_fastq = search_path
     for old_fastq_copy in glob(remove_fastq):
@@ -57,7 +57,8 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     print("Removing 'bad' sequences")
     remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
     clean_path = os.path.join(path, '3cleaned')
-    for fasta_file in glob(fastq_path + '*.fasta'):
+    fasta_path = os.path.join(fastq_path, '*.fasta')
+    for fasta_file in glob(fasta_path):
         cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s {4} -l {5] -lf {6}'.format(remove_bad_seqs, fasta_file, clean_path,
                                                                                frame, stops, length, logfile)
         subprocess.call(cmd4, shell=True)
@@ -67,8 +68,9 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     all_clean_path = os.path.join(path, '3cleaned')
     clean_name = name + "_" + gene_region + "_all.fasta"
     all_cleaned_outname = os.path.join(all_clean_path, clean_name)
+    cleaned_files = os.path.join(clean_path + '*clean.fa')
     with open(all_cleaned_outname, 'w') as outfile:
-        for fasta_file in glob(clean_path + '*clean.fa'):
+        for fasta_file in glob(cleaned_files):
             with open(fasta_file) as infile:
                 for line in infile:
                     outfile.write(line)
@@ -81,20 +83,19 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     # call alignment script
     print("Aligning the sequences")
+    to_align = move_file
     if envelope:
         align_all = os.path.join(script_folder, 'align_all_env_samples.py')
-        infile = move_file
         # infile, outpath, name, loop, v_loop_align, dna, aligner
-        inpath, fname = os.path.split(infile)
+        inpath, fname = os.path.split(to_align)
         fname = fname.replace(".fasta", "_aligned.fasta")
-        cmd = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, infile, aln_path, fname)
+        cmd = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
         subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
     else:
         align_all = os.path.join(script_folder, 'align_all_samples.py')
-        infile = move_file
-        inpath, fname = os.path.split(infile)
+        inpath, fname = os.path.split(to_align)
         fname = fname.replace(".fasta", "_aligned.fasta")
-        cmd = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, infile, aln_path, fname)
+        cmd = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
         subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
 
     print("The sample processing has completed")
