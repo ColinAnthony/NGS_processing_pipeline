@@ -58,8 +58,9 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     for fasta_file in glob(fasta_path):
         print(remove_bad_seqs, fasta_file, clean_path, frame, stops, length, logfile)
-        cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s {4} -l {5] -lf {6}'.format(remove_bad_seqs, fasta_file, clean_path,
+        cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s {4} -l {5} -lf {6}'.format(remove_bad_seqs, fasta_file, clean_path,
                                                                                frame, stops, length, logfile)
+        print(cmd4)
         subprocess.call(cmd4, shell=True)
 
     # call cat all cleaned files into one file
