@@ -75,7 +75,7 @@ def main(inpath, outpath):
 
     # calculate number of consensus sequences
     stats_d["headers"].append("consensus_sequences")
-    consensus_files = os.path.join(inpath, "2consensus", "binned", "*", "*_buildConsensus.fastq")
+    consensus_files = os.path.join(inpath, "2consensus", "binned", "*", "*kept_buildConsensus.fastq")
     for consensus_file in glob(consensus_files):
         name = os.path.split(consensus_file)[-1].replace("_kept_buildConsensus.fastq", "")
         if name not in all_names.keys():
@@ -88,11 +88,12 @@ def main(inpath, outpath):
 
     # calculate number of cleaned sequences
     stats_d["headers"].append("cleaned_sequences")
-    cleaned_files = os.path.join(inpath, "3cleaned")
+    cleaned_files = os.path.join(inpath, "3cleaned", "*_cleaned.fasta")
     for cleaned_file in glob(cleaned_files):
         name = os.path.split(cleaned_file)[-1].replace("_cleaned.fasta", "")
         if name not in all_names.keys():
             print("Can't match name for cleaned file with parent file name")
+            print(name)
             sys.exit()
         clean_d = fasta_to_dct(cleaned_file)
         total_clean = len(clean_d.keys())
