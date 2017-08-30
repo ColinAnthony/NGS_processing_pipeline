@@ -52,7 +52,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     for old_fastq_copy in glob(remove_fastq):
         print(old_fastq_copy)
         os.remove(old_fastq_copy)
-    sys.exit()
+
     # call remove bad sequences
     print("Removing 'bad' sequences")
     remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
