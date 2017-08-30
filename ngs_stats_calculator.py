@@ -69,17 +69,18 @@ def main(inpath, outpath):
             print("Can't match name for merged file with parent file name")
             sys.exit()
 
-        merged_d = fastq_to_dct(name)
+        merged_d = fastq_to_dct(merged_file)
         total_merged = len(merged_d.keys())
         stats_d[name].append(total_merged)
 
     # calculate number of consensus sequences
     stats_d["headers"].append("consensus_sequences")
-    consensus_files = os.path.join(inpath, "2consensus", "binned", "*", "*_buildConsensus")
+    consensus_files = os.path.join(inpath, "2consensus", "binned", "*", "*_buildConsensus.fastq")
     for consensus_file in glob(consensus_files):
         name = os.path.split(consensus_file)[-1].replace("_kept_buildConsensus.fastq", "")
         if name not in all_names.keys():
             print("Can't match name for consensus file with parent file name")
+            print(name)
             sys.exit()
         consensus_d = fastq_to_dct(consensus_file)
         total_consensus = len(consensus_d.keys())

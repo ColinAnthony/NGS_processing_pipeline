@@ -100,16 +100,14 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     # call alignment script
     print("Aligning the sequences")
     to_align = move_file
-    if envelope:
+    inpath, fname = os.path.split(to_align)
+    fname = fname.replace(".fasta", "_aligned.fasta")
+    if envelope is not None:
         align_all = os.path.join(script_folder, 'align_all_env_samples.py')
-        # infile, outpath, name, loop, v_loop_align, dna, aligner
-        inpath, fname = os.path.split(to_align)
-        fname = fname.replace(".fasta", "_aligned.fasta")
-        cmd5 = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
+
+        cmd5 = 'python3 {0}  -i {1} -o {2} -l {3}'.format(align_all, to_align, aln_path, fname, envelope)
     else:
         align_all = os.path.join(script_folder, 'align_all_samples.py')
-        inpath, fname = os.path.split(to_align)
-        fname = fname.replace(".fasta", "_aligned.fasta")
         cmd5 = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
 
     subprocess.call(cmd5, shell=True, stdout=DEVNULL, stderr=DEVNULL)
@@ -150,8 +148,9 @@ if __name__ == "__main__":
                         help='Remove sequences with stop codons?)', required=False)
     parser.add_argument('-l', '--length', type=int,
                         help='The minimum read length)', required=False)
-    parser.add_argument('-e', '--envelope', default=False, action='store_true',
-                        help='are these sequences from HIV envelope?)', required=False)
+    parser.add_argument('-e', '--envelope', default=None, nargs="+",
+                        help='If your sequences are of HIV envelope, which V-loops are in the sequence?'
+                             '(eg: V1 V2) (options include: V1, V2 , V3, V4, V5)', required=False)
 
     args = parser.parse_args()
     path = args.path
