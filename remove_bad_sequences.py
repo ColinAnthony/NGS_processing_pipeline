@@ -87,23 +87,23 @@ def degen_remove(d):
     return n_d, bad_d, degen
 
 
-def stops_remove(d):
+def stops_remove(d, frame):
     '''
     :param d: (dict) dictionary of sequence names and DNA sequences)
     :return: (dict) dictionary with sequences with stop codons removed
     '''
     stops = 0
-    n_d = collections.defaultdict(str)
+    good_d = collections.defaultdict(str)
     bad_d = collections.defaultdict(str)
     for name, seq in d.items():
-        pseq = translate_dna(seq)
+        pseq = translate_dna(seq[frame:])
         if pseq is None:
             bad_d[name] = seq
             stops += 1
         else:
-            n_d[name] = seq
+            good_d[name] = seq
 
-    return n_d, bad_d, stops
+    return good_d, bad_d, stops
 
 
 def length_check(d):
@@ -132,11 +132,12 @@ def main(infile, outp, frame, stops, length, logfile):
     # set outfile names
     n = os.path.split(infile)[1]
     print(n)
+
     out_gd = n.replace("_kept_cons_seqLength.fasta", '_clean.fa')
     # out_bd = n.replace(".fasta", '_dirty.fa')
     outfile_good = os.path.join(outp, out_gd)
     # outfile_bad = os.path.join(outp, out_bd)
-    d = fasta_to_dct(infile, frame - 1)
+    d = fasta_to_dct(infile, frame)
     inseq_no = len(d)
 
     # remove sequences with degenerate bases
@@ -145,26 +146,25 @@ def main(infile, outp, frame, stops, length, logfile):
     # remove sequences with stop codons
     stops_no = 0
     if stops:
-        cln2_d, bad_d2, stops_no = stops_remove(cln1_d)
+        if frame is None:
+            print("Warning, no reading frame was specified, using reading frame 1 as default")
+            frame = 0
+        else:
+            frame -= 1
+        cln2_d, bad_d2, stops_no = stops_remove(cln1_d, frame)
     else:
         cln2_d = cln1_d
         bad_d2 = {}
 
     # remove short sequences
-    if length is None and stops:
+    if length is None:
         cln3_d = cln2_d
         bad_d3 = {}
         short_no = 0
-
-    elif length is None and not stops:
-        cln3_d = cln1_d
-        bad_d3 = {}
-        short_no = 0
-
     else:
         cln3_d, bad_d3, short_no = length_check(cln2_d)
 
-
+    # get totals for kept and removed seqs
     kept = len(cln3_d)
     removed = inseq_no - kept
 
@@ -176,11 +176,13 @@ def main(infile, outp, frame, stops, length, logfile):
     ## merge the 'bad sequence' dictionaries
     # bad_part = dict(bad_d1, **bad_d2)
     # all_bad = dict(bad_part, **bad_d3)
+
     ## write the bad sequences to file
     # with open(outfile_bad, "w") as handle:
     #     for seq_name1, seq in all_bad.items():
     #         handle.write(">{0}\n{1}\n".format(seq_name1, seq))
 
+    # calculate stats on removed sequences for each operation
     percent_degen = round((degen_no / inseq_no) * 100, 2)
     if stops:
         percent_stop = round((stops_no / inseq_no) * 100, 2)
@@ -192,6 +194,8 @@ def main(infile, outp, frame, stops, length, logfile):
         percent_short = None
     percent_kept = round((kept / inseq_no) * 100, 2)
     percent_tot_rem = round((removed / inseq_no) * 100, 2)
+
+    # write stats to log file
     with open(logfile, 'a') as handle:
         handle.write("\n{0}\nFile:                                    = {1}          \n".format(("-"*40), infile))
         handle.write("Number of input sequences                = {0}          \n".format(inseq_no))
@@ -220,7 +224,7 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--outpath', type=str,
                         help='The path to where the output files will be created', required=True)
     parser.add_argument('-f', '--frame', type=int,
-                        help='The reading frame (1, 2 or 3)', default=1, required=False)
+                        help='The reading frame (1, 2 or 3)', required=False)
     parser.add_argument('-s', '--stops', default=False, action='store_true',
                         help='Remove sequences with stop codons?)', required=False)
     parser.add_argument('-l', '--length', type=int,
