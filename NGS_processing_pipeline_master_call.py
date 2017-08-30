@@ -14,37 +14,40 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     # initialize the log file
     logfile = os.path.join(path, (gene_region + "_logfile.txt"))
-    with open(logfile, 'w') as handle:
-        handle.write("Initializing log file for {0}_{1}:\n".format(name, gene_region))
-
-    # call MotifBinner
-    inpath = os.path.join(path, '1raw')
-    cons_outpath = os.path.join(path, '2consensus', 'binned')
-    motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
-    cmd2 = 'python3 {0} -i {1} -o {2} -f {3} -r {4} -l {5}'.format(motifbinner, inpath, cons_outpath, fwd_primer,
-                                                                   cDNA_primer, logfile)
-    subprocess.call(cmd2, shell=True)
+    # with open(logfile, 'w') as handle:
+    #     handle.write("Initializing log file for {0}_{1}:\n".format(name, gene_region))
+    #
+    # # run the call_MotifBinner script which will floop over fastq files in the target folder
+    # inpath = os.path.join(path, '1raw')
+    # cons_outpath = os.path.join(path, '2consensus', 'binned')
+    # motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
+    # cmd2 = 'python3 {0} -i {1} -o {2} -f {3} -r {4} -l {5}'.format(motifbinner, inpath, cons_outpath, fwd_primer,
+    #                                                                cDNA_primer, logfile)
+    # subprocess.call(cmd2, shell=True)
 
     # copy data from nested binned folders into 2consensus folder
+    print("Copy fastq files from nested folders to '2consensus' folder")
     path_to_consensus = os.path.join(path, '2consensus/binned/*/n028_cons_seqLength/*kept_cons_seqLength.fastq')
-    desired_path = cons_outpath
+    fastq_path = os.path.join(path, '2consensus')
     for cons_file in glob(path_to_consensus):
-        oldpath, oldname = os.path.split(cons_file)
-        new_name = os.path.join(desired_path, oldname)
+        old_path, old_name = os.path.split(cons_file)
+        new_name = os.path.join(fastq_path, old_name)
         os.rename(cons_file, new_name)
 
     # convert to fasta
-    fastq_path = os.path.join(path, '2consensus')
+    print("Converting fastq to fasta")
     for fastq in glob(fastq_path + '*.fastq'):
         fasta = fastq.replace("fastq", "fasta")
         cmd3 = 'seqmagick convert {0} {1}'.format(fastq, fasta)
         subprocess.call(cmd3, shell=True)
 
     # remove the fastq files
+    print("Removing the copied fastq files")
     remove_fastq = os.path.join(fastq_path, '*.fastq')
     os.remove(remove_fastq)
 
     # call remove bad sequences
+    print("Removing 'bad' sequences")
     remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
     clean_path = os.path.join(path, '3cleaned')
     for fasta_file in glob(fastq_path + '*.fasta'):
@@ -53,6 +56,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         subprocess.call(cmd4, shell=True)
 
     # call cat all cleaned files into one file
+    print("merging all cleaned fasta files into one file")
     all_clean_path = os.path.join(path, '3cleaned')
     clean_name = name + "_" + gene_region + "_all.fasta"
     all_cleaned_outname = os.path.join(all_clean_path, clean_name)
@@ -63,11 +67,13 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
                     outfile.write(line)
 
     # move concatenated file to 4aligned
+    print("moving concatenated file to 4aligned folder")
     aln_path = os.path.join(path, '4aligned')
     move_file = os.path.join(aln_path, clean_name)
     os.rename(all_cleaned_outname, move_file)
 
-    # call align all samples
+    # call alignment script
+    print("Aligning the sequences")
     if envelope:
         align_all = os.path.join(script_folder, 'align_all_env_samples.py')
         infile = move_file
@@ -83,6 +89,8 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         fname = fname.replace(".fasta", "_aligned.fasta")
         cmd = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, infile, aln_path, fname)
         subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
+
+    print("The sample processing has completed")
 
 
 if __name__ == "__main__":

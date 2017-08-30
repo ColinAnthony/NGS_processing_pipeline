@@ -64,7 +64,7 @@ def align_dna(DNA_dict, tmp_file):
 
 
 def main(infile, outpath, name):
-    print(infile)
+    print("aligning: ", infile)
     outfile = os.path.join(outpath, name)
     tmp_path = tempfile.gettempdir()
     tmp_file = os.path.join(tmp_path, name)
@@ -86,7 +86,7 @@ def main(infile, outpath, name):
                 out_name = '>' + name + '\n'
                 handle.write(out_name + seq)
 
-    print("Done with {}".format(infile))
+    print("{} has been aligned".format(infile))
 
 
 if __name__ == "__main__":
