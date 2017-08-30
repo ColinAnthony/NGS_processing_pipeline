@@ -130,9 +130,10 @@ def main(infile, outp, frame, stops, length, logfile):
     print(infile)
 
     # set outfile names
-    n = infile.split('.')[:-1]
-    out_gd = n + '_clean.fa'
-    out_bd = n + '_dirty.fa'
+    n = os.path.split(infile)[1]
+    print(n)
+    out_gd = n.replace("_kept_cons_seqLength.fasta", '_clean.fa')
+    # out_bd = n.replace(".fasta", '_dirty.fa')
     outfile_good = os.path.join(outp, out_gd)
     # outfile_bad = os.path.join(outp, out_bd)
     d = fasta_to_dct(infile, frame - 1)
@@ -233,7 +234,7 @@ if __name__ == "__main__":
     frame = args.frame
     stops = args.stops
     length = args.length
-    logfile_path = args.logfile_path
+    logfile = args.logfile
 
 
-    main(infile, outpath, frame, stops, length, logfile_path)
+    main(infile, outpath, frame, stops, length, logfile)
