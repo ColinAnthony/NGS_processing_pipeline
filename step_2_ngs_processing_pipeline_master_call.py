@@ -37,13 +37,13 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     contam_removed_path = os.path.join(path, '1contam_removal')
 
     for read1 in glob(raw_fastqs):
-        read2 = read1.reaplace("_R1.fastq", "_R2.fastq")
+        read2 = read1.replace("_R1.fastq", "_R2.fastq")
         cmd1 = 'python3 {0} -r1 {1} -r2 {2} -o {3}'.format(contam_removal_script,
                                                              read1,
                                                              read2,
                                                              contam_removed_path)
 
-        subprocess.call(cmd1, shell=True)
+        #subprocess.call(cmd1, shell=True)
 
     # run the call_MotifBinner script which will floop over fastq files in the target folder
     cln_fastq_inpath = os.path.join(path, '1contam_removal')

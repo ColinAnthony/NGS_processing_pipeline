@@ -8,7 +8,6 @@ import collections
 from glob import glob
 from Bio import SeqIO
 
-
 __author__ = 'Colin Anthony'
 
 
@@ -37,14 +36,15 @@ def fastq_to_dct(fn):
 
 
 def main(inpath, outfile):
-    print("Calculating sequencing depth and yield statistics")
 
+    print("Calculating sequencing depth and yield statistics")
     # initialize master dict to return
     stats_d = collections.defaultdict(list)
 
     all_names = collections.defaultdict(str)
 
     # calculate number of raw sequences
+    stats_d["headers"].append("name")
     stats_d["headers"].append("raw_sequences")
     raw_files = os.path.join(inpath, "0raw", "*_R1.fastq")
     for raw_file in glob(raw_files):
@@ -52,13 +52,14 @@ def main(inpath, outfile):
         all_names[name] = name
         raw_d = fastq_to_dct(raw_file)
         total_raw = str(len(raw_d.keys()))
+        stats_d[name].append(name)
         stats_d[name].append(total_raw)
 
     # calculate number of sequences after contam removal
     stats_d["headers"].append("contam_removed")
     raw_files = os.path.join(inpath, "1contam_removal", "*cln_R1.fastq")
     for raw_file in glob(raw_files):
-        name = os.path.split(raw_file)[-1].replace("_R1.fastq", "")
+        name = os.path.split(raw_file)[-1].replace("cln_R1.fastq", "")
         all_names[name] = name
         raw_d = fastq_to_dct(raw_file)
         total_raw = str(len(raw_d.keys()))
@@ -109,16 +110,16 @@ def main(inpath, outfile):
         clean_d = fasta_to_dct(cleaned_file)
         total_clean = str(len(clean_d.keys()))
         stats_d[name].append(total_clean)
-
     # write the stats to the log file
     with open(outfile, 'w') as handle:
-        print("writing to file:", outfile)
+        # write the headers
         headers_to_write = ",".join(stats_d["headers"])
         handle.write(headers_to_write + "\n")
         del stats_d["headers"]
 
-        for file_name in stats_d.keys():
-            lines_to_write = ",".join(stats_d[file_name])
+        # write the stats
+        for sequence_file in stats_d.keys():
+            lines_to_write = ",".join(stats_d[sequence_file])
             handle.write(lines_to_write + "\n")
 
     print("Stats calculations on your NGS samples are complete")

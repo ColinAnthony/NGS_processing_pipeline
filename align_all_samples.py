@@ -52,7 +52,6 @@ def align_dna(dna_dict, tmp_file):
     os.remove(tmp_file_in)
     os.remove(tmp_file_out)
 
-    print("Aligning completed")
     new_aln_seqs = collections.defaultdict()
     for seq in aln_seqs.keys():
         lookup_sequence = seq.replace("-", "")
@@ -85,7 +84,7 @@ def main(infile, outpath, name):
                 out_name = '>' + seq_name + '\n'
                 handle.write(out_name + seq + '\n')
 
-    print("{} has been aligned".format(infile))
+    print("Aligning completed")
 
 
 if __name__ == "__main__":

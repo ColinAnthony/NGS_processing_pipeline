@@ -57,6 +57,7 @@ def main(read1, read2, outpath):
         # if is not contam, append to list to write to file
         else:
             read1_kept += 1
+            # todo use biowriter?
             with open(read1_out, 'a') as handle:
                 handle.write(seq_record_R1)
 
@@ -74,6 +75,7 @@ def main(read1, read2, outpath):
             read2_removed += 1
         else:
             read2_kept += 1
+            # todo use biowriter?
             with open(read2_out, 'a') as handle2:
                 handle2.write(seq_record_R2)
 
@@ -98,6 +100,5 @@ if __name__ == "__main__":
     read1 = args.read1
     read2 = args.read2
     outpath = args.outpath
-
 
     main(read1, read2, outpath)

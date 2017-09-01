@@ -126,14 +126,10 @@ def length_check(d):
 
 
 def main(infile, outp, frame, stops, length, logfile):
-    print('')
-    print(infile)
 
     # set outfile names
     n = os.path.split(infile)[1]
-    print(n)
-
-    out_gd = n.replace("_kept_cons_seqLength.fasta", '_clean.fa')
+    out_gd = n.replace("_kept_cons_seqLength.fasta", '_clean.fasta')
     # out_bd = n.replace(".fasta", '_dirty.fa')
     outfile_good = os.path.join(outp, out_gd)
     # outfile_bad = os.path.join(outp, out_bd)
@@ -211,6 +207,7 @@ def main(infile, outp, frame, stops, length, logfile):
             handle.write("Note, any frame shift errors not introducing stop codons will remain\n")
             handle.write("\n")
 
+    print("for file:", n)
     print("Sequences kept = {0} - ({1} %)".format(kept, percent_kept))
     print("-"*40 + "\n")
 
