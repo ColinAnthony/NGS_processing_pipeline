@@ -59,8 +59,18 @@ def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_prim
           '--ncpu=3 ' \
           '--min_read_length=290 '\
           '--merged_read_length=240 '\
-          '--overlapping '.format(fwd_read, fwd_primer, fwd_primer_lens, fwd_primer_score, rev_read, cDNA_primer,
-                                  cDNA_primer_lens, cDNA_primer_score, fwd_pid, rev_pid_fragment, outpath, name_prefix)
+          '--overlapping '.format(fwd_read,
+                                  fwd_primer,
+                                  fwd_primer_lens,
+                                  fwd_primer_score,
+                                  rev_read,
+                                  cDNA_primer,
+                                  cDNA_primer_lens,
+                                  cDNA_primer_score,
+                                  fwd_pid,
+                                  rev_pid_fragment,
+                                  outpath,
+                                  name_prefix)
 
     # only write to log file if this is the first iteration
     if os.path.exists(logfile) and counter == 0:
@@ -71,7 +81,7 @@ def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_prim
 
 
 def main(inpath, outpath, fwd_primer, cDNA_primer, logfile):
-    print("calling Motifbinner")
+    print("calling MotifBinner")
     search = os.path.join(inpath, '*R1.fastq')
     fwd_primer = fwd_primer.upper()
     cDNA_primer = cDNA_primer.upper()

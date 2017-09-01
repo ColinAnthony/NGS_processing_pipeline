@@ -17,7 +17,7 @@ def main(your_path, gene_region, fnames):
     :return:
     '''
 
-    third_level_dirs = ['1raw', '2consensus', '3cleaned', '4aligned', '5haplotype', '6analysis']
+    third_level_dirs = ['0raw', '1contam_removal', '2consensus', '3cleaned', '4aligned', '5haplotype', '6analysis']
     fourth_level_dirs = ['aa_frq', 'divergence', 'entropy', 'glycans', 'loops', 'tree']
 
     for fname in fnames:
