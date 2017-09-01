@@ -46,7 +46,17 @@ def main(inpath, outfile):
 
     # calculate number of raw sequences
     stats_d["headers"].append("raw_sequences")
-    raw_files = os.path.join(inpath, "1raw", "*_R1.fastq")
+    raw_files = os.path.join(inpath, "0raw", "*_R1.fastq")
+    for raw_file in glob(raw_files):
+        name = os.path.split(raw_file)[-1].replace("_R1.fastq", "")
+        all_names[name] = name
+        raw_d = fastq_to_dct(raw_file)
+        total_raw = str(len(raw_d.keys()))
+        stats_d[name].append(total_raw)
+
+    # calculate number of sequences after contam removal
+    stats_d["headers"].append("contam_removed")
+    raw_files = os.path.join(inpath, "1contam_removal", "*cln_R1.fastq")
     for raw_file in glob(raw_files):
         name = os.path.split(raw_file)[-1].replace("_R1.fastq", "")
         all_names[name] = name
@@ -62,11 +72,12 @@ def main(inpath, outfile):
         path_split1 = os.path.split(merged_file)[0]
         # get rid of the generic folder name "*_mergePEAR"
         path_split2 = os.path.split(path_split1)[0]
-        # get the sample name
+    # get the sample name
         name = os.path.split(path_split2)[-1]
         # Check you have the correct sample name
         if name not in all_names.keys():
             print("Can't match name for merged file with parent file name")
+            print(name)
             sys.exit()
 
         merged_d = fastq_to_dct(merged_file)
@@ -75,7 +86,7 @@ def main(inpath, outfile):
 
     # calculate number of consensus sequences
     stats_d["headers"].append("consensus_sequences")
-    consensus_files = os.path.join(inpath, "2consensus", "binned", "*", "*kept_buildConsensus.fastq")
+    consensus_files = os.path.join(inpath, "2consensus", "binned", "*", "*_buildConsensus", "*kept_buildConsensus.fastq")
     for consensus_file in glob(consensus_files):
         name = os.path.split(consensus_file)[-1].replace("_kept_buildConsensus.fastq", "")
         if name not in all_names.keys():
@@ -88,9 +99,9 @@ def main(inpath, outfile):
 
     # calculate number of cleaned sequences
     stats_d["headers"].append("cleaned_sequences")
-    cleaned_files = os.path.join(inpath, "3cleaned", "*_cleaned.fasta")
+    cleaned_files = os.path.join(inpath, "3cleaned", "*_clean.fasta")
     for cleaned_file in glob(cleaned_files):
-        name = os.path.split(cleaned_file)[-1].replace("_cleaned.fasta", "")
+        name = os.path.split(cleaned_file)[-1].replace("_clean.fasta", "")
         if name not in all_names.keys():
             print("Can't match name for cleaned file with parent file name")
             print(name)

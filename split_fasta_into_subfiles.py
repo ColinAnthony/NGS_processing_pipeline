@@ -25,10 +25,11 @@ def main(infile, outpath, field):
         out_file_name = os.path.join(outpath, new_name)
         d[out_file_name].append(sequence_obj)
 
+    # write the grouped sequences to their outfiles
     for out_file, seq_objs in d.items():
         for seq_obj in seq_objs:
             with open(out_file, 'a') as handle:
-                handle.write(">"+seq_obj.name+"\n"+str(seq_obj.seq)+"\n")
+                handle.write(">{0}\n{1}\n".format(seq_obj.name, str(seq_obj.seq)))
 
 
 if __name__ == "__main__":

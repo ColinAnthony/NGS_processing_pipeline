@@ -37,7 +37,6 @@ def align_dna(dna_dict, tmp_file):
     tmp_file_in = os.path.join(tmp_file + '.fasta')
     tmp_file_out = os.path.join(tmp_file + '.aln')
     for seq, name_list in dna_dict.items():
-        print('first name:', name_list[0])
         with open(tmp_file_in, 'a') as handle1:
             handle1.write('>' + str(name_list[0]) + '\n' + str(seq) + '\n')
 

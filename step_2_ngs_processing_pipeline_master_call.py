@@ -31,15 +31,26 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     with open(logfile, 'w') as handle:
         handle.write("Log File,{0}_{1}\n".format(name, gene_region))
 
-    # Todo add contam removal function call
-    # copy contam removed files into os.path.join(path, '1contam_removal')
+    # remove contaminating sequences
+    contam_removal_script = os.path.join(script_folder, "contam_removal.py")
+    raw_fastqs = os.path.join(path, '0raw', "*R1.fastq")
+    contam_removed_path = os.path.join(path, '1contam_removal')
+
+    for read1 in glob(raw_fastqs):
+        read2 = read1.reaplace("_R1.fastq", "_R2.fastq")
+        cmd1 = 'python3 {0} -r1 {1} -r2 {2} -o {3}'.format(contam_removal_script,
+                                                             read1,
+                                                             read2,
+                                                             contam_removed_path)
+
+        subprocess.call(cmd1, shell=True)
 
     # run the call_MotifBinner script which will floop over fastq files in the target folder
-    inpath = os.path.join(path, '1contam_removal')
+    cln_fastq_inpath = os.path.join(path, '1contam_removal')
     cons_outpath = os.path.join(path, '2consensus', 'binned')
     motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
     cmd2 = 'python3 {0} -i {1} -o {2} -f {3} -r {4} -l {5}'.format(motifbinner,
-                                                                   inpath,
+                                                                   cln_fastq_inpath,
                                                                    cons_outpath,
                                                                    fwd_primer,
                                                                    cDNA_primer,
