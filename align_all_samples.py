@@ -43,7 +43,7 @@ def align_dna(dna_dict, tmp_file):
     cmd = 'mafft {0} > {1}'.format(tmp_file_in, tmp_file_out)
     subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
     # todo error message add mafft to path
-    print("Aligning the sequences, please wait")
+    # print("Aligning the sequences, please wait")
 
     # import the aligned file
     aln_seqs = fasta_to_dct_rev(tmp_file_out)
