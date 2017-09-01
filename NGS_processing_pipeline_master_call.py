@@ -6,7 +6,7 @@ from shutil import copyfile
 import argparse
 import subprocess
 from glob import glob
-import fileinput
+
 
 __author__ = 'Colin Anthony'
 
@@ -18,8 +18,11 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     with open(logfile, 'w') as handle:
         handle.write("Log File,{0}_{1}\n".format(name, gene_region))
 
+    # Todo add contam removal function call
+    # copy contam removed files into os.path.join(path, '1contam_removal')
+
     # run the call_MotifBinner script which will floop over fastq files in the target folder
-    inpath = os.path.join(path, '1raw')
+    inpath = os.path.join(path, '1contam_removal')
     cons_outpath = os.path.join(path, '2consensus', 'binned')
     motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
     cmd2 = 'python3 {0} -i {1} -o {2} -f {3} -r {4} -l {5}'.format(motifbinner,
@@ -80,11 +83,12 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
                                                                             frame,
                                                                             length,
                                                                             logfile)
-
-        subprocess.call(cmd4, shell=True)
         if os.path.exists(logfile):
             with open(logfile, 'a') as handle:
                 handle.write("\nremove_bad_sequences commands:\n{}\n".format(cmd4))
+
+        subprocess.call(cmd4, shell=True)
+
 
     # cat all cleaned files into one file
     print("merging all cleaned fasta files into one file")
@@ -105,6 +109,8 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     copyfile(all_cleaned_outname, move_file)
 
     # call alignment script
+    # todo add hxb2 into alignemnt
+
     print("Aligning the sequences")
     to_align = move_file
     inpath, fname = os.path.split(to_align)
@@ -119,6 +125,9 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     subprocess.call(cmd5, shell=True)
 
+    # todo haplotype
+    # split into sample files
+    # haplotype
 
     # call funcion to calculate sequencing stats
     print("Calculating alignment stats")
