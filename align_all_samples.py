@@ -42,7 +42,7 @@ def align_dna(dna_dict, tmp_file):
             handle1.write('>' + str(name_list[0]) + '\n' + str(seq) + '\n')
 
     cmd = 'mafft {0} > {1}'.format(tmp_file_in, tmp_file_out)
-    subprocess.call(cmd, shell=True) #, stdout=DEVNULL, stderr=DEVNULL)
+    subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
     # todo error message add mafft to path
     print("Aligning the sequences, please wait")
 

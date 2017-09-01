@@ -26,10 +26,10 @@ def main(your_path, gene_region, fnames):
         second_level_dir = os.path.join(top_level_dir, gene_region)
 
         # make top level directory (usually participant or study)
-        os.makedirs(top_level_dir, exists_ok=True)
+        os.makedirs(top_level_dir, exist_ok=True)
 
         # make second level directory (usually gene region)
-        os.makedirs(second_level_dir, exists_ok=True)
+        os.makedirs(second_level_dir, exist_ok=True)
 
         # make third level directories (analysis directories)
         for folder in third_level_dirs:
@@ -37,10 +37,10 @@ def main(your_path, gene_region, fnames):
                 for nested_folder in fourth_level_dirs:
                     set_path = os.path.join(second_level_dir, folder)
                     make_folder = os.path.join(set_path, nested_folder)
-                    os.makedirs(make_folder, exists_ok=True)
+                    os.makedirs(make_folder, exist_ok=True)
             else:
                 make_folder = os.path.join(second_level_dir, folder)
-                os.makedirs(make_folder, exists_ok=True)
+                os.makedirs(make_folder, exist_ok=True)
 
     print("Folders have been created")
 

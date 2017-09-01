@@ -6,9 +6,22 @@ from shutil import copyfile
 import argparse
 import subprocess
 from glob import glob
+from Bio import SeqIO
 
 
 __author__ = 'Colin Anthony'
+
+
+def fasta_to_dct(fn):
+    '''
+    :param fn: (str)infile name
+    :param frame: (int) reading frame (1, 2 or 3)
+    :return: (dict) dictionary of names and sequences
+    '''
+    dct = {}
+    for seq_record in SeqIO.parse(open(fn), "fasta"):
+        dct[seq_record.description.replace(" ", "_").upper()] = str(seq_record.seq).replace("-", "").upper()
+    return dct
 
 
 def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope):
@@ -32,7 +45,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
                                                                    cDNA_primer,
                                                                    logfile)
 
-    subprocess.call(cmd2, shell=True)
+    #subprocess.call(cmd2, shell=True)
 
     # copy data from nested binned folders into 2consensus folder
     print("Copy fastq files from nested folders to '2consensus' folder")
@@ -89,14 +102,20 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
         subprocess.call(cmd4, shell=True)
 
+    # get the HXB2 sequence for the gene region
+    hxb2_file = os.path.join(script_folder, "HXB2_seqs.fasta")
+    hxb2 = fasta_to_dct(hxb2_file)
+    hxb2_gene = "HXB2_" + gene_region.split("_")[0]
+    hxb2_seq = hxb2[hxb2_gene]
 
-    # cat all cleaned files into one file
+    # cat all cleaned files into one file + the relevant HXB2 sequence
     print("merging all cleaned fasta files into one file")
     all_clean_path = os.path.join(path, '3cleaned')
     clean_name = name + "_" + gene_region + "_all.fasta"
     all_cleaned_outname = os.path.join(all_clean_path, clean_name)
     cleaned_files = os.path.join(clean_path, '*clean.fa')
     with open(all_cleaned_outname, 'w') as outfile:
+        outfile.write(">{0}\n{1}\n".format(hxb2_gene, hxb2_seq))
         for fasta_file in glob(cleaned_files):
             with open(fasta_file) as infile:
                 for line in infile:
@@ -109,8 +128,6 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     copyfile(all_cleaned_outname, move_file)
 
     # call alignment script
-    # todo add hxb2 into alignemnt
-
     print("Aligning the sequences")
     to_align = move_file
     inpath, fname = os.path.split(to_align)
@@ -125,21 +142,16 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     subprocess.call(cmd5, shell=True)
 
-    # todo haplotype
-    # split into sample files
-    # haplotype
 
     # call funcion to calculate sequencing stats
     print("Calculating alignment stats")
     call_stats_calc = os.path.join(script_folder, 'ngs_stats_calculator.py')
     stats_outfname = (name + "_" + gene_region + '_sequencing_stats.csv')
-    print("name", stats_outfname)
     stats_outpath = os.path.join(path, stats_outfname)
-    print("path", stats_outpath)
     cmd6 = 'python3 {0} -i {1} -o {2}'.format(call_stats_calc, path, stats_outpath)
     subprocess.call(cmd6, shell=True)
 
-    print("The sample processing has completed")
+    print("The sample processing has been completed")
 
 
 if __name__ == "__main__":
@@ -150,11 +162,12 @@ if __name__ == "__main__":
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('-p', '--path', default=argparse.SUPPRESS, type=str,
-                        help='The path to the gene region subfolder (GAG1/ or C1C2/ or POL1/...)', required=True)
+                        help='The path to the gene region subfolder (GAG_1/ or env_C1C2/ or POL_1/...)', required=True)
     parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=str,
                         help='the prefix name of your outfile', required=True)
     parser.add_argument('-g', '--gene_region', default=argparse.SUPPRESS, type=str,
-                        help='the genomic region being sequenced', required=True)
+                        help='the genomic region being sequenced, '
+                             'valid options: GAG_1/GAG_2/ENV_C1C2/POL_1/NEF_1 etc..', required=True)
     parser.add_argument('-sf', '--script_folder', default=argparse.SUPPRESS, type=str,
                         help='the path to the folder containing the pipeline scripts', required=True)
     parser.add_argument('-f', '--fwd_primer', default=argparse.SUPPRESS, type=str,
