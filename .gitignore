@@ -113,3 +113,5 @@ to remove/
 /ide.general.xml
 /IntelliLang.xml
 /packages.xml
+/debugger.xml
+/diff.xml
