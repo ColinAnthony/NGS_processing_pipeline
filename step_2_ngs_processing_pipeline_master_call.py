@@ -55,6 +55,44 @@ def call_contam_check(consensuses, contam_removal_script, contam_removed_path):
         subprocess.call(cmd3, shell=True)
 
 
+def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, logfile, stops):
+
+    for fasta_file in glob(contam_removed_fasta):
+        if stops:
+            cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s {4} -l {5} -lf {6}'.format(remove_bad_seqs,
+                                                                                   fasta_file,
+                                                                                   clean_path,
+                                                                                   frame,
+                                                                                   stops,
+                                                                                   length,
+                                                                                   logfile)
+        else:
+            cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -l {4} -lf {5}'.format(remove_bad_seqs,
+                                                                            fasta_file,
+                                                                            clean_path,
+                                                                            frame,
+                                                                            length,
+                                                                            logfile)
+        if os.path.exists(logfile):
+            with open(logfile, 'a') as handle:
+                handle.write("\nremove_bad_sequences commands:\n{}\n".format(cmd4))
+
+        subprocess.call(cmd4, shell=True)
+
+
+def call_align(envelope, script_folder, to_align, aln_path, fname):
+
+    if envelope is not None:
+        align_all = os.path.join(script_folder, 'align_all_env_samples.py')
+
+        cmd5 = 'python3 {0}  -i {1} -o {2} -l {3}'.format(align_all, to_align, aln_path, fname, envelope)
+    else:
+        align_all = os.path.join(script_folder, 'align_all_samples.py')
+        cmd5 = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
+
+    subprocess.call(cmd5, shell=True)
+
+
 def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope):
 
     # initialize the log file
@@ -123,35 +161,16 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     # call remove bad sequences
     print("Removing 'bad' sequences")
     remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
+    contam_removed = os.path.join(contam_removed_path, '*contam_rem.fasta.fasta')
     clean_path = os.path.join(path, '3cleaned')
-    contam_removed_fasta = os.path.join(consensus_path, '*contam_rem.fasta.fasta')
+    contam_removed_fasta = glob(contam_removed)
     if contam_removed_fasta == []:
         print("Could not find contam_removed fasta files\n"
               "It is possible that there were no sequences remaining after removal of contaminating sequences\n"
               "Check that contamination detection settings (contam_removal.py) in case it was overzealous")
         sys.exit()
 
-    for fasta_file in glob(contam_removed_fasta):
-        if stops:
-            cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s {4} -l {5} -lf {6}'.format(remove_bad_seqs,
-                                                                                   fasta_file,
-                                                                                   clean_path,
-                                                                                   frame,
-                                                                                   stops,
-                                                                                   length,
-                                                                                   logfile)
-        else:
-            cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -l {4} -lf {5}'.format(remove_bad_seqs,
-                                                                            fasta_file,
-                                                                            clean_path,
-                                                                            frame,
-                                                                            length,
-                                                                            logfile)
-        if os.path.exists(logfile):
-            with open(logfile, 'a') as handle:
-                handle.write("\nremove_bad_sequences commands:\n{}\n".format(cmd4))
-
-        subprocess.call(cmd4, shell=True)
+    call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, logfile, stops)
 
     # get the HXB2 sequence for the gene region
     hxb2_file = os.path.join(script_folder, "HXB2_seqs.fasta")
@@ -189,15 +208,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     to_align = move_file
     inpath, fname = os.path.split(to_align)
     fname = fname.replace(".fasta", "_aligned.fasta")
-    if envelope is not None:
-        align_all = os.path.join(script_folder, 'align_all_env_samples.py')
-
-        cmd5 = 'python3 {0}  -i {1} -o {2} -l {3}'.format(align_all, to_align, aln_path, fname, envelope)
-    else:
-        align_all = os.path.join(script_folder, 'align_all_samples.py')
-        cmd5 = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
-
-    subprocess.call(cmd5, shell=True)
+    call_align(envelope, script_folder, to_align, aln_path, fname)
 
     # call funcion to calculate sequencing stats
     print("Calculating alignment stats")

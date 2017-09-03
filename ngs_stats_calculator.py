@@ -42,7 +42,7 @@ def main(inpath, outfile):
     stats_d = collections.defaultdict(list)
 
     all_names = collections.defaultdict(str)
-    # Todo: add code to handle if some samples faild and others didn't
+
     # calculate number of raw sequences
     stats_d["headers"].append("name")
     stats_d["headers"].append("raw_sequences")
@@ -116,6 +116,7 @@ def main(inpath, outfile):
         clean_d = fasta_to_dct(cleaned_file)
         total_clean = str(len(clean_d.keys()))
         stats_d[name].append(total_clean)
+
     # write the stats to the log file
     with open(outfile, 'w') as handle:
         # write the headers
@@ -125,7 +126,14 @@ def main(inpath, outfile):
 
         # write the stats
         for sequence_file in stats_d.keys():
-            lines_to_write = ",".join(stats_d[sequence_file])
+            stats_list = stats_d[sequence_file]
+
+            # if sample failed at some point, add NaN's
+            if len(stats_list) < len(stats_d["headers"]):
+                nan_to_add = 6 - len(stats_list)
+                for i in range(nan_to_add):
+                    stats_list.append("NaN")
+            lines_to_write = ",".join(str(x) for x in stats_list)
             handle.write(lines_to_write + "\n")
 
     print("Stats calculations on your NGS samples are complete")
