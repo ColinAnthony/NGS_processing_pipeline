@@ -36,11 +36,8 @@ def get_primer_lens_score(primer):
     return primer_lens, primer_score
 
 
-def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
+def run_motifbinner(logfile, fwd_read, rev_read, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
                     cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix, counter):
-
-    fwd_read = os.path.join(inpath, read1)
-    rev_read = os.path.join(inpath, read2)
 
     fwd_pid = 'NULL'
     rev_pid_fragment = 2
@@ -80,47 +77,50 @@ def run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_prim
     subprocess.call(cmd, shell=True)
 
 
-def main(inpath, outpath, fwd_primer, cDNA_primer, logfile):
+def main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, logfile):
+
     print("calling MotifBinner")
-    search = os.path.join(inpath, '*R1.fastq')
     fwd_primer = fwd_primer.upper()
     cDNA_primer = cDNA_primer.upper()
+
+    # calculate the primer lengths
     fwd_primer_lens, fwd_primer_score = get_primer_lens_score(fwd_primer)
     cDNA_primer_lens, cDNA_primer_score = get_primer_lens_score(cDNA_primer)
 
-    # set counter to keep track if iterations
-    counter = 0
-
-    for file in glob(search):
-        read1 = file
-        read2 = file.replace("R1.fastq", "R2.fastq")
-
-        name_prefix = os.path.split(file)[-1].replace("_R1.fastq", "")
-        run_motifbinner(logfile, inpath, read1, read2, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
-                        cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix, counter)
-        counter += 1
+    # run motifbinner call function
+    run_motifbinner(logfile, read1, read2, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
+                cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix, counter)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Calls the MotifBinner.R script to bin sequences by primer ID',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('-i', '--inpath', default=argparse.SUPPRESS, type=str,
-                        help='The path to where the output file will be created', required=True)
+    parser.add_argument('-r1', '--read1', default=argparse.SUPPRESS, type=str,
+                        help='The read1 (R1) fastq file', required=True)
+    parser.add_argument('-r2', '--read2', default=argparse.SUPPRESS, type=str,
+                        help='The read2 (R2) fastq file', required=True)
     parser.add_argument('-o', '--outpath', default=argparse.SUPPRESS, type=str,
                         help='The path to where the output file will be created', required=True)
     parser.add_argument('-f', '--fwd_primer', default=argparse.SUPPRESS, type=str,
                         help='The fwd primer for these samples', required=True)
     parser.add_argument('-r', '--cDNA_primer', default=argparse.SUPPRESS, type=str,
                         help='The cDNA primer for these samples', required=True)
+    parser.add_argument('-n', '--name_prefix', default=argparse.SUPPRESS, type=str,
+                        help='The prefix for labeling sequence headers', required=True)
+    parser.add_argument('-c', '--counter', default=argparse.SUPPRESS, type=str,
+                        help='Counter to keep track of logging commands to the log file', required=True)
     parser.add_argument('-l', '--logfile', default=argparse.SUPPRESS, type=str,
                         help='The path and name of the log file', required=True)
 
     args = parser.parse_args()
-    inpath = args.inpath
+    read1 = args.read1
+    read2 = args.read2
     outpath = args.outpath
     fwd_primer = args.fwd_primer
     cDNA_primer = args.cDNA_primer
+    name_prefix = args.name_prefix
+    counter = args.counter
     logfile = args.logfile
 
-    main(inpath, outpath, fwd_primer, cDNA_primer, logfile)
+    main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, logfile)

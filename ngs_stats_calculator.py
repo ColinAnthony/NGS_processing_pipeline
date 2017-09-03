@@ -42,7 +42,7 @@ def main(inpath, outfile):
     stats_d = collections.defaultdict(list)
 
     all_names = collections.defaultdict(str)
-
+    # Todo: add code to handle if some samples faild and others didn't
     # calculate number of raw sequences
     stats_d["headers"].append("name")
     stats_d["headers"].append("raw_sequences")
@@ -55,24 +55,8 @@ def main(inpath, outfile):
         stats_d[name].append(name)
         stats_d[name].append(total_raw)
 
-    # calculate number of sequences after contam removal
-    stats_d["headers"].append("contam_removed")
-    contam_files = os.path.join(inpath, "1contam_removal", "*_cln_R1.fastq")
-    for contam_file in glob(contam_files):
-        name = os.path.split(contam_file)[-1].replace("_cln_R1.fastq", "")
-        print("contram\n", contam_file)
-        print(name)
-        if name not in all_names.keys():
-            print("Can't match name for merged file with parent file name")
-            print(name)
-            sys.exit()
-
-        contam_rem_d = fastq_to_dct(contam_file)
-        total_contam_rem = str(len(contam_rem_d.keys()))
-        stats_d[name].append(total_contam_rem)
-
     # calculate number of merged sequences
-    merged_files = os.path.join(inpath, "2consensus", "binned", "*", "*_mergePEAR", "*assembled.fastq")
+    merged_files = os.path.join(inpath, "1consensus", "binned", "*", "*_mergePEAR", "*assembled.fastq")
     stats_d["headers"].append("merged_sequences")
     for merged_file in glob(merged_files):
         # get rid of the generic file name "merged.fastq.assembled.fastq"
@@ -103,6 +87,22 @@ def main(inpath, outfile):
         consensus_d = fastq_to_dct(consensus_file)
         total_consensus = str(len(consensus_d.keys()))
         stats_d[name].append(total_consensus)
+
+    # calculate number of sequences after contam removal
+    stats_d["headers"].append("contam_removed")
+    contam_files = os.path.join(inpath, "2contam_removal", "*_cln_R1.fastq")
+    for contam_file in glob(contam_files):
+        name = os.path.split(contam_file)[-1].replace("_cln_R1.fastq", "")
+        print("contram\n", contam_file)
+        print(name)
+        if name not in all_names.keys():
+            print("Can't match name for merged file with parent file name")
+            print(name)
+            sys.exit()
+
+        contam_rem_d = fastq_to_dct(contam_file)
+        total_contam_rem = str(len(contam_rem_d.keys()))
+        stats_d[name].append(total_contam_rem)
 
     # calculate number of cleaned sequences
     stats_d["headers"].append("cleaned_sequences")

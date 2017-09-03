@@ -2,103 +2,134 @@
 from __future__ import print_function
 from __future__ import division
 import os
+import sys
 import argparse
 import collections
+import tempfile
 from Bio import SeqIO
+from Bio.Blast import NCBIWWW
+from Bio.Blast import NCBIXML
+from Bio.Blast.Applications import NcbiblastnCommandline
+import regex
+
+
 
 __author__ = 'Colin Anthony'
 
 
-def find_contam(inseq):
+def fasta_to_dct(fn):
+    '''
+    converts a fasta file to a dictionary where key = seq name, value = sequence
+    :param fn: a fasta file
+    :return: a dictionary
+    '''
+    dct = collections.OrderedDict()
+    for seq_record in SeqIO.parse(open(fn), "fasta"):
+        dct[seq_record.description.replace(" ", "_").upper()] = str(seq_record.seq).replace("~", "-").upper()
+    return dct
+
+
+def blastn_seqs(query_sequence):
     '''
     :param inseq: (str) the sequence to blast
     :return: (bool) True or False depending on whether sequence is hiv or not
     '''
+    tmp_dir = tempfile.gettempdir()
+    tmpfile = os.path.join(tmp_dir, "tmp_blast_results.xml")
 
-    # todo blast the seq, if not hiv
-    blast_result = ''
+    blast_results = NCBIWWW.qblast('blastn', 'nr', query_sequence)
+    # blastn_cline = NcbiblastnCommandline(query=query_sequence, db="nr", evalue=0.001, outfmt=5. perc_identity=50,
+    #                                      out=tmpfile, max_target_seqs=3)
+    # stdout, stderr = blastn_cline()
 
-    if blast_result is 'HIV':
-        contam_result = False
+    with open(tmpfile, 'w') as handle:
+        handle.write(blast_results.read())
+
+    e_value_threshold = 0.04
+
+    for blast_record in NCBIXML.parse(open(tmpfile)):
+        # skip empty records
+        if blast_record.alignments:
+            for hit in blast_record.alignments:
+                # todo is this really taking the top hit? is the xml sorted by e value?
+                top = hit.hsps[0]
+                if top.expect < e_value_threshold:
+                    if "HIV-1" in hit.title.split(" "):
+                        return True
+                    else:
+                        return False
+
+
+def regex_contam(query_sequence, hxb2_region):
+    '''
+    :param inseq: (str) the sequence to blast
+    :return: (bool) True or False depending on whether sequence is hiv or not
+    '''
+    # todo hardcode hxb2 regex string for GAG_2? for now
+    # hxb2_region = ''
+    error = int(len(query_sequence) * 0.6)
+    hxb2_regex = "r'({0}){{{1}}}'".format(hxb2_region, error)
+    query = str(query_sequence)
+    match = regex.search(hxb2_regex, query, regex.BESTMATCH)
+    if match is not None:
+        print("no match")
+        return True
     else:
-        contam_result = True
-    return contam_result
+        return False
 
 
-def main(read1, read2, outpath):
+def main(consensus, outpath):
 
-    cln_read1 = read1.replace("R1.fastq", "cln_R1.fastq")
-    cln_read2 = read1.replace("R2.fastq", "cln_R2.fastq")
-    read1_out = os.path.join(outpath, cln_read1)
-    read2_out = os.path.join(outpath, cln_read2)
+    # initialize file names
+    cln_cons_name = os.path.split(consensus)[-1]
+    cln_cons = cln_cons_name.replace(".fasta", "contam_rem.fasta")
+    consensus_out = os.path.join(outpath, cln_cons)
+    contam_seqs = cln_cons_name.replace(".fasta", "contam_seqs.fasta")
+    contam_out = os.path.join(outpath, contam_seqs)
 
-    # initialize dict with key = seq name, value = True
-    contam_names_d = collections.defaultdict()
-    read1_kept = 0
-    read2_kept = 0
-    read1_removed = 0
-    read2_removed = 0
-
-    # clear out any existing outfiles for read1
-    with open(read1_out, 'w') as handle:
+    # clear out any existing outfiles for consensus
+    with open(consensus_out, 'w') as handle:
+        handle.write("")
+    with open(contam_out, 'w') as handle:
         handle.write("")
 
+    # get hxb2 seq for regex??
+    hxb2_seq = "gag1"
+    hxb2_seq = "gag2"
+
+    # store all consensus seqs in a dict
+    all_sequences_d = fasta_to_dct(consensus)
+
     # check each sequence to see if it is a contaminating sequence
-    for seq_record_R1 in SeqIO.parse(open(read1), "fastq"):
-        name = seq_record_R1.name
-        seq = seq_record_R1.seq
-        is_contam = find_contam(seq)
+    for name, seq in all_sequences_d.items():
+        # is_contam = regex_contam(seq, hxb2_seq)
+        is_contam = blastn_seqs(seq)
 
-        # if is contam save name to remove from read2
+        # if is contam save to contam file
         if is_contam:
-            contam_names_d[name] = is_contam
-            read1_removed += 1
+            with open(contam_out, 'a') as handle1:
+                outstr = "{0}{1}\n{2}\n".format('>', name, seq)
+                handle1.write(outstr)
 
-        # if is not contam, append to list to write to file
+        # if is not contam, to write to file
         else:
-            read1_kept += 1
-            # todo use biowriter?
-            with open(read1_out, 'a') as handle:
-                handle.write(seq_record_R1)
-
-    # clear out any existing outfiles for read2
-    with open(read2_out, 'w') as handle2:
-        handle2.write("")
-
-    # process read2 sequences, removing the paired reads that were removed in read1
-    for seq_record_R2 in SeqIO.parse(open(read2), "fastq"):
-        name = seq_record_R2.name
-        name_parts = name.split(' ')
-        name_parts[-1] = name_parts[-1].replace("2:", "1:")
-        lookup_name = " ".join(name_parts)
-        if lookup_name in contam_names_d.keys():
-            read2_removed += 1
-        else:
-            read2_kept += 1
-            # todo use biowriter?
-            with open(read2_out, 'a') as handle2:
-                handle2.write(seq_record_R2)
-
-    # check for errors. If read1 and read2 are not of equal length, downstream processes will fail
-    if len(read1_kept) != len(read2_kept):
-        print("{0} sequences kept from read1 file\n{1} sequences kept from read2\n".format(read1_kept, read2_kept))
-        print("Read1 and Read2 must be the same length, check the raw files (/0raw/) "
-              "some sequences may have been removed before running the pipeline")
+            with open(consensus_out, 'a') as handle2:
+                outstr = "{0}{1}\n{2}\n".format('>', name, seq)
+                handle2.write(outstr)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-r1', '--read1', default=argparse.SUPPRESS, type=str,
+
+    parser.add_argument('-i', '--consensus', default=argparse.SUPPRESS, type=str,
                         help='The read1 (R1) fastq file', required=True)
-    parser.add_argument('-r2', '--read2', default=argparse.SUPPRESS, type=str,
-                        help='The read2 (R2) fastq file', required=True)
     parser.add_argument('-o', '--outpath', default=argparse.SUPPRESS, type=str,
                         help='The path to where the output file will be copied', required=True)
 
     args = parser.parse_args()
-    read1 = args.read1
+    consensus = args.consensus
     read2 = args.read2
     outpath = args.outpath
 
-    main(read1, read2, outpath)
+    main(consensus, outpath)

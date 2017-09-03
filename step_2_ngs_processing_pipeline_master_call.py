@@ -2,6 +2,7 @@
 from __future__ import print_function
 from __future__ import division
 import os
+import sys
 from shutil import copyfile
 import argparse
 import subprocess
@@ -31,67 +32,98 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     with open(logfile, 'w') as handle:
         handle.write("Log File,{0}_{1}\n".format(name, gene_region))
 
-    # remove contaminating sequences
-    contam_removal_script = os.path.join(script_folder, "contam_removal.py")
-    raw_fastqs = os.path.join(path, '0raw', "*R1.fastq")
-    contam_removed_path = os.path.join(path, '1contam_removal')
+    # run the call_MotifBinner script which will loop over fastq files in the target folder
+    raw_fastq_inpath = os.path.join(path, '0raw')
+    cons_outpath = os.path.join(path, '1consensus', 'binned')
+    motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
+    raw_files_search = os.path.join(raw_fastq_inpath, "*_R1.fastq")
+    raw_files = glob(raw_files_search)
+    if raw_files == []:
+        print("No raw files were found\n"
+              "Check that files end with R1.fastq and R2.fastq")
+        sys.exit()
 
-    for read1 in glob(raw_fastqs):
-        read2 = read1.replace("_R1.fastq", "_R2.fastq")
-        cmd1 = 'python3 {0} -r1 {1} -r2 {2} -o {3}'.format(contam_removal_script,
-                                                             read1,
-                                                             read2,
-                                                             contam_removed_path)
+    counter = 0
+    # run the MotifBinner for each raw file pair
+    for file in raw_files:
+        read1 = file
+        read2 = file.replace("R1.fastq", "R2.fastq")
+        name_prefix = os.path.split(file)[-1].replace("_R1.fastq", "")
+
+        cmd1 = 'python3 {0} -r1 {1} -r2 {2} -o {3} -f {4} -r {5} -n {6} -c {7} -l {8}'.format(motifbinner,
+                                                                                              read1,
+                                                                                              read2,
+                                                                                              cons_outpath,
+                                                                                              fwd_primer,
+                                                                                              cDNA_primer,
+                                                                                              name_prefix,
+                                                                                              counter,
+                                                                                              logfile)
 
         #subprocess.call(cmd1, shell=True)
+        counter += 1
 
-    # run the call_MotifBinner script which will floop over fastq files in the target folder
-    cln_fastq_inpath = os.path.join(path, '1contam_removal')
-    cons_outpath = os.path.join(path, '2consensus', 'binned')
-    motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
-    cmd2 = 'python3 {0} -i {1} -o {2} -f {3} -r {4} -l {5}'.format(motifbinner,
-                                                                   cln_fastq_inpath,
-                                                                   cons_outpath,
-                                                                   fwd_primer,
-                                                                   cDNA_primer,
-                                                                   logfile)
+    # copy data from nested binned folders into 1consensus folder
+    print("Copy fastq files from nested folders to '1consensus' folder")
+    path_to_nested_consensuses = os.path.join(path, '1consensus/binned/*/*_buildConsensus/*kept_buildConsensus.fastq')
+    
+    # check if the files exist
+    nested_consesnsuses = glob(path_to_nested_consensuses)
+    if nested_consesnsuses == []:
+        print("No consensus sequences were found\n"
+              "This is likely if MotifBinner was not able to complete\n"
+              "Do your fastq sequences end in R1.fastq/R2.fastq?\n"
+              "Check the primer sequences are correct\n")
+        sys.exit()
 
-    #subprocess.call(cmd2, shell=True)
-
-    # copy data from nested binned folders into 2consensus folder
-    print("Copy fastq files from nested folders to '2consensus' folder")
-    path_to_consensus = os.path.join(path, '2consensus/binned/*/n028_cons_seqLength/*kept_cons_seqLength.fastq')
-    fastq_path = os.path.join(path, '2consensus')
-    for cons_file in glob(path_to_consensus):
-        if not os.path.isfile(cons_file):
-            print("consensus files do not exist")
+    consensus_path = os.path.join(path, '1consensus')
+    for cons_file in nested_consesnsuses:
         old_path, old_name = os.path.split(cons_file)
-        new_name = os.path.join(fastq_path, old_name)
+        new_name = os.path.join(consensus_path, old_name)
         copyfile(cons_file, new_name)
 
     # convert copied fastq to fasta
     print("Converting fastq to fasta")
-    search_path = os.path.join(fastq_path, '*.fastq')
-    for fastq in glob(search_path):
+    cons_search_path = os.path.join(consensus_path, '*.fastq')
+    consensuses = glob(cons_search_path)
+        
+    for fastq in consensuses:
         fasta = fastq.replace("fastq", "fasta")
-        cmd3 = 'seqmagick convert {0} {1}'.format(fastq,
+        cmd2 = 'seqmagick convert {0} {1}'.format(fastq,
                                                   fasta)
 
-        subprocess.call(cmd3, shell=True)
+        subprocess.call(cmd2, shell=True)
 
     # remove the copied fastq files
     print("Removing the copied fastq files")
-    remove_fastq = search_path
+    remove_fastq = cons_search_path
     for old_fastq_copy in glob(remove_fastq):
         os.remove(old_fastq_copy)
+
+    # remove contaminating sequences
+    contam_removal_script = os.path.join(script_folder, "contam_removal.py")
+    contam_removed_path = os.path.join(path, '2contam_removal')
+    contam_check_infiles = os.path.join(consensus_path, '*.fasta')
+    contam_rem_files = glob(contam_check_infiles)
+    for consensus_file in consensuses:
+        cmd3 = 'python3 {0} -i {1} -o {2}'.format(contam_removal_script,
+                                                  consensus_file,
+                                                  contam_removed_path)
+
+        subprocess.call(cmd3, shell=True)
 
     # call remove bad sequences
     print("Removing 'bad' sequences")
     remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
     clean_path = os.path.join(path, '3cleaned')
-    fasta_path = os.path.join(fastq_path, '*.fasta')
+    contam_removed_fasta = os.path.join(consensus_path, '*contam_rem.fasta.fasta')
+    if contam_removed_fasta == []:
+        print("Could not find contam_removed fasta files\n"
+              "It is possible that there were no sequences remaining after removal of contaminating sequences\n"
+              "Check that contamination detection settings (contam_removal.py) in case it was overzealous")
+        sys.exit()
 
-    for fasta_file in glob(fasta_path):
+    for fasta_file in glob(contam_removed_fasta):
         if stops:
             cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s {4} -l {5} -lf {6}'.format(remove_bad_seqs,
                                                                                    fasta_file,
@@ -124,10 +156,16 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     all_clean_path = os.path.join(path, '3cleaned')
     clean_name = name + "_" + gene_region + "_all.fasta"
     all_cleaned_outname = os.path.join(all_clean_path, clean_name)
-    cleaned_files = os.path.join(clean_path, '*clean.fa')
+    cleaned_files_search = os.path.join(clean_path, '*clean.fa')
+    cleaned_files = glob(cleaned_files_search)
+    if cleaned_files == []:
+        print("No cleaned fasta files were found\n"
+              "Check that the fasta files still have sequences in them after the removal of bad sequences")
+        sys.exit()
+
     with open(all_cleaned_outname, 'w') as outfile:
         outfile.write(">{0}\n{1}\n".format(hxb2_gene, hxb2_seq))
-        for fasta_file in glob(cleaned_files):
+        for fasta_file in cleaned_files:
             with open(fasta_file) as infile:
                 for line in infile:
                     outfile.write(line + "\n")
@@ -152,7 +190,6 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         cmd5 = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
 
     subprocess.call(cmd5, shell=True)
-
 
     # call funcion to calculate sequencing stats
     print("Calculating alignment stats")
