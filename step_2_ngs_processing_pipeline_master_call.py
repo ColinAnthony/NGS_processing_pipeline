@@ -34,7 +34,7 @@ def rename_sequences(raw_files_search):
         outf_R2 = inf_R2.replace("-", "_")
 
         try:
-            outf_R1 = re.sub("S[0-9[0-9]_L001_R1_001", "R1", outf_R1)
+            outf_R1 = regex.sub("S[0-9[0-9]_L001_R1_001", "R1", outf_R1)
             os.rename(inf_R1, outf_R1)
         except:
             print("Unable to rename files\ncheck the file renaming regex")
