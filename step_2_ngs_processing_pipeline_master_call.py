@@ -25,26 +25,7 @@ def fasta_to_dct(fn):
     return dct
 
 
-def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope):
-
-    # initialize the log file
-    logfile = os.path.join(path, (gene_region + "_logfile.txt"))
-    with open(logfile, 'w') as handle:
-        handle.write("Log File,{0}_{1}\n".format(name, gene_region))
-
-    # run the call_MotifBinner script which will loop over fastq files in the target folder
-    raw_fastq_inpath = os.path.join(path, '0raw')
-    cons_outpath = os.path.join(path, '1consensus', 'binned')
-    motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
-    raw_files_search = os.path.join(raw_fastq_inpath, "*_R1.fastq")
-    raw_files = glob(raw_files_search)
-    if raw_files == []:
-        print("No raw files were found\n"
-              "Check that files end with R1.fastq and R2.fastq")
-        sys.exit()
-
-    counter = 0
-    # run the MotifBinner for each raw file pair
+def call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile):
     for file in raw_files:
         read1 = file
         read2 = file.replace("R1.fastq", "R2.fastq")
@@ -60,14 +41,46 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
                                                                                               counter,
                                                                                               logfile)
 
-        #subprocess.call(cmd1, shell=True)
+        subprocess.call(cmd1, shell=True)
         counter += 1
+
+
+def call_contam_check(consensuses, contam_removal_script, contam_removed_path):
+
+    for consensus_file in consensuses:
+        cmd3 = 'python3 {0} -i {1} -o {2}'.format(contam_removal_script,
+                                                  consensus_file,
+                                                  contam_removed_path)
+
+        subprocess.call(cmd3, shell=True)
+
+
+def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope):
+
+    # initialize the log file
+    logfile = os.path.join(path, (gene_region + "_logfile.txt"))
+    with open(logfile, 'w') as handle:
+        handle.write("Log File,{0}_{1}\n".format(name, gene_region))
+
+    # run the call_MotifBinner script which will loop over fastq files in the target folder
+    motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
+    raw_fastq_inpath = os.path.join(path, '0raw')
+    cons_outpath = os.path.join(path, '1consensus', 'binned')
+    raw_files_search = os.path.join(raw_fastq_inpath, "*_R1.fastq")
+    raw_files = glob(raw_files_search)
+    if raw_files == []:
+        print("No raw files were found\n"
+              "Check that files end with R1.fastq and R2.fastq")
+        sys.exit()
+
+    counter = 0
+    call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile)
 
     # copy data from nested binned folders into 1consensus folder
     print("Copy fastq files from nested folders to '1consensus' folder")
     path_to_nested_consensuses = os.path.join(path, '1consensus/binned/*/*_buildConsensus/*kept_buildConsensus.fastq')
     
-    # check if the files exist
+    # check if the consensus files exist
     nested_consesnsuses = glob(path_to_nested_consensuses)
     if nested_consesnsuses == []:
         print("No consensus sequences were found\n"
@@ -102,15 +115,10 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     # remove contaminating sequences
     contam_removal_script = os.path.join(script_folder, "contam_removal.py")
-    contam_removed_path = os.path.join(path, '2contam_removal')
     contam_check_infiles = os.path.join(consensus_path, '*.fasta')
+    contam_removed_path = os.path.join(path, '2contam_removal')
     contam_rem_files = glob(contam_check_infiles)
-    for consensus_file in consensuses:
-        cmd3 = 'python3 {0} -i {1} -o {2}'.format(contam_removal_script,
-                                                  consensus_file,
-                                                  contam_removed_path)
-
-        subprocess.call(cmd3, shell=True)
+    call_contam_check(contam_rem_files, contam_removal_script, contam_removed_path)
 
     # call remove bad sequences
     print("Removing 'bad' sequences")

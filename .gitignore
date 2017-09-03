@@ -100,3 +100,16 @@ ENV/
 # mypy
 .mypy_cache/
 
+/colors.scheme.xml
+.idea/*.xml
+.idea/.name
+.idea/dictionaries/root.xml
+to remove/
+/conda_packages.xml
+/databaseDrivers.xml
+/github_settings.xml
+/web-browsers.xml
+/multimarkdown.shared.xml
+/ide.general.xml
+/IntelliLang.xml
+/packages.xml
