@@ -2,7 +2,6 @@
 from __future__ import print_function
 from __future__ import division
 import os
-import sys
 import argparse
 import collections
 import tempfile
@@ -36,13 +35,13 @@ def blastn_seqs(query_sequence, seqname, logfile):
     tmp_dir = tempfile.gettempdir()
     tmpfile = os.path.join(tmp_dir, "tmp_blast_results.xml")
 
-    #blast_results = NCBIWWW.qblast('blastn', 'nr', query_sequence)
-    # blastn_cline = NcbiblastnCommandline(query=query_sequence, db="nr", evalue=0.001, outfmt=5. perc_identity=50,
+    blast_results = NCBIWWW.qblast('blastn', 'nr', query_sequence)
+    # blastn_cline = NcbiblastnCommandline(query=query_sequence, db="nr", evalue=0.001, outfmt=5, perc_identity=50,
     #                                      out=tmpfile, max_target_seqs=3)
     # stdout, stderr = blastn_cline()
 
-    # with open(tmpfile, 'w') as handle:
-    #     handle.write(blast_results.read())
+    with open(tmpfile, 'w') as handle:
+        handle.write(blast_results.read())
 
     e_value_threshold = 0.01
 
@@ -104,7 +103,7 @@ def main(consensus, outpath, logfile):
     contam_out = os.path.join(outpath, contam_seqs)
 
     with open(logfile, 'a') as handle:
-        handle.write("Contam removal step:\n\nSequences identified as contaminants (if any):")
+        handle.write("Contam removal step:\nSequences identified as contaminants (if any):")
 
     # clear out any existing outfiles for consensus
     with open(consensus_out, 'w') as handle1:

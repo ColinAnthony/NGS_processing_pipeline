@@ -7,7 +7,7 @@ from shutil import copyfile
 import argparse
 import subprocess
 from glob import glob
-import re
+import regex
 from Bio import SeqIO
 
 
@@ -40,7 +40,7 @@ def rename_sequences(raw_files_search):
             print("Unable to rename files\ncheck the file renaming regex")
             sys.exit()
         try:
-            outf_R2 = re.sub("S[0-9[0-9]_L001_R2_001", "R2", outf_R2)
+            outf_R2 = regex.sub("S[0-9[0-9]_L001_R2_001", "R2", outf_R2)
             os.rename(inf_R2, outf_R2)
         except:
             print("Unable to rename files\ncheck the file renaming regex")
