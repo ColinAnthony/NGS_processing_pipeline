@@ -17,7 +17,6 @@ __author__ = 'Colin Anthony'
 def fasta_to_dct(fn):
     '''
     :param fn: (str)infile name
-    :param frame: (int) reading frame (1, 2 or 3)
     :return: (dict) dictionary of names and sequences
     '''
     dct = {}
@@ -72,9 +71,9 @@ def call_contam_check(consensuses, contam_removal_script, contam_removed_path, l
 
     for consensus_file in consensuses:
         cmd3 = 'python3 {0} -i {1} -o {2} -l {3}'.format(contam_removal_script,
-                                                  consensus_file,
-                                                  contam_removed_path,
-                                                  logfile)
+                                                         consensus_file,
+                                                         contam_removed_path,
+                                                         logfile)
 
         subprocess.call(cmd3, shell=True)
 
@@ -128,7 +127,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     raw_fastq_inpath = os.path.join(path, '0raw')
     raw_files_search = os.path.join(raw_fastq_inpath, "*_R1.fastq")
     raw_files = glob(raw_files_search)
-    if raw_files == []:
+    if not raw_files:
         print("No raw files were found\n"
               "Check that files end with R1.fastq and R2.fastq")
         sys.exit()
@@ -139,7 +138,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
     cons_outpath = os.path.join(path, '1consensus', 'binned')
     counter = 0
-    # call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile)
+    call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile)
 
     # copy data from nested binned folders into 1consensus folder
     print("Copy fastq files from nested folders to '1consensus' folder")
@@ -147,7 +146,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     
     # check if the consensus files exist
     nested_consesnsuses = glob(path_to_nested_consensuses)
-    if nested_consesnsuses == []:
+    if not nested_consesnsuses:
         print("No consensus sequences were found\n"
               "This is likely if MotifBinner was not able to complete\n"
               "Do your fastq sequences end in R1.fastq/R2.fastq?\n"
@@ -192,7 +191,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     contam_removed = os.path.join(contam_removed_path, '*_good.fasta')
     clean_path = os.path.join(path, '3cleaned')
     contam_removed_fasta = glob(contam_removed)
-    if contam_removed_fasta == []:
+    if not contam_removed_fasta:
         print("Could not find contam_removed fasta files\n"
               "It is possible that there were no sequences remaining after removal of contaminating sequences\n"
               "Check that contamination detection settings (contam_removal.py) in case it was overzealous")
@@ -213,7 +212,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     all_cleaned_outname = os.path.join(all_clean_path, clean_name)
     cleaned_files_search = os.path.join(clean_path, '*clean.fasta')
     cleaned_files = glob(cleaned_files_search)
-    if cleaned_files == []:
+    if not cleaned_files:
         print("No cleaned fasta files were found\n"
               "Check that the fasta files still have sequences in them after the removal of bad sequences")
         sys.exit()
