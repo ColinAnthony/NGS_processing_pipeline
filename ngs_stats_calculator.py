@@ -43,6 +43,10 @@ def main(inpath, outfile):
 
     all_names = collections.defaultdict(str)
 
+    # clear the stats_out file
+    with open(outfile, 'w') as handle:
+        handle.write("")
+
     # calculate number of raw sequences
     stats_d["headers"].append("name")
     stats_d["headers"].append("raw_sequences")
@@ -63,7 +67,7 @@ def main(inpath, outfile):
         path_split1 = os.path.split(merged_file)[0]
         # get rid of the generic folder name "*_mergePEAR"
         path_split2 = os.path.split(path_split1)[0]
-    # get the sample name
+        # get the sample name
         name = os.path.split(path_split2)[-1]
         # Check you have the correct sample name
         if name not in all_names.keys():
@@ -77,30 +81,29 @@ def main(inpath, outfile):
 
     # calculate number of consensus sequences
     stats_d["headers"].append("consensus_sequences")
-    consensus_files = os.path.join(inpath, "2consensus", "binned", "*", "*_buildConsensus", "*kept_buildConsensus.fastq")
+    consensus_files = os.path.join(inpath, "1consensus", "*.fasta")
     for consensus_file in glob(consensus_files):
-        name = os.path.split(consensus_file)[-1].replace("_kept_buildConsensus.fastq", "")
+        print(consensus_file)
+        name = os.path.split(consensus_file)[-1].replace(".fasta", "")
         if name not in all_names.keys():
             print("Can't match name for consensus file with parent file name")
             print(name)
             sys.exit()
-        consensus_d = fastq_to_dct(consensus_file)
+        consensus_d = fasta_to_dct(consensus_file)
         total_consensus = str(len(consensus_d.keys()))
         stats_d[name].append(total_consensus)
 
     # calculate number of sequences after contam removal
     stats_d["headers"].append("contam_removed")
-    contam_files = os.path.join(inpath, "2contam_removal", "*_cln_R1.fastq")
+    contam_files = os.path.join(inpath, "2contam_removal", "*_good.fasta")
     for contam_file in glob(contam_files):
-        name = os.path.split(contam_file)[-1].replace("_cln_R1.fastq", "")
-        print("contram\n", contam_file)
-        print(name)
+        name = os.path.split(contam_file)[-1].replace("_good.fasta", "")
         if name not in all_names.keys():
             print("Can't match name for merged file with parent file name")
             print(name)
             sys.exit()
 
-        contam_rem_d = fastq_to_dct(contam_file)
+        contam_rem_d = fasta_to_dct(contam_file)
         total_contam_rem = str(len(contam_rem_d.keys()))
         stats_d[name].append(total_contam_rem)
 
@@ -113,6 +116,7 @@ def main(inpath, outfile):
             print("Can't match name for cleaned file with parent file name")
             print(name)
             sys.exit()
+
         clean_d = fasta_to_dct(cleaned_file)
         total_clean = str(len(clean_d.keys()))
         stats_d[name].append(total_clean)
@@ -122,19 +126,17 @@ def main(inpath, outfile):
         # write the headers
         headers_to_write = ",".join(stats_d["headers"])
         handle.write(headers_to_write + "\n")
-        del stats_d["headers"]
-
         # write the stats
         for sequence_file in stats_d.keys():
-            stats_list = stats_d[sequence_file]
-
-            # if sample failed at some point, add NaN's
-            if len(stats_list) < len(stats_d["headers"]):
-                nan_to_add = 6 - len(stats_list)
-                for i in range(nan_to_add):
-                    stats_list.append("NaN")
-            lines_to_write = ",".join(str(x) for x in stats_list)
-            handle.write(lines_to_write + "\n")
+            if sequence_file != "headers":
+                stats_list = stats_d[sequence_file]
+                # if sample failed at some point, add NaN's
+                if len(stats_list) < len(stats_d["headers"]):
+                    nan_to_add = 6 - len(stats_list)
+                    for i in range(nan_to_add):
+                        stats_list.append("NaN")
+                lines_to_write = ",".join(str(x) for x in stats_list)
+                handle.write(lines_to_write + "\n")
 
     print("Stats calculations on your NGS samples are complete")
 

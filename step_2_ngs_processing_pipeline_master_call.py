@@ -7,6 +7,7 @@ from shutil import copyfile
 import argparse
 import subprocess
 from glob import glob
+import re
 from Bio import SeqIO
 
 
@@ -23,6 +24,28 @@ def fasta_to_dct(fn):
     for seq_record in SeqIO.parse(open(fn), "fasta"):
         dct[seq_record.description.replace(" ", "_").upper()] = str(seq_record.seq).replace("-", "").upper()
     return dct
+
+
+def rename_sequences(raw_files_search):
+
+    for inf_R1 in raw_files_search:
+        inf_R2 = inf_R1.replace("R1_001.fastq", "R2_001.fastq")
+
+        outf_R1 = inf_R1.replace("-", "_")
+        outf_R2 = inf_R2.replace("-", "_")
+
+        try:
+            outf_R1 = re.sub("S[0-9[0-9]_L001_R1_001", "R1", outf_R1)
+            os.rename(inf_R1, outf_R1)
+        except:
+            print("Unable to rename files\ncheck the file renaming regex")
+            sys.exit()
+        try:
+            outf_R2 = re.sub("S[0-9[0-9]_L001_R2_001", "R2", outf_R2)
+            os.rename(inf_R2, outf_R2)
+        except:
+            print("Unable to rename files\ncheck the file renaming regex")
+            sys.exit()
 
 
 def call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile):
@@ -45,19 +68,20 @@ def call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile):
         counter += 1
 
 
-def call_contam_check(consensuses, contam_removal_script, contam_removed_path):
+def call_contam_check(consensuses, contam_removal_script, contam_removed_path, logfile):
 
     for consensus_file in consensuses:
-        cmd3 = 'python3 {0} -i {1} -o {2}'.format(contam_removal_script,
+        cmd3 = 'python3 {0} -i {1} -o {2} -l {3}'.format(contam_removal_script,
                                                   consensus_file,
-                                                  contam_removed_path)
+                                                  contam_removed_path,
+                                                  logfile)
 
         subprocess.call(cmd3, shell=True)
 
 
 def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, logfile, stops):
 
-    for fasta_file in glob(contam_removed_fasta):
+    for fasta_file in contam_removed_fasta:
         if stops:
             cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s {4} -l {5} -lf {6}'.format(remove_bad_seqs,
                                                                                    fasta_file,
@@ -100,10 +124,8 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     with open(logfile, 'w') as handle:
         handle.write("Log File,{0}_{1}\n".format(name, gene_region))
 
-    # run the call_MotifBinner script which will loop over fastq files in the target folder
-    motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
+    # rename the raw sequences
     raw_fastq_inpath = os.path.join(path, '0raw')
-    cons_outpath = os.path.join(path, '1consensus', 'binned')
     raw_files_search = os.path.join(raw_fastq_inpath, "*_R1.fastq")
     raw_files = glob(raw_files_search)
     if raw_files == []:
@@ -111,12 +133,17 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
               "Check that files end with R1.fastq and R2.fastq")
         sys.exit()
 
+    # rename_sequences(raw_files)
+
+    # run the call_MotifBinner script which will loop over fastq files in the target folder
+    motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
+    cons_outpath = os.path.join(path, '1consensus', 'binned')
     counter = 0
-    call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile)
+    # call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile)
 
     # copy data from nested binned folders into 1consensus folder
     print("Copy fastq files from nested folders to '1consensus' folder")
-    path_to_nested_consensuses = os.path.join(path, '1consensus/binned/*/*_buildConsensus/*kept_buildConsensus.fastq')
+    path_to_nested_consensuses = os.path.join(path, '1consensus/binned/*/*_buildConsensus/*_kept_buildConsensus.fastq')
     
     # check if the consensus files exist
     nested_consesnsuses = glob(path_to_nested_consensuses)
@@ -130,14 +157,14 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     consensus_path = os.path.join(path, '1consensus')
     for cons_file in nested_consesnsuses:
         old_path, old_name = os.path.split(cons_file)
-        new_name = os.path.join(consensus_path, old_name)
-        copyfile(cons_file, new_name)
+        new_name = old_name.replace("_kept_buildConsensus", "")
+        new_file = os.path.join(consensus_path, new_name)
+        copyfile(cons_file, new_file)
 
     # convert copied fastq to fasta
     print("Converting fastq to fasta")
     cons_search_path = os.path.join(consensus_path, '*.fastq')
     consensuses = glob(cons_search_path)
-        
     for fastq in consensuses:
         fasta = fastq.replace("fastq", "fasta")
         cmd2 = 'seqmagick convert {0} {1}'.format(fastq,
@@ -152,16 +179,17 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         os.remove(old_fastq_copy)
 
     # remove contaminating sequences
+    print("removing contaminating non-HIV sequences")
     contam_removal_script = os.path.join(script_folder, "contam_removal.py")
     contam_check_infiles = os.path.join(consensus_path, '*.fasta')
     contam_removed_path = os.path.join(path, '2contam_removal')
     contam_rem_files = glob(contam_check_infiles)
-    call_contam_check(contam_rem_files, contam_removal_script, contam_removed_path)
+    call_contam_check(contam_rem_files, contam_removal_script, contam_removed_path, logfile)
 
     # call remove bad sequences
     print("Removing 'bad' sequences")
     remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
-    contam_removed = os.path.join(contam_removed_path, '*contam_rem.fasta.fasta')
+    contam_removed = os.path.join(contam_removed_path, '*_good.fasta')
     clean_path = os.path.join(path, '3cleaned')
     contam_removed_fasta = glob(contam_removed)
     if contam_removed_fasta == []:
@@ -183,7 +211,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     all_clean_path = os.path.join(path, '3cleaned')
     clean_name = name + "_" + gene_region + "_all.fasta"
     all_cleaned_outname = os.path.join(all_clean_path, clean_name)
-    cleaned_files_search = os.path.join(clean_path, '*clean.fa')
+    cleaned_files_search = os.path.join(clean_path, '*clean.fasta')
     cleaned_files = glob(cleaned_files_search)
     if cleaned_files == []:
         print("No cleaned fasta files were found\n"
@@ -202,6 +230,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     aln_path = os.path.join(path, '4aligned')
     move_file = os.path.join(aln_path, clean_name)
     copyfile(all_cleaned_outname, move_file)
+    os.remove(all_cleaned_outname)
 
     # call alignment script
     print("Aligning the sequences")

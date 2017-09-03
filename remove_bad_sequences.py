@@ -129,7 +129,7 @@ def main(infile, outp, frame, stops, length, logfile):
 
     # set outfile names
     n = os.path.split(infile)[1]
-    out_gd = n.replace("_kept_cons_seqLength.fasta", '_clean.fasta')
+    out_gd = n.replace("_good.fasta", '_clean.fasta')
     # out_bd = n.replace(".fasta", '_dirty.fa')
     outfile_good = os.path.join(outp, out_gd)
     # outfile_bad = os.path.join(outp, out_bd)
