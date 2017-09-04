@@ -10,7 +10,6 @@ from Bio.Blast import NCBIWWW
 from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastnCommandline
 import regex
-#
 
 __author__ = 'Colin Anthony'
 
@@ -27,7 +26,7 @@ def fasta_to_dct(fn):
     return dct
 
 
-def blastn_seqs(query_sequence, seqname, logfile):
+def blastn_seqs(query_file, logfile):
     '''
     :param inseq: (str) the sequence to blast
     :return: (bool) True or False depending on whether sequence is hiv or not
@@ -35,13 +34,13 @@ def blastn_seqs(query_sequence, seqname, logfile):
     tmp_dir = tempfile.gettempdir()
     tmpfile = os.path.join(tmp_dir, "tmp_blast_results.xml")
 
-    blast_results = NCBIWWW.qblast('blastn', 'nr', query_sequence)
-    # blastn_cline = NcbiblastnCommandline(query=query_sequence, db="nr", evalue=0.001, outfmt=5, perc_identity=50,
-    #                                      out=tmpfile, max_target_seqs=3)
-    # stdout, stderr = blastn_cline()
-
-    with open(tmpfile, 'w') as handle:
-        handle.write(blast_results.read())
+    # blast_results = NCBIWWW.qblast('blastn', 'nr', query_file)
+    blastn_cline = NcbiblastnCommandline(query=query_file, db="nt", evalue=0.001, outfmt=5, perc_identity=50,
+                                         out=tmpfile, max_target_seqs=3)
+    stdout, stderr = blastn_cline()
+    print(stderr, "\n", stdout)
+    # with open(tmpfile, 'w') as handle:
+    #     handle.write(blast_results.read())
 
     e_value_threshold = 0.01
 
@@ -60,18 +59,20 @@ def blastn_seqs(query_sequence, seqname, logfile):
 
                 # is the hit to HIV-1?
                 if "HIV-1" in title:
-                    return False
-
+                    print("HIV")
+        #            return False
                 else:
-                    with open(logfile, 'a') as handle:
-                        handle.write(seqname + "\ttop blastn hit:\t" + "_".join(title) + "\n")
-                    return True
-
-        else:
-            print("No blastn hits")
-            with open(logfile, 'a') as handle:
-                handle.write(seqname + "\ttop blastn hit:\t" + "None" + "\n")
-            return True
+                    print("not hiv", title)
+        #         else:
+        #             with open(logfile, 'a') as handle:
+        #                 handle.write(seqname + "\ttop blastn hit:\t" + "_".join(title) + "\n")
+        #             return True
+        #
+        # else:
+        #     print("No blastn hits")
+        #     with open(logfile, 'a') as handle:
+        #         handle.write(seqname + "\ttop blastn hit:\t" + "None" + "\n")
+        #     return True
 
 
 def regex_contam(query_sequence, hxb2_region):
@@ -119,24 +120,26 @@ def main(consensus, outpath, logfile):
 
     # store all consensus seqs in a dict
     all_sequences_d = fasta_to_dct(consensus)
+    is_contam = blastn_seqs(consensus, logfile)
 
     # check each sequence to see if it is a contaminating sequence
-    for name, seq in all_sequences_d.items():
-        # is_contam = regex_contam(seq, hxb2_seq)
-        is_contam = blastn_seqs(seq, name, logfile)
-        # if is contam, save to contam file
-        if is_contam:
-            print("Non HIV sequence found:\n", name, "\n", seq)
-            with open(contam_out, 'a') as handle1:
-                outstr = "{0}{1}\n{2}\n".format('>', name, seq)
-                handle1.write(outstr)
-
-        # if is not contam, to write to good outfile
-        else:
-            with open(consensus_out, 'a') as handle2:
-                outstr = "{0}{1}\n{2}\n".format('>', name, seq)
-                handle2.write(outstr)
-
+    # for name, seq in all_sequences_d.items():
+    #     # is_contam = regex_contam(seq, hxb2_seq)
+    #     is_contam = blastn_seqs(seq, name, logfile)
+    #     # if is contam, save to contam file
+    #     if is_contam:
+    #         print("Non HIV sequence found:\n", name, "\n", seq)
+    #         with open(contam_out, 'a') as handle1:
+    #             outstr = "{0}{1}\n{2}\n".format('>', name, seq)
+    #             handle1.write(outstr)
+    #
+    #     # if is not contam, to write to good outfile
+    #     else:
+    #         print("HIV")
+    #         with open(consensus_out, 'a') as handle2:
+    #             outstr = "{0}{1}\n{2}\n".format('>', name, seq)
+    #             handle2.write(outstr)
+    #     input("enter")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='',

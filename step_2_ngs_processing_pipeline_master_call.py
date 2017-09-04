@@ -184,7 +184,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     contam_removed_path = os.path.join(path, '2contam_removal')
     contam_rem_files = glob(contam_check_infiles)
     call_contam_check(contam_rem_files, contam_removal_script, contam_removed_path, logfile)
-
+    input("enter")
     # call remove bad sequences
     print("Removing 'bad' sequences")
     remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
