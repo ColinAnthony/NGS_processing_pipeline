@@ -94,23 +94,9 @@ def main(inpath, outfile):
         total_consensus = str(len(consensus_d.keys()))
         stats_d[name].append(total_consensus)
 
-    # calculate number of sequences after contam removal
-    stats_d["headers"].append("contam_removed")
-    contam_files = os.path.join(inpath, "2contam_removal", "*_good.fasta")
-    for contam_file in glob(contam_files):
-        name = os.path.split(contam_file)[-1].replace("_good.fasta", "")
-        if name not in all_names.keys():
-            print("Can't match name for merged file with parent file name")
-            print(name)
-            sys.exit()
-
-        contam_rem_d = fasta_to_dct(contam_file)
-        total_contam_rem = str(len(contam_rem_d.keys()))
-        stats_d[name].append(total_contam_rem)
-
     # calculate number of cleaned sequences
     stats_d["headers"].append("cleaned_sequences")
-    cleaned_files = os.path.join(inpath, "3cleaned", "*_clean.fasta")
+    cleaned_files = os.path.join(inpath, "2cleaned", "*_clean.fasta")
     for cleaned_file in glob(cleaned_files):
         name = os.path.split(cleaned_file)[-1].replace("_clean.fasta", "")
         if name not in all_names.keys():
@@ -121,6 +107,20 @@ def main(inpath, outfile):
         clean_d = fasta_to_dct(cleaned_file)
         total_clean = str(len(clean_d.keys()))
         stats_d[name].append(total_clean)
+
+    # calculate number of sequences after contam removal
+    stats_d["headers"].append("no_contaminants")
+    contam_files = os.path.join(inpath, "3contam_removal", "*_good.fasta")
+    for contam_file in glob(contam_files):
+        name = os.path.split(contam_file)[-1].replace("_good.fasta", "")
+        if name not in all_names.keys():
+            print("Can't match name for merged file with parent file name")
+            print(name)
+            sys.exit()
+
+        contam_rem_d = fasta_to_dct(contam_file)
+        total_contam_rem = str(len(contam_rem_d.keys()))
+        stats_d[name].append(total_contam_rem)
 
     # write the stats to the log file
     with open(outfile, 'w') as handle:

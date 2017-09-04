@@ -67,15 +67,20 @@ def call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile):
         counter += 1
 
 
-def call_contam_check(consensuses, contam_removal_script, contam_removed_path, logfile):
+def delete_gaps(fasta_infiles):
 
-    for consensus_file in consensuses:
-        cmd3 = 'python3 {0} -i {1} -o {2} -l {3}'.format(contam_removal_script,
-                                                         consensus_file,
-                                                         contam_removed_path,
-                                                         logfile)
+    for fasta_file in fasta_infiles:
+        temp_out = fasta_file.replace(".fasta", ".fasta.bak")
+        new_fasta = temp_out.replace(".bak", "")
+        cons_d = fasta_to_dct(fasta_file)
+        with open(temp_out, 'w') as handle:
+            for seq_name, seq in cons_d.items():
 
-        subprocess.call(cmd3, shell=True)
+                handle.write('>{0}\n{1}\n'.format(seq_name, seq))
+
+        os.remove(fasta_file)
+        copyfile(temp_out, new_fasta)
+        os.remove(temp_out)
 
 
 def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, logfile, stops):
@@ -101,6 +106,17 @@ def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, logfil
                 handle.write("\nremove_bad_sequences commands:\n{}\n".format(cmd4))
 
         subprocess.call(cmd4, shell=True)
+
+
+def call_contam_check(consensuses, contam_removal_script, contam_removed_path, logfile):
+
+    for consensus_file in consensuses:
+        cmd3 = 'python3 {0} -i {1} -o {2} -l {3}'.format(contam_removal_script,
+                                                         consensus_file,
+                                                         contam_removed_path,
+                                                         logfile)
+
+        subprocess.call(cmd3, shell=True)
 
 
 def call_align(envelope, script_folder, to_align, aln_path, fname):
@@ -139,20 +155,19 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     cons_outpath = os.path.join(path, '1consensus', 'binned')
     counter = 0
     #call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile)
-
-    # copy data from nested binned folders into 1consensus folder
-    print("Copy fastq files from nested folders to '1consensus' folder")
-    path_to_nested_consensuses = os.path.join(path, '1consensus/binned/*/*_buildConsensus/*_kept_buildConsensus.fastq')
     
     # check if the consensus files exist
+    path_to_nested_consensuses = os.path.join(path, '1consensus/binned/*/*_buildConsensus/*_kept_buildConsensus.fastq')
     nested_consesnsuses = glob(path_to_nested_consensuses)
     if not nested_consesnsuses:
         print("No consensus sequences were found\n"
               "This is likely if MotifBinner was not able to complete\n"
               "Do your fastq sequences end in R1.fastq/R2.fastq?\n"
-              "Check the primer sequences are correct\n")
+              "Check the primer sequences are correct\nand check the binning report in the 1consensus/binned/ folder")
         sys.exit()
 
+    # copy data from nested binned folders into 1consensus folder
+    print("Copy fastq files from nested folders to '1consensus' folder")
     consensus_path = os.path.join(path, '1consensus')
     for cons_file in nested_consesnsuses:
         old_path, old_name = os.path.split(cons_file)
@@ -177,27 +192,37 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     for old_fastq_copy in glob(remove_fastq):
         os.remove(old_fastq_copy)
 
-    # remove contaminating sequences
-    print("removing contaminating non-HIV sequences")
-    contam_removal_script = os.path.join(script_folder, "contam_removal.py")
-    contam_check_infiles = os.path.join(consensus_path, '*.fasta')
-    contam_removed_path = os.path.join(path, '2contam_removal')
-    contam_rem_files = glob(contam_check_infiles)
-    call_contam_check(contam_rem_files, contam_removal_script, contam_removed_path, logfile)
-    input("enter")
+    # delete any gaps characters in the fasta sequences
+    print("deleting gaps in consensus sequences")
+    consensus_infiles = os.path.join(consensus_path, '*.fasta')
+    consensus_infiles = glob(consensus_infiles)
+    delete_gaps(consensus_infiles)
+
     # call remove bad sequences
     print("Removing 'bad' sequences")
     remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
-    contam_removed = os.path.join(contam_removed_path, '*_good.fasta')
-    clean_path = os.path.join(path, '3cleaned')
-    contam_removed_fasta = glob(contam_removed)
-    if not contam_removed_fasta:
-        print("Could not find contam_removed fasta files\n"
-              "It is possible that there were no sequences remaining after removal of contaminating sequences\n"
-              "Check that contamination detection settings (contam_removal.py) in case it was overzealous")
+    clean_path = os.path.join(path, '2cleaned')
+    if not consensus_infiles:
+        print("Could not find consensus fasta files\n"
+              "It is possible that something went wrong when copying the consensus sequences from the nested folders, "
+              "to the 1consensus folder")
         sys.exit()
 
-    call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, logfile, stops)
+    call_fasta_cleanup(consensus_infiles, remove_bad_seqs, clean_path, logfile, stops)
+
+    # remove contaminating sequences
+    print("removing contaminating non-HIV sequences")
+    contam_removal_script = os.path.join(script_folder, "contam_removal.py")
+    clean_search = os.path.join(clean_path, "*clean.fasta")
+    contam_removed_path = os.path.join(path, '3contam_removal')
+    clean_files = glob(clean_search)
+
+    if not clean_files:
+        print("Could not find cleaned fasta files\n"
+              "It is possible that there were no sequences remaining after removal of sequences with degenerate bases\n"
+              "If you specified -s (remove sequences with stop codons, did you specify the correct reading frame?\n"
+              "Do your sequences extend past the end of the reading frame")
+    call_contam_check(clean_files, contam_removal_script, contam_removed_path, logfile)
 
     # get the HXB2 sequence for the gene region
     hxb2_file = os.path.join(script_folder, "HXB2_seqs.fasta")
@@ -206,11 +231,11 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     hxb2_seq = hxb2[hxb2_gene]
 
     # cat all cleaned files into one file + the relevant HXB2 sequence
-    print("merging all cleaned fasta files into one file")
-    all_clean_path = os.path.join(path, '3cleaned')
+    print("merging all cleaned and contam removed fasta files into one file")
+    all_clean_path = os.path.join(path, '3contam_removal')
     clean_name = name + "_" + gene_region + "_all.fasta"
     all_cleaned_outname = os.path.join(all_clean_path, clean_name)
-    cleaned_files_search = os.path.join(clean_path, '*clean.fasta')
+    cleaned_files_search = os.path.join(contam_removed_path, '*_good.fasta')
     cleaned_files = glob(cleaned_files_search)
     if not cleaned_files:
         print("No cleaned fasta files were found\n"

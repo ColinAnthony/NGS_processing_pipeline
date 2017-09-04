@@ -20,7 +20,7 @@ def fasta_to_dct(fn):
     :param fn: a fasta file
     :return: a dictionary
     '''
-    dct = collections.OrderedDict()
+    dct = collections.defaultdict(str)
     for seq_record in SeqIO.parse(open(fn), "fasta"):
         dct[seq_record.description.replace(" ", "_").upper()] = str(seq_record.seq).replace("-", "").upper()
     return dct
@@ -81,24 +81,22 @@ def regex_contam(query_sequence, hxb2_region):
     :param hxb2_region: (str_ hxb2 sequence for the relevant gene region
     :return: (bool) True or False depending on whether sequence is hiv or not
     '''
-    # todo hardcode hxb2 regex string for GAG_2? for now
-    # hxb2_region = ''
-    error = int(len(query_sequence) * 0.6)
-    hxb2_regex = "r'({0}){{{1}}}'".format(hxb2_region, error)
-    query = str(query_sequence)
-    match = regex.search(hxb2_regex, query, regex.BESTMATCH)
+
+    # error = int(1 - (len(query_sequence) * 0.7))
+    # hxb2_regex = "r'({0}){{e<{1}}}'".format(hxb2_region, error)
+    hxb2_regex = r'(ACCAAATGAAAGACTGTACTGAGAGACAGGCTAATTTTTTAGGGAAAATTTGGCCTTCCCACAAGGGGAGGCCAGGGAATTTCC){e<8}'
+    match = regex.search(hxb2_regex, query_sequence, regex.BESTMATCH)
     if match is not None:
         return False
     else:
-        print("no match")
         return True
 
 
 def main(consensus, outpath, logfile):
-
+    print(consensus)
     # initialize file names
     cln_cons_name = os.path.split(consensus)[-1]
-    cln_cons = cln_cons_name.replace(".fasta", "_good.fasta")
+    cln_cons = cln_cons_name.replace("_clean.fasta", "_good.fasta")
     consensus_out = os.path.join(outpath, cln_cons)
     contam_seqs = cln_cons_name.replace(".fasta", "_contam_seqs.fasta")
     contam_out = os.path.join(outpath, contam_seqs)
@@ -114,32 +112,32 @@ def main(consensus, outpath, logfile):
 
     # get hxb2 seq for regex??
     # gag1
-    hxb2_seq = "GCGAAAAATTAGATAATTGGGAAAGAATTAAGTTAAGGCCAGGAGGAAAGAAACACTATATGCTAAAAC"
+    # hxb2_seq = "GCGAAAAATTAGATAATTGGGAAAGAATTAAGTTAAGGCCAGGAGGAAAGAAACACTATATGCTAAAAC"
     # gag2
-    hxb2_seq = "ACCAAATGAAAGACTGTACTGAGAGGCAGGCTAATTTTTTAGGGAAAATTTGGCCTTCCTACAAGGGGA"
+    hxb2_seq = "ACCAAATGAAAGACTGTACTGAGAGACAGGCTAATTTTTTAGGGAAAATTTGGCCTTCCCACAAGGGGAGGCCAGGGAATTTCC"
 
     # store all consensus seqs in a dict
     all_sequences_d = fasta_to_dct(consensus)
-    is_contam = blastn_seqs(consensus, logfile)
-
     # check each sequence to see if it is a contaminating sequence
-    # for name, seq in all_sequences_d.items():
-    #     # is_contam = regex_contam(seq, hxb2_seq)
-    #     is_contam = blastn_seqs(seq, name, logfile)
-    #     # if is contam, save to contam file
-    #     if is_contam:
-    #         print("Non HIV sequence found:\n", name, "\n", seq)
-    #         with open(contam_out, 'a') as handle1:
-    #             outstr = "{0}{1}\n{2}\n".format('>', name, seq)
-    #             handle1.write(outstr)
-    #
-    #     # if is not contam, to write to good outfile
-    #     else:
-    #         print("HIV")
-    #         with open(consensus_out, 'a') as handle2:
-    #             outstr = "{0}{1}\n{2}\n".format('>', name, seq)
-    #             handle2.write(outstr)
-    #     input("enter")
+    for name, seq in all_sequences_d.items():
+
+        is_contam = regex_contam(seq, hxb2_seq)
+        # is_contam = blastn_seqs(seq, name, logfile)
+
+        # if is contam, save to contam file
+        if is_contam:
+            print("Non HIV sequence found:\n", name, "\n", seq)
+            with open(contam_out, 'a') as handle1:
+                outstr = "{0}{1}\n{2}\n".format('>', name, seq)
+                handle1.write(outstr)
+
+        # if is not contam, to write to good outfile
+        else:
+            print("HIV")
+            with open(consensus_out, 'a') as handle2:
+                outstr = "{0}{1}\n{2}\n".format('>', name, seq)
+                handle2.write(outstr)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='',
