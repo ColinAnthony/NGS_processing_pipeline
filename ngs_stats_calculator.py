@@ -8,6 +8,7 @@ import collections
 from glob import glob
 from Bio import SeqIO
 
+
 __author__ = 'Colin Anthony'
 
 

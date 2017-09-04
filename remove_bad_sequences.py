@@ -6,6 +6,7 @@ from Bio import SeqIO
 import os
 import collections
 
+
 __author__ = 'Colin Anthony'
 
 

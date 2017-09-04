@@ -6,6 +6,7 @@ import argparse
 import collections
 from Bio import SeqIO
 
+
 __author__ = 'Colin Anthony'
 
 

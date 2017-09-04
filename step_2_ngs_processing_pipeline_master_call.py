@@ -12,7 +12,7 @@ from Bio import SeqIO
 
 
 __author__ = 'Colin Anthony'
-
+#
 
 def fasta_to_dct(fn):
     '''
@@ -138,7 +138,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
     cons_outpath = os.path.join(path, '1consensus', 'binned')
     counter = 0
-    call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile)
+    #call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile)
 
     # copy data from nested binned folders into 1consensus folder
     print("Copy fastq files from nested folders to '1consensus' folder")
