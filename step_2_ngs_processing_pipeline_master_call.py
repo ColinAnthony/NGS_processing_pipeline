@@ -27,24 +27,26 @@ def fasta_to_dct(fn):
 
 def rename_sequences(raw_files_search):
 
+    print("renaming raw files")
     for inf_R1 in raw_files_search:
         inf_R2 = inf_R1.replace("R1_001.fastq", "R2_001.fastq")
-
         outf_R1 = inf_R1.replace("-", "_")
         outf_R2 = inf_R2.replace("-", "_")
 
-        try:
-            outf_R1 = regex.sub("S[0-9[0-9]_L001_R1_001", "R1", outf_R1)
-            os.rename(inf_R1, outf_R1)
-        except:
-            print("Unable to rename files\ncheck the file renaming regex")
+        outf_R1_rename = regex.sub("S[0-9][0-9]_L[0-9][0-9][0-9]_R1_[0-9][0-9][0-9].fastq", "R1.fastq", outf_R1)
+        print(outf_R1)
+        if outf_R1_rename == outf_R1:
+            print("Unable to rename R1 file {0}\ncheck the file renaming regex".format(inf_R1))
             sys.exit()
-        try:
-            outf_R2 = regex.sub("S[0-9[0-9]_L001_R2_001", "R2", outf_R2)
-            os.rename(inf_R2, outf_R2)
-        except:
-            print("Unable to rename files\ncheck the file renaming regex")
+        else:
+            os.rename(inf_R1, outf_R1_rename)
+
+        outf_R2_rename = regex.sub("S[0-9][0-9]_L[0-9][0-9][0-9]_R2_[0-9][0-9][0-9].fastq", "R2.fastq", outf_R2)
+        if outf_R2_rename == outf_R2:
+            print("Unable to rename R2 file {0}\ncheck the file renaming regex".format(inf_R2))
             sys.exit()
+        else:
+            os.rename(inf_R2, outf_R2_rename)
 
 
 def call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile):
@@ -141,20 +143,20 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     # rename the raw sequences
     raw_fastq_inpath = os.path.join(path, '0raw')
-    raw_files_search = os.path.join(raw_fastq_inpath, "*_R1.fastq")
+    raw_files_search = os.path.join(raw_fastq_inpath, "*_R1*.fastq")
     raw_files = glob(raw_files_search)
     if not raw_files:
         print("No raw files were found\n"
               "Check that files end with R1.fastq and R2.fastq")
         sys.exit()
 
-    # rename_sequences(raw_files)
-
+    rename_sequences(raw_files)
+    input("enter")
     # run the call_MotifBinner script which will loop over fastq files in the target folder
     motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
     cons_outpath = os.path.join(path, '1consensus', 'binned')
     counter = 0
-    #call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile)
+    # call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile)
     
     # check if the consensus files exist
     path_to_nested_consensuses = os.path.join(path, '1consensus/binned/*/*_buildConsensus/*_kept_buildConsensus.fastq')
