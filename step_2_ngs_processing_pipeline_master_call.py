@@ -164,7 +164,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     # run the call_MotifBinner script which will loop over fastq files in the target folder
     motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
-    rename_in = raw_files_search = os.path.join(raw_fastq_inpath, "*R1*.fastq")
+    rename_in = os.path.join(raw_fastq_inpath, "*_R1.fastq")
     cons_outpath = os.path.join(path, '1consensus', 'binned')
     counter = 0
     call_motifbinner(rename_in, motifbinner, cons_outpath, counter, logfile)
