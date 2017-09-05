@@ -37,14 +37,21 @@ def rename_sequences(raw_files_search):
         print(outf_R1)
         if outf_R1_rename == outf_R1:
             print("Unable to rename R1 file {0}\ncheck the file renaming regex".format(inf_R1))
-            sys.exit()
+            # check if they have already been renamed
+            if outf_R1.split("_")[-1] == "R1.fastq":
+                raise Exception("Already renamed?")
+            else:
+                sys.exit()
         else:
             os.rename(inf_R1, outf_R1_rename)
 
         outf_R2_rename = regex.sub("S[0-9][0-9]_L[0-9][0-9][0-9]_R2_[0-9][0-9][0-9].fastq", "R2.fastq", outf_R2)
         if outf_R2_rename == outf_R2:
             print("Unable to rename R2 file {0}\ncheck the file renaming regex".format(inf_R2))
-            sys.exit()
+            if outf_R2.split("_")[-1] == "R2.fastq":
+                raise Exception("Already renamed?")
+            else:
+                sys.exit()
         else:
             os.rename(inf_R2, outf_R2_rename)
 
