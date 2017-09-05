@@ -260,13 +260,19 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         clean_search = os.path.join(clean_path, "*clean.fasta")
         contam_removed_path = os.path.join(path, '3contam_removal')
         clean_files = glob(clean_search)
+        hxb2_region = {"GAG": "GAG", "POL": "POL", "PRO": "POL", "RT": "POL", "RNASE": "POL", "INT": "POL",
+                         "ENV": "ENV", "GP120": "ENV", "GP41": "ENV", "NEF": "NEF",
+                         "VIF": "VIF", "VPR": "VPR", "REV": "REV", "VPU": "VPU"}
 
+        gene = gene_region.split("_")[0]
+        region_to_check = hxb2_region[gene]
         if not clean_files:
             print("Could not find cleaned fasta files\n"
                   "It is possible there were no sequences remaining after removal of sequences with degenerate bases\n"
                   "If you specified -s (remove sequences with stop codons, did you specify the correct reading frame?\n"
                   "Do your sequences extend past the end of the reading frame")
-        call_contam_check(clean_files, contam_removal_script, contam_removed_path, gene_region, logfile)
+
+        call_contam_check(clean_files, contam_removal_script, contam_removed_path, region_to_check, logfile)
         run_step += 1
 
     # Step 5: set things up to align
