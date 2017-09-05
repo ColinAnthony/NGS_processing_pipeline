@@ -151,13 +151,13 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
               "Check that files end with R1.fastq and R2.fastq")
         sys.exit()
 
-    # rename_sequences(raw_files)
+    rename_sequences(raw_files)
 
     # run the call_MotifBinner script which will loop over fastq files in the target folder
     motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
     cons_outpath = os.path.join(path, '1consensus', 'binned')
     counter = 0
-    # call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile)
+    call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile)
     
     # check if the consensus files exist
     path_to_nested_consensuses = os.path.join(path, '1consensus/binned/*/*_buildConsensus/*_kept_buildConsensus.fastq')
