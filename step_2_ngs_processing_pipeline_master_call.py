@@ -59,7 +59,7 @@ def rename_sequences(raw_files_search):
             os.rename(inf_R2, outf_R2_rename)
 
 
-def call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile):
+def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_primer, counter, logfile):
     for file in raw_files:
         read1 = file
         read2 = file.replace("R1.fastq", "R2.fastq")
@@ -95,7 +95,7 @@ def delete_gaps(fasta_infiles):
         os.remove(temp_out)
 
 
-def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, logfile, stops):
+def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, frame, length, logfile, stops):
 
     for fasta_file in contam_removed_fasta:
         if stops:
@@ -169,7 +169,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     rename_in = glob(rename_in_search)
     cons_outpath = os.path.join(path, '1consensus', 'binned')
     counter = 0
-    call_motifbinner(rename_in, motifbinner, cons_outpath, counter, logfile)
+    call_motifbinner(rename_in, motifbinner, cons_outpath, fwd_primer, cDNA_primer, counter, logfile)
     
     # check if the consensus files exist
     path_to_nested_consensuses = os.path.join(path, '1consensus/binned/*/*_buildConsensus/*_kept_buildConsensus.fastq')
@@ -223,7 +223,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
               "to the 1consensus folder")
         sys.exit()
 
-    call_fasta_cleanup(consensus_infiles, remove_bad_seqs, clean_path, logfile, stops)
+    call_fasta_cleanup(consensus_infiles, remove_bad_seqs, clean_path, frame, length, logfile, stops)
 
     # remove contaminating sequences
     print("removing contaminating non-HIV sequences")
