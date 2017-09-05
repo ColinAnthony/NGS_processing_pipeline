@@ -39,7 +39,8 @@ def rename_sequences(raw_files_search):
             print("Unable to rename R1 file {0}\ncheck the file renaming regex".format(inf_R1))
             # check if they have already been renamed
             if outf_R1.split("_")[-1] == "R1.fastq":
-                raise Exception("Already renamed?")
+                return
+                # raise Exception("Already renamed?")
             else:
                 sys.exit()
         else:
@@ -49,7 +50,8 @@ def rename_sequences(raw_files_search):
         if outf_R2_rename == outf_R2:
             print("Unable to rename R2 file {0}\ncheck the file renaming regex".format(inf_R2))
             if outf_R2.split("_")[-1] == "R2.fastq":
-                raise Exception("Already renamed?")
+                return
+                # raise Exception("Already renamed?")
             else:
                 sys.exit()
         else:
