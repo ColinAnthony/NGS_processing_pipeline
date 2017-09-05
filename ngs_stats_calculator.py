@@ -70,6 +70,7 @@ def main(inpath, outfile):
         path_split2 = os.path.split(path_split1)[0]
         # get the sample name
         name = os.path.split(path_split2)[-1]
+
         # Check you have the correct sample name
         if name not in all_names.keys():
             print("Can't match name for merged file with parent file name")
@@ -114,7 +115,7 @@ def main(inpath, outfile):
     for contam_file in glob(contam_files):
         name = os.path.split(contam_file)[-1].replace("_good.fasta", "")
         if name not in all_names.keys():
-            print("Can't match name for merged file with parent file name")
+            print("Can't match name for no_contam file with parent file name")
             print(name)
             sys.exit()
 

@@ -110,12 +110,13 @@ def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, logfil
         subprocess.call(cmd4, shell=True)
 
 
-def call_contam_check(consensuses, contam_removal_script, contam_removed_path, logfile):
+def call_contam_check(consensuses, contam_removal_script, contam_removed_path, gene_region, logfile):
 
     for consensus_file in consensuses:
-        cmd3 = 'python3 {0} -i {1} -o {2} -l {3}'.format(contam_removal_script,
+        cmd3 = 'python3 {0} -i {1} -o {2} -g {3} -l {4}'.format(contam_removal_script,
                                                          consensus_file,
                                                          contam_removed_path,
+                                                         gene_region,
                                                          logfile)
 
         subprocess.call(cmd3, shell=True)
@@ -150,7 +151,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
               "Check that files end with R1.fastq and R2.fastq")
         sys.exit()
 
-    rename_sequences(raw_files)
+    # rename_sequences(raw_files)
 
     # run the call_MotifBinner script which will loop over fastq files in the target folder
     motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
@@ -224,7 +225,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
               "It is possible that there were no sequences remaining after removal of sequences with degenerate bases\n"
               "If you specified -s (remove sequences with stop codons, did you specify the correct reading frame?\n"
               "Do your sequences extend past the end of the reading frame")
-    call_contam_check(clean_files, contam_removal_script, contam_removed_path, logfile)
+    call_contam_check(clean_files, contam_removal_script, contam_removed_path, gene_region, logfile)
 
     # get the HXB2 sequence for the gene region
     hxb2_file = os.path.join(script_folder, "HXB2_seqs.fasta")

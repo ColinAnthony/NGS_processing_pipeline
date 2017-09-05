@@ -10,6 +10,7 @@ from Bio.Blast import NCBIWWW
 from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastnCommandline
 import regex
+import sys
 
 __author__ = 'Colin Anthony'
 
@@ -20,79 +21,111 @@ def fasta_to_dct(fn):
     :param fn: a fasta file
     :return: a dictionary
     '''
-    dct = collections.defaultdict(str)
+    dct = collections.defaultdict(list)
     for seq_record in SeqIO.parse(open(fn), "fasta"):
         dct[seq_record.description.replace(" ", "_").upper()] = str(seq_record.seq).replace("-", "").upper()
+        # dct[str(seq_record.seq).replace("-", "").upper()].append(seq_record.description.replace(" ", "_").upper())
     return dct
 
 
-def blastn_seqs(query_file, logfile):
+def blastn_seqs(infile, gene_region):
     '''
-    :param inseq: (str) the sequence to blast
-    :return: (bool) True or False depending on whether sequence is hiv or not
+    :param name: sequence name
+    :param sequence: (str) the sequence to blast
+    :param logfile: the logfile path and name
+    :return: (bool) True or False depending on whether sequence is not hiv
     '''
-    tmp_dir = tempfile.gettempdir()
-    tmpfile = os.path.join(tmp_dir, "tmp_blast_results.xml")
 
-    # blast_results = NCBIWWW.qblast('blastn', 'nr', query_file)
-    blastn_cline = NcbiblastnCommandline(query=query_file, db="nt", evalue=0.001, outfmt=5, perc_identity=50,
-                                         out=tmpfile, max_target_seqs=3)
-    stdout, stderr = blastn_cline()
-    print(stderr, "\n", stdout)
+    # assign temp file
+    tmp_dir = tempfile.gettempdir()
+    tmp_file = os.path.join(tmp_dir, "tmp_blast_results.xml")
+
+    # clear the tmp_file
+    with open(tmp_file, 'w') as handle:
+        handle.write("")
+
+    target_gene = gene_region.upper().split("_")[0]
+    # blast settings
+    # format_fasta = ">{0}\n{1}".format(s_name, q_sequence)
+    blastdb = "lanl_hiv_db"
+    outformat = 5
+    e_value = 0.0001
+    threads = 4
+    max_hits = 1
+
+    print("running blast")
+    ## run online blast
+    # blast_results = NCBIWWW.qblast('blastn', 'nt', query=infile, entrez_query='"HIV-1"[organism]')
+    ## write online blast results to file
     # with open(tmpfile, 'w') as handle:
     #     handle.write(blast_results.read())
 
-    e_value_threshold = 0.01
+    # run local blast
+    blastn_cline = NcbiblastnCommandline(query=infile, db=blastdb, evalue=e_value, outfmt=outformat, perc_identity=50,
+                                         out=tmp_file, num_threads=threads,  max_target_seqs=max_hits)
 
-    for blast_record in NCBIXML.parse(open(tmpfile)):
+    stdout, stderr = blastn_cline() # stdin=format_fasta
+    print("stderr", stderr)
+    print("stout", stdout)
 
-        # skip empty records
+    good_records = collections.defaultdict(list)
+    bad_records = collections.defaultdict(list)
+
+    if os.path.isfile(tmp_file):
+        all_blast_results = NCBIXML.parse(open(tmp_file))
+    else:
+        print("the blast failed to write an outfile")
+        sys.exit()
+
+    for blast_record in all_blast_results:
+        # get query name
+        query_seq_name = blast_record.query
+
+        # was there a hit to something in the db?
         if blast_record.alignments:
+            for alignment in blast_record.alignments:
+                    title_name = alignment.title.split(" ")[0]
+                    region = title_name.upper().split("_")[-1]
+                    for hsp in alignment.hsps:
+                        # get the e_value in case you want to store it
+                        exp_value = hsp.expect
 
-            # take top hit
-            top_hit = blast_record.alignments[0]
+                    if region == target_gene:
+                        good_records[query_seq_name] = "_hiv_" + region
+                    else:
+                        bad_records[query_seq_name] = "_hiv_" + region
 
-            # get hit title
-            title = top_hit.title.split(" ")
-            e_val = top_hit.hsps[0].expect
-            if e_val < e_value_threshold:
+        else:
+            # no hit in db
+            bad_records[query_seq_name] = "_not_hiv_" + "no_hit"
 
-                # is the hit to HIV-1?
-                if "HIV-1" in title:
-                    print("HIV")
-        #            return False
-                else:
-                    print("not hiv", title)
-        #         else:
-        #             with open(logfile, 'a') as handle:
-        #                 handle.write(seqname + "\ttop blastn hit:\t" + "_".join(title) + "\n")
-        #             return True
-        #
-        # else:
-        #     print("No blastn hits")
-        #     with open(logfile, 'a') as handle:
-        #         handle.write(seqname + "\ttop blastn hit:\t" + "None" + "\n")
-        #     return True
+    return bad_records, good_records
 
 
-def regex_contam(query_sequence, hxb2_region):
+def regex_contam(name, query_sequence):
     '''
     :param query_sequence: (str) the sequence to blast
     :param hxb2_region: (str_ hxb2 sequence for the relevant gene region
     :return: (bool) True or False depending on whether sequence is hiv or not
     '''
 
+    # gag1
+    # hxb2_seq = "GCGAAAAATTAGATAATTGGGAAAGAATTAAGTTAAGGCCAGGAGGAAAGAAACACTATATGCTAAAAC"
+    # gag2
+    # hxb2_seq = "ACCAAATGAAAGACTGTACTGAGAGACAGGCTAATTTTTTAGGGAAAATTTGGCCTTCCCACAAGGGGAGGCCAGGGAATTTCC"
+
     # error = int(1 - (len(query_sequence) * 0.7))
     # hxb2_regex = "r'({0}){{e<{1}}}'".format(hxb2_region, error)
     hxb2_regex = r'(ACCAAATGAAAGACTGTACTGAGAGACAGGCTAATTTTTTAGGGAAAATTTGGCCTTCCCACAAGGGGAGGCCAGGGAATTTCC){e<8}'
     match = regex.search(hxb2_regex, query_sequence, regex.BESTMATCH)
+
     if match is not None:
         return False
     else:
         return True
 
 
-def main(consensus, outpath, logfile):
+def main(consensus, outpath, gene_region, logfile):
     print(consensus)
     # initialize file names
     cln_cons_name = os.path.split(consensus)[-1]
@@ -110,33 +143,34 @@ def main(consensus, outpath, logfile):
     with open(contam_out, 'w') as handle2:
         handle2.write("")
 
-    # get hxb2 seq for regex??
-    # gag1
-    # hxb2_seq = "GCGAAAAATTAGATAATTGGGAAAGAATTAAGTTAAGGCCAGGAGGAAAGAAACACTATATGCTAAAAC"
-    # gag2
-    hxb2_seq = "ACCAAATGAAAGACTGTACTGAGAGACAGGCTAATTTTTTAGGGAAAATTTGGCCTTCCCACAAGGGGAGGCCAGGGAATTTCC"
-
     # store all consensus seqs in a dict
     all_sequences_d = fasta_to_dct(consensus)
-    # check each sequence to see if it is a contaminating sequence
+
+    # checck for contam
+    contam, not_contam = blastn_seqs(consensus, gene_region)
+
+    # check each sequence to see if it is a contaminant
     for name, seq in all_sequences_d.items():
 
-        is_contam = regex_contam(seq, hxb2_seq)
-        # is_contam = blastn_seqs(seq, name, logfile)
-
-        # if is contam, save to contam file
-        if is_contam:
-            print("Non HIV sequence found:\n", name, "\n", seq)
+        # if the sequence is not hiv, save to contam file
+        if name in contam.keys():
+            print("Non HIV sequence found:\n\t", name)
+            new_name = name + contam[name]
             with open(contam_out, 'a') as handle1:
-                outstr = "{0}{1}\n{2}\n".format('>', name, seq)
+                outstr = ">{0}\n{1}\n".format(new_name, seq)
                 handle1.write(outstr)
 
         # if is not contam, to write to good outfile
-        else:
-            print("HIV")
+        elif name in not_contam.keys():
             with open(consensus_out, 'a') as handle2:
-                outstr = "{0}{1}\n{2}\n".format('>', name, seq)
+                outstr = ">{0}\n{1}\n".format(name, seq)
                 handle2.write(outstr)
+
+    else:
+        print("not contam, not not contam. Something strange happened")
+        # todo add logging
+
+    print("contam check complete")
 
 
 if __name__ == "__main__":
@@ -149,10 +183,14 @@ if __name__ == "__main__":
                         help='The path to where the output file will be copied', required=True)
     parser.add_argument('-l', '--logfile', default=argparse.SUPPRESS, type=str,
                         help='The path and name of the log file', required=True)
+    parser.add_argument('-g', '--gene_region', default=argparse.SUPPRESS, type=str,
+                        help='the genomic region being sequenced, '
+                             'valid options: GAG_1/GAG_2/ENV_C1C2/POL_1/NEF_1 etc..', required=True)
 
     args = parser.parse_args()
     consensus = args.consensus
     outpath = args.outpath
+    gene_region = args.gene_region
     logfile = args.logfile
 
-    main(consensus, outpath, logfile)
+    main(consensus, outpath, gene_region, logfile)
