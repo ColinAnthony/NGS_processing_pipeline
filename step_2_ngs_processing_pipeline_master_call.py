@@ -144,7 +144,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     # rename the raw sequences
     raw_fastq_inpath = os.path.join(path, '0raw')
-    raw_files_search = os.path.join(raw_fastq_inpath, "*_R1*.fastq")
+    raw_files_search = os.path.join(raw_fastq_inpath, "*R1*.fastq")
     raw_files = glob(raw_files_search)
     if not raw_files:
         print("No raw files were found\n"
@@ -155,9 +155,10 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     # run the call_MotifBinner script which will loop over fastq files in the target folder
     motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
+    rename_in = raw_files_search = os.path.join(raw_fastq_inpath, "*R1*.fastq")
     cons_outpath = os.path.join(path, '1consensus', 'binned')
     counter = 0
-    call_motifbinner(raw_files, motifbinner, cons_outpath, counter, logfile)
+    call_motifbinner(rename_in, motifbinner, cons_outpath, counter, logfile)
     
     # check if the consensus files exist
     path_to_nested_consensuses = os.path.join(path, '1consensus/binned/*/*_buildConsensus/*_kept_buildConsensus.fastq')
