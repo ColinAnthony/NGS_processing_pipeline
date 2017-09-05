@@ -2,13 +2,14 @@
 from __future__ import print_function
 from __future__ import division
 import os
+import sys
 import argparse
 import subprocess
 from glob import glob
 
 
 __author__ = 'Colin Anthony'
-#
+
 
 def main(infile, script_folder):
 
@@ -16,6 +17,9 @@ def main(infile, script_folder):
     alignment_path = os.path.split(infile)[0]
     parent_path = os.path.split(alignment_path)[0]
     haplo_outpath = os.path.join(parent_path, '5haplotype')
+    if not os.path.isdir(haplo_outpath):
+        print("could not find the 5haplotype folder\n check your file naming structure conforms to the required format")
+        sys.exit()
     split_by_unique = os.path.join(script_folder, 'split_fasta_into_subfiles.py')
     cmd6 = 'python3 {0} -i {1} -o {2}'.format(split_by_unique, infile, haplo_outpath)
 
