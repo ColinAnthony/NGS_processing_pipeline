@@ -36,23 +36,24 @@ def rename_sequences(raw_files_search):
         outf_R1_rename = regex.sub("S[0-9][0-9]_L[0-9][0-9][0-9]_R1_[0-9][0-9][0-9].fastq", "R1.fastq", outf_R1)
         print(outf_R1)
         if outf_R1_rename == outf_R1:
-            print("Unable to rename R1 file {0}\ncheck the file renaming regex".format(inf_R1))
             # check if they have already been renamed
             if outf_R1.split("_")[-1] == "R1.fastq":
+                print("file was already in correct format?")
                 return
-                # raise Exception("Already renamed?")
             else:
+                print("Unable to rename R1 file {0}\ncheck the file renaming regex".format(inf_R1))
                 sys.exit()
         else:
             os.rename(inf_R1, outf_R1_rename)
 
         outf_R2_rename = regex.sub("S[0-9][0-9]_L[0-9][0-9][0-9]_R2_[0-9][0-9][0-9].fastq", "R2.fastq", outf_R2)
         if outf_R2_rename == outf_R2:
-            print("Unable to rename R2 file {0}\ncheck the file renaming regex".format(inf_R2))
+
             if outf_R2.split("_")[-1] == "R2.fastq":
+                print("file was already in correct format?")
                 return
-                # raise Exception("Already renamed?")
             else:
+                print("Unable to rename R2 file {0}\ncheck the file renaming regex".format(inf_R2))
                 sys.exit()
         else:
             os.rename(inf_R2, outf_R2_rename)
@@ -164,7 +165,8 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     # run the call_MotifBinner script which will loop over fastq files in the target folder
     motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
-    rename_in = os.path.join(raw_fastq_inpath, "*_R1.fastq")
+    rename_in_search = os.path.join(raw_fastq_inpath, "*_R1.fastq")
+    rename_in = glob(rename_in_search)
     cons_outpath = os.path.join(path, '1consensus', 'binned')
     counter = 0
     call_motifbinner(rename_in, motifbinner, cons_outpath, counter, logfile)
