@@ -48,10 +48,17 @@ def main(inpath, outfile):
     with open(outfile, 'w') as handle:
         handle.write("")
 
+    # target dirs
+    raw_files = os.path.join(inpath, "0raw", "*_R1.fastq")
+    merged_files = os.path.join(inpath, "1consensus", "binned", "*", "*_mergePEAR", "*assembled.fastq")
+    consensus_files = os.path.join(inpath, "1consensus", "*.fasta")
+    cleaned_files = os.path.join(inpath, "2cleaned", "*_clean.fasta")
+    contam_files = os.path.join(inpath, "3contam_removal", "*_good.fasta")
+    # dirs_to_check = [raw_files, merged_files, consensus_files, contam_files]
+
     # calculate number of raw sequences
     stats_d["headers"].append("name")
     stats_d["headers"].append("raw_sequences")
-    raw_files = os.path.join(inpath, "0raw", "*_R1.fastq")
     for raw_file in glob(raw_files):
         name = os.path.split(raw_file)[-1].replace("_R1.fastq", "")
         all_names[name] = name
@@ -61,7 +68,6 @@ def main(inpath, outfile):
         stats_d[name].append(total_raw)
 
     # calculate number of merged sequences
-    merged_files = os.path.join(inpath, "1consensus", "binned", "*", "*_mergePEAR", "*assembled.fastq")
     stats_d["headers"].append("merged_sequences")
     for merged_file in glob(merged_files):
         # get rid of the generic file name "merged.fastq.assembled.fastq"
@@ -83,7 +89,6 @@ def main(inpath, outfile):
 
     # calculate number of consensus sequences
     stats_d["headers"].append("consensus_sequences")
-    consensus_files = os.path.join(inpath, "1consensus", "*.fasta")
     for consensus_file in glob(consensus_files):
         print(consensus_file)
         name = os.path.split(consensus_file)[-1].replace(".fasta", "")
@@ -97,7 +102,6 @@ def main(inpath, outfile):
 
     # calculate number of cleaned sequences
     stats_d["headers"].append("cleaned_sequences")
-    cleaned_files = os.path.join(inpath, "2cleaned", "*_clean.fasta")
     for cleaned_file in glob(cleaned_files):
         name = os.path.split(cleaned_file)[-1].replace("_clean.fasta", "")
         if name not in all_names.keys():
@@ -111,7 +115,6 @@ def main(inpath, outfile):
 
     # calculate number of sequences after contam removal
     stats_d["headers"].append("no_contaminants")
-    contam_files = os.path.join(inpath, "3contam_removal", "*_good.fasta")
     for contam_file in glob(contam_files):
         name = os.path.split(contam_file)[-1].replace("_good.fasta", "")
         if name not in all_names.keys():

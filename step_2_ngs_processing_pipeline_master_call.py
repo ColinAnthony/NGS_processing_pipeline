@@ -14,6 +14,8 @@ from Bio import SeqIO
 __author__ = 'Colin Anthony'
 
 
+# Todo add checking
+
 def fasta_to_dct(fn):
     '''
     :param fn: (str)infile name
@@ -60,6 +62,10 @@ def rename_sequences(raw_files_search):
 
 
 def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_primer, counter, logfile):
+
+    if type(raw_files) is not list:
+        raise TypeError('Expected list of raw files, got: ', raw_files)
+
     for file in raw_files:
         read1 = file
         read2 = file.replace("R1.fastq", "R2.fastq")
@@ -75,8 +81,11 @@ def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_prim
                                                                                               counter,
                                                                                               logfile)
 
-        subprocess.call(cmd1, shell=True)
-        counter += 1
+        try:
+            subprocess.call(cmd1, shell=True)
+            counter += 1
+        except Exception as e:
+            raise e
 
 
 def delete_gaps(fasta_infiles):
@@ -173,8 +182,14 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         rename_in = glob(rename_in_search)
         cons_outpath = os.path.join(path, '1consensus', 'binned')
         counter = 0
-        call_motifbinner(rename_in, motifbinner, cons_outpath, fwd_primer, cDNA_primer, counter, logfile)
-        run_step += 1
+        try:
+            call_motifbinner(rename_in, motifbinner, cons_outpath, fwd_primer, cDNA_primer, counter, logfile)
+            run_step += 1
+        except Exception as e:
+            print(e)
+            print("now quitting..")
+            sys.exit()
+
 
         # check if the consensus files exist
         nested_consensuses_path = os.path.join(path, '1consensus/binned/*/*_buildConsensus/*_kept_buildConsensus.fastq')
