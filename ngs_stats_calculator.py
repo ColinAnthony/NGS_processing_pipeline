@@ -80,7 +80,8 @@ def main(inpath, outfile):
         # Check you have the correct sample name
         if name not in all_names.keys():
             print("Can't match name for merged file with parent file name")
-            print(name)
+            print("name", name)
+            print("not in", all_names.keys())
             sys.exit()
 
         merged_d = fastq_to_dct(merged_file)
@@ -94,7 +95,8 @@ def main(inpath, outfile):
         name = os.path.split(consensus_file)[-1].replace(".fasta", "")
         if name not in all_names.keys():
             print("Can't match name for consensus file with parent file name")
-            print(name)
+            print("name", name)
+            print("not in", all_names.keys())
             sys.exit()
         consensus_d = fasta_to_dct(consensus_file)
         total_consensus = str(len(consensus_d.keys()))
@@ -106,7 +108,8 @@ def main(inpath, outfile):
         name = os.path.split(cleaned_file)[-1].replace("_clean.fasta", "")
         if name not in all_names.keys():
             print("Can't match name for cleaned file with parent file name")
-            print(name)
+            print("name", name)
+            print("not in", all_names.keys())
             sys.exit()
 
         clean_d = fasta_to_dct(cleaned_file)
@@ -119,7 +122,8 @@ def main(inpath, outfile):
         name = os.path.split(contam_file)[-1].replace("_good.fasta", "")
         if name not in all_names.keys():
             print("Can't match name for no_contam file with parent file name")
-            print(name)
+            print("name", name)
+            print("not in", all_names.keys())
             sys.exit()
 
         contam_rem_d = fasta_to_dct(contam_file)
