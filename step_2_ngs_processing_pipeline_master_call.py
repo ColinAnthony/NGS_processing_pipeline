@@ -261,8 +261,8 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         contam_removed_path = os.path.join(path, '3contam_removal')
         clean_files = glob(clean_search)
         hxb2_region = {"GAG": "GAG", "POL": "POL", "PRO": "POL", "RT": "POL", "RNASE": "POL", "INT": "POL",
-                         "ENV": "ENV", "GP120": "ENV", "GP41": "ENV", "NEF": "NEF",
-                         "VIF": "VIF", "VPR": "VPR", "REV": "REV", "VPU": "VPU"}
+                       "ENV": "ENV", "GP120": "ENV", "GP41": "ENV", "NEF": "NEF",
+                       "VIF": "VIF", "VPR": "VPR", "REV": "REV", "VPU": "VPU"}
 
         gene = gene_region.split("_")[0]
         region_to_check = hxb2_region[gene]

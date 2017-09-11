@@ -166,9 +166,9 @@ def main(consensus, outpath, gene_region, logfile):
                 outstr = ">{0}\n{1}\n".format(name, seq)
                 handle2.write(outstr)
 
-    else:
-        print("not contam, not not contam. Something strange happened")
-        # todo add logging
+        else:
+            print("not contam, not not contam. Something strange happened", name)
+            # todo add logging
 
     print("contam check complete")
 
