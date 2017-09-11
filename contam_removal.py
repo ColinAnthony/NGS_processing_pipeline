@@ -131,7 +131,7 @@ def main(consensus, outpath, gene_region, logfile):
     cln_cons_name = os.path.split(consensus)[-1]
     cln_cons = cln_cons_name.replace("_clean.fasta", "_good.fasta")
     consensus_out = os.path.join(outpath, cln_cons)
-    contam_seqs = cln_cons_name.replace(".fasta", "_contam_seqs.fasta")
+    contam_seqs = cln_cons_name.replace("clean.fasta", "_contam_seqs.fasta")
     contam_out = os.path.join(outpath, contam_seqs)
 
     with open(logfile, 'a') as handle:
