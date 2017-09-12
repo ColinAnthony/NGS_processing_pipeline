@@ -104,6 +104,8 @@ def blastn_seqs(infile, gene_region):
             # no hit in db
             bad_records[query_seq_name] = "_not_hiv_" + "no_hit"
 
+    os.remove(tmp_file)
+
     return bad_records, good_records
 
 
