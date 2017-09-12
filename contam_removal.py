@@ -51,7 +51,6 @@ def blastn_seqs(infile, gene_region):
     outformat = 5
     e_value = 0.000001
     threads = 4
-    max_hits = 100
 
     print("running blast")
     ## run online blast
@@ -62,7 +61,7 @@ def blastn_seqs(infile, gene_region):
 
     # run local blast
     blastn_cline = NcbiblastnCommandline(query=infile, db=blastdb, evalue=e_value, outfmt=outformat, perc_identity=80,
-                                         out=tmp_file, num_threads=threads,  max_target_seqs=max_hits)
+                                         out=tmp_file, num_threads=threads)
 
     stdout, stderr = blastn_cline() # stdin=format_fasta
     print("stderr", stderr)
@@ -84,18 +83,20 @@ def blastn_seqs(infile, gene_region):
         # was there a hit to something in the db?
         if blast_record.alignments:
             found = False
+            first_region = ''
             for i, alignment in enumerate(blast_record.alignments):
-                    title_name = alignment.title.split(" ")[0]
-                    region = title_name.upper().split("_")[-1]
-                    if i == 0:
-                        first_region = title_name.upper().split("_")[-1]
-                    for hsp in alignment.hsps:
-                        # get the e_value in case you want to store it
-                        exp_value = hsp.expect
+                title_name = alignment.title.split(" ")[0]
+                region = title_name.upper().split("_")[-1]
+                if i == 0:
+                    first_region = title_name.upper().split("_")[-1]
+                for hsp in alignment.hsps:
+                    # get the e_value in case you want to store it
+                    exp_value = hsp.expect
 
-                    if region == target_gene:
-                        found = True
-                        good_records[query_seq_name] = "_hiv_" + region
+                if region == target_gene:
+                    found = True
+                    good_records[query_seq_name] = "_hiv_" + region
+                    break
             if not found:
                 bad_records[query_seq_name] = "_hiv_" + first_region
 
