@@ -62,7 +62,7 @@ def blastn_seqs(infile, gene_region):
 
     # run local blast
     blastn_cline = NcbiblastnCommandline(query=infile, db=blastdb, evalue=e_value, outfmt=outformat, perc_identity=80,
-                                         out=tmp_file, num_threads=threads,  max_target_seqs=max_hits,length=300)
+                                         out=tmp_file, num_threads=threads,  max_target_seqs=max_hits)
 
     stdout, stderr = blastn_cline() # stdin=format_fasta
     print("stderr", stderr)
