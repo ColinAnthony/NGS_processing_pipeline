@@ -49,9 +49,9 @@ def blastn_seqs(infile, gene_region):
     # format_fasta = ">{0}\n{1}".format(s_name, q_sequence)
     blastdb = "lanl_hiv_db"
     outformat = 5
-    e_value = 0.0001
+    e_value = 0.000001
     threads = 4
-    max_hits = 1
+    max_hits = 100
 
     print("running blast")
     ## run online blast
@@ -83,17 +83,21 @@ def blastn_seqs(infile, gene_region):
 
         # was there a hit to something in the db?
         if blast_record.alignments:
-            for alignment in blast_record.alignments:
+            found = False
+            for i, alignment in enumerate(blast_record.alignments):
                     title_name = alignment.title.split(" ")[0]
                     region = title_name.upper().split("_")[-1]
+                    if i == 0:
+                        first_region = title_name.upper().split("_")[-1]
                     for hsp in alignment.hsps:
                         # get the e_value in case you want to store it
                         exp_value = hsp.expect
 
                     if region == target_gene:
+                        found = True
                         good_records[query_seq_name] = "_hiv_" + region
-                    else:
-                        bad_records[query_seq_name] = "_hiv_" + region
+            if not found:
+                bad_records[query_seq_name] = "_hiv_" + first_region
 
         else:
             # no hit in db
