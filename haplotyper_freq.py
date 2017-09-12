@@ -52,9 +52,10 @@ def main(infile, outpath):
     name = os.path.split(infile)[-1]
     name = name.replace("_sep.fasta", "_hap.fasta")
     out = os.path.join(outpath, name)
+    infile_name = os.path.split(infile)[-1]
 
     # get prefix for sequence names from infile name
-    seq_name = "_".join(infile.split("_")[:4])
+    seq_name = "_".join(infile_name.split("_")[:4])
 
     # run the haplotyping function
     hapl_collapse(infile, seq_name, out)
