@@ -61,7 +61,7 @@ def blastn_seqs(infile, gene_region):
     #     handle.write(blast_results.read())
 
     # run local blast
-    blastn_cline = NcbiblastnCommandline(query=infile, db=blastdb, evalue=e_value, outfmt=outformat, perc_identity=50,
+    blastn_cline = NcbiblastnCommandline(query=infile, db=blastdb, evalue=e_value, outfmt=outformat, perc_identity=80,
                                          out=tmp_file, num_threads=threads,  max_target_seqs=max_hits)
 
     stdout, stderr = blastn_cline() # stdin=format_fasta
@@ -131,7 +131,7 @@ def main(consensus, outpath, gene_region, logfile):
     cln_cons_name = os.path.split(consensus)[-1]
     cln_cons = cln_cons_name.replace("_clean.fasta", "_good.fasta")
     consensus_out = os.path.join(outpath, cln_cons)
-    contam_seqs = cln_cons_name.replace("clean.fasta", "_contam_seqs.fasta")
+    contam_seqs = cln_cons_name.replace("_clean.fasta", "_contam_seqs.fasta")
     contam_out = os.path.join(outpath, contam_seqs)
 
     with open(logfile, 'a') as handle:
