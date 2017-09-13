@@ -61,8 +61,8 @@ def blastn_seqs(infile, gene_region):
                                          out=tmp_file.name, num_threads=threads)
 
     stdout, stderr = blastn_cline() # stdin=format_fasta
-    print("stderr", stderr)
-    print("stout", stdout)
+    print("stderr = ", stderr)
+    print("stout = ", stdout)
 
     good_records = collections.defaultdict(list)
     bad_records = collections.defaultdict(list)
@@ -101,7 +101,7 @@ def blastn_seqs(infile, gene_region):
             # no hit in db
             bad_records[query_seq_name] = "_not_hiv_" + "no_hit"
 
-    os.remove(tmp_file.name)
+    os.unlink(tmp_file.name)
 
     return bad_records, good_records
 
