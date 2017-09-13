@@ -37,12 +37,9 @@ def blastn_seqs(infile, gene_region):
     '''
 
     # assign temp file
-    tmp_dir = tempfile.gettempdir()
-    tmp_file = os.path.join(tmp_dir, "tmp_blast_results.xml")
-
-    # clear the tmp_file
-    with open(tmp_file, 'w') as handle:
-        handle.write("")
+    # tmp_dir = tempfile.gettempdir()
+    # tmp_file = os.path.join(tmp_dir, "tmp_blast_results.xml")
+    tmp_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
 
     target_gene = gene_region.upper().split("_")[0]
     # blast settings
@@ -61,7 +58,7 @@ def blastn_seqs(infile, gene_region):
 
     # run local blast
     blastn_cline = NcbiblastnCommandline(query=infile, db=blastdb, evalue=e_value, outfmt=outformat, perc_identity=80,
-                                         out=tmp_file, num_threads=threads)
+                                         out=tmp_file.name, num_threads=threads)
 
     stdout, stderr = blastn_cline() # stdin=format_fasta
     print("stderr", stderr)
@@ -104,7 +101,7 @@ def blastn_seqs(infile, gene_region):
             # no hit in db
             bad_records[query_seq_name] = "_not_hiv_" + "no_hit"
 
-    os.remove(tmp_file)
+    os.remove(tmp_file.name)
 
     return bad_records, good_records
 
