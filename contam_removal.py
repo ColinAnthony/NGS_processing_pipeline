@@ -68,7 +68,7 @@ def blastn_seqs(infile, gene_region):
     bad_records = collections.defaultdict(list)
 
     if os.path.isfile(tmp_file):
-        all_blast_results = NCBIXML.parse(open(tmp_file))
+        all_blast_results = NCBIXML.parse(open(tmp_file.name))
     else:
         print("the blast failed to write an outfile")
         sys.exit()
