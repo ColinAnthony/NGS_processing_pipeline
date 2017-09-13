@@ -118,6 +118,8 @@ def main(inpath, outfile):
 
     # calculate number of sequences after contam removal
     stats_d["headers"].append("no_contaminants")
+    stats_d["headers"].append("prop_detection_1_percent_variant")
+    stats_d["headers"].append("variant_freq_with_95_percent_detection")
     for contam_file in glob(contam_files):
         name = os.path.split(contam_file)[-1].replace("_good.fasta", "")
         if name not in all_names.keys():
@@ -129,6 +131,15 @@ def main(inpath, outfile):
         contam_rem_d = fasta_to_dct(contam_file)
         total_contam_rem = str(len(contam_rem_d.keys()))
         stats_d[name].append(total_contam_rem)
+
+        freq = 1
+
+        num_consensus_seqs = int(total_contam_rem)
+        p = freq/100
+        var_detection_limit = round((1 - ((1 - p) ** num_consensus_seqs))*100, 2)
+        stats_d[name].append(str(var_detection_limit))
+        var_freq_with_95perc_prob = round((1 - (0.05 ** (1 / num_consensus_seqs))) * 100, 3)
+        stats_d[name].append(str(var_freq_with_95perc_prob))
 
     # write the stats to the log file
     with open(outfile, 'w') as handle:
