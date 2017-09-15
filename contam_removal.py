@@ -28,7 +28,7 @@ def fasta_to_dct(fn):
     return dct
 
 
-def blastn_seqs(infile, gene_region):
+def blastn_seqs(infile, gene_region, outpath):
     '''
     :param name: sequence name
     :param sequence: (str) the sequence to blast
@@ -38,9 +38,10 @@ def blastn_seqs(infile, gene_region):
 
     # assign temp file
     # tmp_dir = tempfile.gettempdir()
-    # tmp_file = os.path.join(tmp_dir, "tmp_blast_results.xml")
-    tmp_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
-
+    # tmp_out_file = os.path.join(tmp_dir, "tmp_blast_results.xml")
+    tmp_out_file = os.path.join(outpath, "tmp_blast.xml")
+    # tmp_out_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
+    # tmp_out_file = tmp_file .name
     target_gene = gene_region.upper().split("_")[0]
     # blast settings
     # format_fasta = ">{0}\n{1}".format(s_name, q_sequence)
@@ -58,7 +59,7 @@ def blastn_seqs(infile, gene_region):
 
     # run local blast
     blastn_cline = NcbiblastnCommandline(query=infile, db=blastdb, evalue=e_value, outfmt=outformat, perc_identity=80,
-                                         out=tmp_file.name, num_threads=threads)
+                                         out=tmp_out_file, num_threads=threads)
 
     stdout, stderr = blastn_cline() # stdin=format_fasta
     print("stderr = ", stderr)
@@ -67,8 +68,8 @@ def blastn_seqs(infile, gene_region):
     good_records = collections.defaultdict(list)
     bad_records = collections.defaultdict(list)
 
-    if os.path.isfile(tmp_file.name):
-        all_blast_results = NCBIXML.parse(open(tmp_file.name))
+    if os.path.isfile(tmp_out_file):
+        all_blast_results = NCBIXML.parse(open(tmp_out_file))
     else:
         print("the blast failed to write an outfile")
         sys.exit()
@@ -101,7 +102,7 @@ def blastn_seqs(infile, gene_region):
             # no hit in db
             bad_records[query_seq_name] = "_not_hiv_" + "no_hit"
 
-    os.unlink(tmp_file.name)
+    os.unlink(tmp_out_file)
 
     return bad_records, good_records
 
@@ -151,7 +152,7 @@ def main(consensus, outpath, gene_region, logfile):
     all_sequences_d = fasta_to_dct(consensus)
 
     # checck for contam
-    contam, not_contam = blastn_seqs(consensus, gene_region)
+    contam, not_contam = blastn_seqs(consensus, gene_region, outpath)
 
     # check each sequence to see if it is a contaminant
     for name, seq in all_sequences_d.items():
