@@ -15,9 +15,6 @@ def main(infile, outpath, field):
     alignment = SeqIO.parse(infile, "fasta")
     d = collections.defaultdict(list)
 
-    # account for python zero indexing
-    field -= 1
-
     # get unique field(s) for splitting by time point
     for sequence_obj in alignment:
         if "HXB2" in sequence_obj.name:
