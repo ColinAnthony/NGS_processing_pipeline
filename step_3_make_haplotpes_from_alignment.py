@@ -11,7 +11,7 @@ from glob import glob
 __author__ = 'Colin Anthony'
 
 
-def main(infile, script_folder):
+def main(infile, field, script_folder):
 
     # split into sample files
     alignment_path = os.path.split(infile)[0]
@@ -21,7 +21,7 @@ def main(infile, script_folder):
         print("could not find the 5haplotype folder\n check your file naming structure conforms to the required format")
         sys.exit()
     split_by_unique = os.path.join(script_folder, 'split_fasta_into_subfiles.py')
-    cmd6 = 'python3 {0} -i {1} -o {2}'.format(split_by_unique, infile, haplo_outpath)
+    cmd6 = 'python3 {0} -i {1} -o {2} -f {3}'.format(split_by_unique, infile, haplo_outpath, field)
 
     subprocess.call(cmd6, shell=True)
 
@@ -41,11 +41,15 @@ if __name__ == "__main__":
 
     parser.add_argument('-i', '--infile', type=str,
                         help='The path and name of the aligned fasta file', required=True)
+    parser.add_argument('-f', '--field', type=int, default=4, required=False,
+                        help="The field that differentiates your samples/time points (use the last field if multiple."
+                             "(ie: 4 for 'CAP177_2000_004wpi_V3C4_GGGACTCTAGTG_28, or 2 for SVB008_SP_GGTAGTCTAGTG_231")
     parser.add_argument('-sf', '--script_folder', default=argparse.SUPPRESS, type=str,
                         help='the path to the folder containing the pipeline scripts', required=True)
 
     args = parser.parse_args()
     infile = args.infile
+    field = args.infile
     script_folder = args.script_folder
 
-    main(infile, script_folder)
+    main(infile, field, script_folder)
