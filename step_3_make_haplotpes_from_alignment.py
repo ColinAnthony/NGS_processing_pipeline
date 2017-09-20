@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     infile = args.infile
-    field = args.infile
+    field = args.field
     script_folder = args.script_folder
 
     main(infile, field, script_folder)
