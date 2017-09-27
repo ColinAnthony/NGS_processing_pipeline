@@ -36,7 +36,7 @@ def rename_sequences(raw_files_search):
         outf_R2 = inf_R2.replace("-", "_")
 
         outf_R1_rename = regex.sub("S[0-9][0-9]_L[0-9][0-9][0-9]_R1_[0-9][0-9][0-9].fastq", "R1.fastq", outf_R1)
-        print(outf_R1)
+
         if outf_R1_rename == outf_R1:
             # check if they have already been renamed
             if outf_R1.split("_")[-1] == "R1.fastq":
@@ -47,7 +47,7 @@ def rename_sequences(raw_files_search):
                 sys.exit()
         else:
             os.rename(inf_R1, outf_R1_rename)
-
+        print(outf_R1_rename)
         outf_R2_rename = regex.sub("S[0-9][0-9]_L[0-9][0-9][0-9]_R2_[0-9][0-9][0-9].fastq", "R2.fastq", outf_R2)
         if outf_R2_rename == outf_R2:
 
@@ -156,13 +156,13 @@ def call_align(envelope, script_folder, to_align, aln_path, fname):
 
 def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope, run_step):
 
-    # initialize the log file
-    logfile = os.path.join(path, (gene_region + "_logfile.txt"))
-    with open(logfile, 'w') as handle:
-        handle.write("Log File,{0}_{1}\n".format(name, gene_region))
-
     # Step 1: rename the raw sequences
     if run_step == 1:
+        # initialize the log file
+        logfile = os.path.join(path, (gene_region + "_logfile.txt"))
+        with open(logfile, 'w') as handle:
+            handle.write("Log File,{0}_{1}\n".format(name, gene_region))
+
         raw_fastq_inpath = os.path.join(path, '0raw')
         raw_files_search = os.path.join(raw_fastq_inpath, "*R1*.fastq")
         raw_files = glob(raw_files_search)
@@ -189,7 +189,6 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
             print(e)
             print("now quitting..")
             sys.exit()
-
 
         # check if the consensus files exist
         nested_consensuses_path = os.path.join(path, '1consensus/binned/*/*_buildConsensus/*_kept_buildConsensus.fastq')

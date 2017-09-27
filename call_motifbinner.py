@@ -70,7 +70,7 @@ def run_motifbinner(logfile, fwd_read, rev_read, outpath, fwd_primer, fwd_primer
                                   name_prefix)
 
     # only write to log file if this is the first iteration
-    if os.path.exists(logfile) and counter == 0:
+    if counter == 0:
         with open(logfile, 'a') as handle:
             handle.write("MotifBinner2 commands:\n{0}\n".format(cmd))
 
