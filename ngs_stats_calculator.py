@@ -100,10 +100,14 @@ def main(inpath, outfile):
         # calculate probability of detection
         num_consensus_seqs = int(total_contam_rem)
         p = freq/100
-        var_detection_limit = round((1 - ((1 - p) ** num_consensus_seqs))*100, 2)
-        stats_d[name].append(str(var_detection_limit))
-        var_freq_with_95perc_prob = round((1 - (0.05 ** (1 / num_consensus_seqs))) * 100, 3)
-        stats_d[name].append(str(var_freq_with_95perc_prob))
+        if num_consensus_seqs != 0:
+            var_detection_limit = round((1 - ((1 - p) ** num_consensus_seqs))*100, 2)
+            stats_d[name].append(str(var_detection_limit))
+            var_freq_with_95perc_prob = round((1 - (0.05 ** (1 / num_consensus_seqs))) * 100, 3)
+            stats_d[name].append(str(var_freq_with_95perc_prob))
+        else:
+            stats_d[name].append('NaN')
+            stats_d[name].append("NaN")
 
     # write the stats to the log file
     with open(outfile, 'w') as handle:
