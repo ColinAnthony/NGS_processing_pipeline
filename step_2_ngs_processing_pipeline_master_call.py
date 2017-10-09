@@ -163,12 +163,13 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         with open(logfile, 'w') as handle:
             handle.write("Log File,{0}_{1}\n".format(name, gene_region))
 
-    # make temp dirs
-    folders_to_make = ['0raw_temp', '1consensus_temp', '2cleaned_temp', '3contam_removal_temp']
+    if run_step < 5:
+        # make temp dirs
+        folders_to_make = ['0raw_temp', '1consensus_temp', '2cleaned_temp', '3contam_removal_temp']
 
-    for folder in folders_to_make:
-        flder = os.path.join(path, folder)
-        os.makedirs(flder, exist_ok=True)
+        for folder in folders_to_make:
+            flder = os.path.join(path, folder)
+            os.makedirs(flder, exist_ok=True)
 
     new_data = os.path.join(path, "0new_data")
 
