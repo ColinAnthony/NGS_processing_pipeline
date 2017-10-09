@@ -348,6 +348,12 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
             copy_tree(temp_folder, perm_folder)
             rmtree(temp_folder)
+
+        # clear the new_data folder
+        new_files_to_remove = os.path.join(new_data, "*")
+        for file in new_files_to_remove:
+            os.unlink(file)
+
         if run_only:
             sys.exit()
         else:
