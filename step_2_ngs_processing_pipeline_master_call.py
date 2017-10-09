@@ -6,19 +6,15 @@ import sys
 from shutil import copyfile
 from shutil import rmtree
 from distutils.dir_util import copy_tree
-# from shutil import copytree
-from shutil import move
 import argparse
 import subprocess
 from glob import glob
-import regex
+import re
 from Bio import SeqIO
 
 
 __author__ = 'Colin Anthony'
 
-
-# Todo add checking
 
 def fasta_to_dct(fn):
     '''
@@ -39,7 +35,7 @@ def rename_sequences(raw_files_search):
         outf_R1 = inf_R1.replace("-", "_")
         outf_R2 = inf_R2.replace("-", "_")
 
-        outf_R1_rename = regex.sub("S[0-9][0-9]_L[0-9][0-9][0-9]_R1_[0-9][0-9][0-9].fastq", "R1.fastq", outf_R1)
+        outf_R1_rename = re.sub("S[0-9][0-9]_L[0-9][0-9][0-9]_R1_[0-9][0-9][0-9].fastq", "R1.fastq", outf_R1)
 
         if outf_R1_rename == outf_R1:
             # check if they have already been renamed
@@ -52,7 +48,7 @@ def rename_sequences(raw_files_search):
         else:
             os.rename(inf_R1, outf_R1_rename)
         print(outf_R1_rename)
-        outf_R2_rename = regex.sub("S[0-9][0-9]_L[0-9][0-9][0-9]_R2_[0-9][0-9][0-9].fastq", "R2.fastq", outf_R2)
+        outf_R2_rename = re.sub("S[0-9][0-9]_L[0-9][0-9][0-9]_R2_[0-9][0-9][0-9].fastq", "R2.fastq", outf_R2)
         if outf_R2_rename == outf_R2:
 
             if outf_R2.split("_")[-1] == "R2.fastq":
@@ -137,10 +133,10 @@ def call_contam_check(consensuses, contam_removal_script, contam_removed_path, g
 
     for consensus_file in consensuses:
         cmd3 = 'python3 {0} -i {1} -o {2} -g {3} -l {4}'.format(contam_removal_script,
-                                                         consensus_file,
-                                                         contam_removed_path,
-                                                         gene_region,
-                                                         logfile)
+                                                                consensus_file,
+                                                                contam_removed_path,
+                                                                gene_region,
+                                                                logfile)
 
         subprocess.call(cmd3, shell=True)
 
@@ -156,7 +152,6 @@ def call_align(envelope, script_folder, to_align, aln_path, fname):
         cmd5 = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
 
     subprocess.call(cmd5, shell=True)
-
 
 
 def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope, run_step,
@@ -186,7 +181,6 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
             move_location = os.path.join(move_folder, file_name)
             copyfile(file, move_location)
 
-
         raw_fastq_inpath = os.path.join(path, '0raw_temp')
         raw_files_search = os.path.join(raw_fastq_inpath, "*R1*.fastq")
         raw_files = glob(raw_files_search)
@@ -210,7 +204,6 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
             file_name = os.path.split(file)[-1]
             move_location = os.path.join(move_folder, file_name)
             copyfile(file, move_location)
-
 
         motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
         rename_in_search = os.path.join(move_folder, "*_R1.fastq")
@@ -310,7 +303,6 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
             file_name = os.path.split(file)[-1]
             move_location = os.path.join(move_folder, file_name)
             copyfile(file, move_location)
-
 
         print("removing contaminating non-HIV sequences")
         contam_removal_script = os.path.join(script_folder, "contam_removal.py")
