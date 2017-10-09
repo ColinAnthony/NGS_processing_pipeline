@@ -4,6 +4,10 @@ from __future__ import division
 import os
 import sys
 from shutil import copyfile
+from shutil import rmtree
+from distutils.dir_util import copy_tree
+# from shutil import copytree
+from shutil import move
 import argparse
 import subprocess
 from glob import glob
@@ -154,17 +158,36 @@ def call_align(envelope, script_folder, to_align, aln_path, fname):
     subprocess.call(cmd5, shell=True)
 
 
+
 def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope, run_step,
          run_only):
-
+    # define logfile filename
     logfile = os.path.join(path, (gene_region + "_logfile.txt"))
-    # Step 1: rename the raw sequences
-    if run_step == 1:
+    if not os.path.isfile(logfile):
         # initialize the log file
         with open(logfile, 'w') as handle:
             handle.write("Log File,{0}_{1}\n".format(name, gene_region))
 
-        raw_fastq_inpath = os.path.join(path, '0raw')
+    # make temp dirs
+    folders_to_make = ['0raw_temp', '1consensus_temp', '2cleaned_temp', '3contam_removal_temp']
+
+    for folder in folders_to_make:
+        flder = os.path.join(path, folder)
+        os.makedirs(flder, exist_ok=True)
+
+    new_data = os.path.join(path, "0new_data")
+
+    # Step 1: rename the raw sequences
+    if run_step == 1:
+        files_to_move = os.path.join(new_data, "*.fastq")
+        move_folder = os.path.join(path, '0raw_temp')
+        for file in glob(files_to_move):
+            file_name = os.path.split(file)[-1]
+            move_location = os.path.join(move_folder, file_name)
+            copyfile(file, move_location)
+
+
+        raw_fastq_inpath = os.path.join(path, '0raw_temp')
         raw_files_search = os.path.join(raw_fastq_inpath, "*R1*.fastq")
         raw_files = glob(raw_files_search)
         if not raw_files:
@@ -174,16 +197,25 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
         rename_sequences(raw_files)
         run_step += 1
+
         if run_only:
-            sys.exit()
+            # copy back to permanent folder, remove temp folder
+            run_step = 10
 
     # Step 2: run the call_MotifBinner script which will loop over fastq files in the target folder
     if run_step == 2:
+        files_to_move = os.path.join(new_data, "*.fastq")
+        move_folder = os.path.join(path, '0raw_temp')
+        for file in glob(files_to_move):
+            file_name = os.path.split(file)[-1]
+            move_location = os.path.join(move_folder, file_name)
+            copyfile(file, move_location)
+
+
         motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
-        rename_fastq_inpath = os.path.join(path, '0raw')
-        rename_in_search = os.path.join(rename_fastq_inpath, "*_R1.fastq")
+        rename_in_search = os.path.join(move_folder, "*_R1.fastq")
         rename_in = glob(rename_in_search)
-        cons_outpath = os.path.join(path, '1consensus', 'binned')
+        cons_outpath = os.path.join(path, '1consensus_temp', 'binned')
         counter = 0
         try:
             call_motifbinner(rename_in, motifbinner, cons_outpath, fwd_primer, cDNA_primer, counter, logfile)
@@ -194,7 +226,8 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
             sys.exit()
 
         # check if the consensus files exist
-        nested_consensuses_path = os.path.join(path, '1consensus/binned/*/*_buildConsensus/*_kept_buildConsensus.fastq')
+        nested_consensuses_path = os.path.join(path,
+                                               '1consensus_temp/binned/*/*_buildConsensus/*_kept_buildConsensus.fastq')
         nested_consesnsuses = glob(nested_consensuses_path)
         if not nested_consesnsuses:
             print("No consensus sequences were found\n"
@@ -205,8 +238,8 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
             sys.exit()
 
         # copy data from nested binned folders into 1consensus folder
-        print("Copy fastq files from nested folders to '1consensus' folder")
-        consensus_path = os.path.join(path, '1consensus')
+        print("Copy fastq files from nested folders to '1consensus_temp' folder")
+        consensus_path = os.path.join(path, '1consensus_temp')
         for cons_file in nested_consesnsuses:
             old_path, old_name = os.path.split(cons_file)
             new_name = old_name.replace("_kept_buildConsensus", "")
@@ -232,23 +265,29 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
         # delete any gaps characters in the fasta sequences
         print("deleting gaps in consensus sequences")
-        consensus_path = os.path.join(path, '1consensus')
+        consensus_path = os.path.join(path, '1consensus_temp')
         consensus_search = os.path.join(consensus_path, '*.fasta')
         consensus_infiles = glob(consensus_search)
         delete_gaps(consensus_infiles)
 
         if run_only:
-            sys.exit()
+            # copy back to permanent folder, remove temp folder
+            run_step = 10
 
     # Step 3: call remove bad sequences
     if run_step == 3:
+        files_to_move = os.path.join(new_data, "*.fasta")
+        move_folder = os.path.join(path, '1consensus_temp')
+        for file in glob(files_to_move):
+            file_name = os.path.split(file)[-1]
+            move_location = os.path.join(move_folder, file_name)
+            copyfile(file, move_location)
+
         print("Removing 'bad' sequences")
         remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
-        consensus_path = os.path.join(path, '1consensus')
-        print('path', path)
-        consensus_search = os.path.join(consensus_path, '*.fasta')
+        consensus_search = os.path.join(move_folder, '*.fasta')
         consensus_infiles = glob(consensus_search)
-        clean_path = os.path.join(path, '2cleaned')
+        clean_path = os.path.join(path, '2cleaned_temp')
         print(consensus_search)
         if not consensus_infiles:
             print("Could not find consensus fasta files\n"
@@ -260,15 +299,23 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         run_step += 1
 
         if run_only:
-            sys.exit()
+            # copy back to permanent folder, remove temp folder
+            run_step = 10
 
     # Step 4: remove contaminating sequences
     if run_step == 4:
+        files_to_move = os.path.join(new_data, "*.fasta")
+        move_folder = os.path.join(path, '2cleaned_temp')
+        for file in glob(files_to_move):
+            file_name = os.path.split(file)[-1]
+            move_location = os.path.join(move_folder, file_name)
+            copyfile(file, move_location)
+
+
         print("removing contaminating non-HIV sequences")
         contam_removal_script = os.path.join(script_folder, "contam_removal.py")
-        clean_path = os.path.join(path, '2cleaned')
-        clean_search = os.path.join(clean_path, "*clean.fasta")
-        contam_removed_path = os.path.join(path, '3contam_removal')
+        clean_search = os.path.join(move_folder, "*clean.fasta")
+        contam_removed_path = os.path.join(path, '3contam_removal_temp')
         clean_files = glob(clean_search)
         hxb2_region = {"GAG": "GAG", "POL": "POL", "PRO": "POL", "RT": "POL", "RNASE": "POL", "INT": "POL",
                        "ENV": "ENV", "GP120": "ENV", "GP41": "ENV", "NEF": "NEF",
@@ -283,10 +330,28 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
                   "Do your sequences extend past the end of the reading frame")
 
         call_contam_check(clean_files, contam_removal_script, contam_removed_path, region_to_check, logfile)
-        run_step += 1
 
+        # copy back to permanent folder, remove temp folder
+        run_step = 10
+
+    # copy data to permanent folders, delete temp folders/files
+    if run_step == 10:
+        for folder in folders_to_make:
+            temp_folder = os.path.join(path, folder)
+            perm_folder = temp_folder.replace("_temp", "")
+            if not os.path.isdir(temp_folder):
+                print("temp folder does not exist")
+                sys.exit()
+            if not os.path.isdir(perm_folder):
+                print("folder does not exist")
+                sys.exit()
+
+            copy_tree(temp_folder, perm_folder)
+            rmtree(temp_folder)
         if run_only:
             sys.exit()
+        else:
+            run_step = 5
 
     # Step 5: set things up to align
     if run_step == 5:
