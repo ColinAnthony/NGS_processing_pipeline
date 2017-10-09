@@ -351,7 +351,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
         # clear the new_data folder
         new_files_to_remove = os.path.join(new_data, "*")
-        for file in new_files_to_remove:
+        for file in glob(new_files_to_remove):
             os.unlink(file)
 
         if run_only:
