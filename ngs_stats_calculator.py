@@ -56,6 +56,15 @@ def main(inpath, outfile):
     contam_files = os.path.join(inpath, "3contam_removal", "*_good.fasta")
     # dirs_to_check = [raw_files, merged_files, consensus_files, contam_files]
 
+
+
+    binned_folders = os.path.join(inpath, "1consensus", "binned", "*")
+    for binned_folder in glob(binned_folders):
+        raw = os.path.join(binned_folder, "n001_fwd_loadData")
+
+
+
+
     # calculate number of raw sequences
     stats_d["headers"].append("name")
     stats_d["headers"].append("raw_sequences")

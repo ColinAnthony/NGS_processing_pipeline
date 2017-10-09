@@ -154,12 +154,13 @@ def call_align(envelope, script_folder, to_align, aln_path, fname):
     subprocess.call(cmd5, shell=True)
 
 
-def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope, run_step):
+def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope, run_step,
+         run_only):
 
+    logfile = os.path.join(path, (gene_region + "_logfile.txt"))
     # Step 1: rename the raw sequences
     if run_step == 1:
         # initialize the log file
-        logfile = os.path.join(path, (gene_region + "_logfile.txt"))
         with open(logfile, 'w') as handle:
             handle.write("Log File,{0}_{1}\n".format(name, gene_region))
 
@@ -173,6 +174,8 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
         rename_sequences(raw_files)
         run_step += 1
+        if run_only:
+            sys.exit()
 
     # Step 2: run the call_MotifBinner script which will loop over fastq files in the target folder
     if run_step == 2:
@@ -234,14 +237,19 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         consensus_infiles = glob(consensus_search)
         delete_gaps(consensus_infiles)
 
+        if run_only:
+            sys.exit()
+
     # Step 3: call remove bad sequences
     if run_step == 3:
         print("Removing 'bad' sequences")
         remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
         consensus_path = os.path.join(path, '1consensus')
+        print('path', path)
         consensus_search = os.path.join(consensus_path, '*.fasta')
         consensus_infiles = glob(consensus_search)
         clean_path = os.path.join(path, '2cleaned')
+        print(consensus_search)
         if not consensus_infiles:
             print("Could not find consensus fasta files\n"
                   "It is possible something went wrong when copying the consensus sequences from the nested folders "
@@ -250,6 +258,9 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
         call_fasta_cleanup(consensus_infiles, remove_bad_seqs, clean_path, frame, length, logfile, stops)
         run_step += 1
+
+        if run_only:
+            sys.exit()
 
     # Step 4: remove contaminating sequences
     if run_step == 4:
@@ -273,6 +284,9 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
         call_contam_check(clean_files, contam_removal_script, contam_removed_path, region_to_check, logfile)
         run_step += 1
+
+        if run_only:
+            sys.exit()
 
     # Step 5: set things up to align
     if run_step == 5:
@@ -316,6 +330,9 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         fname = fname.replace(".fasta", "_aligned.fasta")
         call_align(envelope, script_folder, to_align, aln_path, fname)
         run_step += 1
+
+        if run_only:
+            sys.exit()
 
     # call funcion to calculate sequencing stats
     if run_step == 6:
@@ -366,6 +383,8 @@ if __name__ == "__main__":
                              '4 = step 4: remove contam sequencse\n'
                              '5 = step 5: align the sequences\n'
                              '6 = step 6: calculate sequencing depth stats for each step of pipeline ', required=False)
+    parser.add_argument('-ro', '--run_only', default=False, action='store_true',
+                        help='run only the specified run_step)', required="--run_step" in sys.argv)
 
     args = parser.parse_args()
     path = args.path
@@ -379,5 +398,7 @@ if __name__ == "__main__":
     length = args.length
     envelope = args.envelope
     run_step = args.run_step
+    run_only = args.run_only
 
-    main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope, run_step)
+    main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope, run_step,
+         run_only)
