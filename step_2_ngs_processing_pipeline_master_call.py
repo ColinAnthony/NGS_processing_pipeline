@@ -164,9 +164,8 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
             handle.write("Log File,{0}_{1}\n".format(name, gene_region))
 
     folders_to_make = ['0raw_temp', '1consensus_temp', '2cleaned_temp', '3contam_removal_temp']
-    print(run_step)
+    print("running pipeline from step:", run_step)
     if run_step <= 4:
-        print(run_step)
         # make temp dirs
         for folder in folders_to_make:
             flder = os.path.join(path, folder)
