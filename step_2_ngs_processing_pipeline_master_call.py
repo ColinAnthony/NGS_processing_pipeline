@@ -31,11 +31,16 @@ def rename_sequences(raw_files_search):
 
     print("renaming raw files")
     for inf_R1 in raw_files_search:
+        print(inf_R1)
         inf_R2 = inf_R1.replace("R1_001.fastq", "R2_001.fastq")
-        outf_R1 = inf_R1.replace("-", "_")
-        outf_R2 = inf_R2.replace("-", "_")
+        path = os.path.split(inf_R1)[0]
+        inf_R1_name = os.path.split(inf_R1)[-1]
+        inf_R2_name = os.path.split(inf_R2)[-1]
 
+        outf_R1 = inf_R1_name.replace("-", "_")
+        outf_R2 = inf_R2_name.replace("-", "_")
         outf_R1_rename = re.sub("S[0-9][0-9]_L[0-9][0-9][0-9]_R1_[0-9][0-9][0-9].fastq", "R1.fastq", outf_R1)
+        outf_R1_rename = os.path.join(path, outf_R1_rename)
 
         if outf_R1_rename == outf_R1:
             # check if they have already been renamed
@@ -49,8 +54,8 @@ def rename_sequences(raw_files_search):
             os.rename(inf_R1, outf_R1_rename)
         print(outf_R1_rename)
         outf_R2_rename = re.sub("S[0-9][0-9]_L[0-9][0-9][0-9]_R2_[0-9][0-9][0-9].fastq", "R2.fastq", outf_R2)
+        outf_R2_rename = os.path.join(path, outf_R2_rename)
         if outf_R2_rename == outf_R2:
-
             if outf_R2.split("_")[-1] == "R2.fastq":
                 print("file was already in correct format?")
                 return
@@ -175,6 +180,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     # Step 1: rename the raw sequences
     if run_step == 1:
+        # move files from new_data to 0raw_temp
         files_to_move = os.path.join(new_data, "*.fastq")
         move_folder = os.path.join(path, '0raw_temp')
         for file in glob(files_to_move):
@@ -182,6 +188,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
             move_location = os.path.join(move_folder, file_name)
             copyfile(file, move_location)
 
+        # do the renaming
         raw_fastq_inpath = os.path.join(path, '0raw_temp')
         raw_files_search = os.path.join(raw_fastq_inpath, "*R1*.fastq")
         raw_files = glob(raw_files_search)
@@ -199,13 +206,14 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     # Step 2: run the call_MotifBinner script which will loop over fastq files in the target folder
     if run_step == 2:
-        files_to_move = os.path.join(new_data, "*.fastq")
         move_folder = os.path.join(path, '0raw_temp')
-        for file in glob(files_to_move):
-            file_name = os.path.split(file)[-1]
-            move_location = os.path.join(move_folder, file_name)
-            copyfile(file, move_location)
-
+        if run_only:
+            files_to_move = os.path.join(new_data, "*.fastq")
+            for file in glob(files_to_move):
+                file_name = os.path.split(file)[-1]
+                move_location = os.path.join(move_folder, file_name)
+                copyfile(file, move_location)
+        
         motifbinner = os.path.join(script_folder, 'call_motifbinner.py')
         rename_in_search = os.path.join(move_folder, "*_R1.fastq")
         rename_in = glob(rename_in_search)
@@ -232,7 +240,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
             sys.exit()
 
         # copy data from nested binned folders into 1consensus folder
-        print("Copy fastq files from nested folders to '1consensus_temp' folder")
+        print("Coping fastq files from nested folders to '1consensus_temp' folder")
         consensus_path = os.path.join(path, '1consensus_temp')
         for cons_file in nested_consesnsuses:
             old_path, old_name = os.path.split(cons_file)
@@ -270,12 +278,13 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     # Step 3: call remove bad sequences
     if run_step == 3:
-        files_to_move = os.path.join(new_data, "*.fasta")
         move_folder = os.path.join(path, '1consensus_temp')
-        for file in glob(files_to_move):
-            file_name = os.path.split(file)[-1]
-            move_location = os.path.join(move_folder, file_name)
-            copyfile(file, move_location)
+        if run_only:
+            files_to_move = os.path.join(new_data, "*.fasta")
+            for file in glob(files_to_move):
+                file_name = os.path.split(file)[-1]
+                move_location = os.path.join(move_folder, file_name)
+                copyfile(file, move_location)
 
         print("Removing 'bad' sequences")
         remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
@@ -298,12 +307,13 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     # Step 4: remove contaminating sequences
     if run_step == 4:
-        files_to_move = os.path.join(new_data, "*.fasta")
         move_folder = os.path.join(path, '2cleaned_temp')
-        for file in glob(files_to_move):
-            file_name = os.path.split(file)[-1]
-            move_location = os.path.join(move_folder, file_name)
-            copyfile(file, move_location)
+        if run_only:
+            files_to_move = os.path.join(new_data, "*.fasta")
+            for file in glob(files_to_move):
+                file_name = os.path.split(file)[-1]
+                move_location = os.path.join(move_folder, file_name)
+                copyfile(file, move_location)
 
         print("removing contaminating non-HIV sequences")
         contam_removal_script = os.path.join(script_folder, "contam_removal.py")
@@ -346,14 +356,12 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         new_files_to_remove = os.path.join(new_data, "*")
         for file in glob(new_files_to_remove):
             os.unlink(file)
-
         if run_only:
             sys.exit()
-
         else:
             run_step = 5
 
-    # Step 5: set things up to align
+    # Step 5: set things up to align sequences
     if run_step == 5:
         # get the HXB2 sequence for the gene region
         hxb2_file = os.path.join(script_folder, "HXB2_seqs.fasta")
