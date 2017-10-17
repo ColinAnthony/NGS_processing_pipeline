@@ -170,6 +170,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
     folders_to_make = ['0raw_temp', '1consensus_temp', '2cleaned_temp', '3contam_removal_temp']
     print("running pipeline from step:", run_step)
+    initual_run_step = run_step
     if run_step <= 4:
         # make temp dirs
         for folder in folders_to_make:
@@ -207,7 +208,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     # Step 2: run the call_MotifBinner script which will loop over fastq files in the target folder
     if run_step == 2:
         move_folder = os.path.join(path, '0raw_temp')
-        if run_only:
+        if initual_run_step == 2:
             files_to_move = os.path.join(new_data, "*.fastq")
             for file in glob(files_to_move):
                 file_name = os.path.split(file)[-1]
@@ -279,7 +280,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     # Step 3: call remove bad sequences
     if run_step == 3:
         move_folder = os.path.join(path, '1consensus_temp')
-        if run_only:
+        if initual_run_step == 3:
             files_to_move = os.path.join(new_data, "*.fasta")
             for file in glob(files_to_move):
                 file_name = os.path.split(file)[-1]
@@ -308,7 +309,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     # Step 4: remove contaminating sequences
     if run_step == 4:
         move_folder = os.path.join(path, '2cleaned_temp')
-        if run_only:
+        if initual_run_step == 4:
             files_to_move = os.path.join(new_data, "*.fasta")
             for file in glob(files_to_move):
                 file_name = os.path.split(file)[-1]
@@ -353,12 +354,24 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
             rmtree(temp_folder)
 
         # clear the new_data folder
-        new_files_to_remove = os.path.join(new_data, "*")
-        for file in glob(new_files_to_remove):
-            os.unlink(file)
+        condition = True
         if run_only:
+            while condition:
+                response = input("remove files from 0new_data folder? (yes or no)")
+                if response.lower() == "yes" or response.lower() == "y":
+                    new_files_to_remove = os.path.join(new_data, "*")
+                    for file in glob(new_files_to_remove):
+                        os.unlink(file)
+                elif response.lower() == "no" or response.lower() == "n":
+                    print("not deleting files")
+                else:
+                    print("response not valid, please enter either: 'yes', or 'y' to delete or 'no', or 'n' to keep")
             sys.exit()
+
         else:
+            new_files_to_remove = os.path.join(new_data, "*")
+            for file in glob(new_files_to_remove):
+                os.unlink(file)
             run_step = 5
 
     # Step 5: set things up to align sequences
