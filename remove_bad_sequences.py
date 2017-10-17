@@ -225,7 +225,7 @@ if __name__ == "__main__":
                         help='The reading frame (1, 2 or 3)', required=False)
     parser.add_argument('-s', '--stops', default=False, action='store_true',
                         help='Remove sequences with stop codons?)', required=False)
-    parser.add_argument('-l', '--length', type=int,
+    parser.add_argument('-l', '--length', type=int, default=250,
                         help='The minimum read length)', required=False)
     parser.add_argument('-lf', '--logfile', default=argparse.SUPPRESS, type=str,
                         help='The path and name of the log file', required=True)

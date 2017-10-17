@@ -113,11 +113,10 @@ def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, frame,
 
     for fasta_file in contam_removed_fasta:
         if stops:
-            cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s {4} -l {5} -lf {6}'.format(remove_bad_seqs,
+            cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s -l {4} -lf {5}'.format(remove_bad_seqs,
                                                                                    fasta_file,
                                                                                    clean_path,
                                                                                    frame,
-                                                                                   stops,
                                                                                    length,
                                                                                    logfile)
         else:
@@ -130,7 +129,8 @@ def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, frame,
         if os.path.exists(logfile):
             with open(logfile, 'a') as handle:
                 handle.write("\nremove_bad_sequences commands:\n{}\n".format(cmd4))
-
+        print(cmd4)
+        input("enter")
         subprocess.call(cmd4, shell=True)
 
 
