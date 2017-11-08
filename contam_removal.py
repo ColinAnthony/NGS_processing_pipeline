@@ -163,8 +163,6 @@ def main(consensus, outpath, gene_region, logfile):
         # if the sequence is not hiv, save to contam file
         if name in contam_names:
             print("Non HIV sequence found:\n\t", name)
-            print(name)
-            print(contam)
             new_name = name + contam[name]
             with open(contam_out, 'a') as handle1:
                 outstr = ">{0}\n{1}\n".format(new_name, seq)
