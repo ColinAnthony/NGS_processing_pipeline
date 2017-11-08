@@ -75,7 +75,7 @@ def blastn_seqs(infile, gene_region, outpath):
 
     for blast_record in all_blast_results:
         # get query name
-        query_seq_name = blast_record.query
+        query_seq_name = blast_record.query.upper()
 
         # was there a hit to something in the db?
         if blast_record.alignments:
@@ -92,10 +92,10 @@ def blastn_seqs(infile, gene_region, outpath):
 
                 if region == target_gene:
                     found = True
-                    good_records[query_seq_name.upper()] = "_hiv_" + region.lower()
+                    good_records[query_seq_name] = "_hiv_" + region.lower()
                     break
             if not found:
-                bad_records[query_seq_name.upper()] = "_hiv_" + first_region.lower()
+                bad_records[query_seq_name] = "_hiv_" + first_region.lower()
 
         else:
             # no hit in db
@@ -153,8 +153,8 @@ def main(consensus, outpath, gene_region, logfile):
     # checck for contam
     contam, not_contam = blastn_seqs(consensus, gene_region, outpath)
     # set all output names to uppercase to ensure input > output names match
-    contam_names = [x.upper() for x in list(contam.keys())]
-    not_contam_names = [x.upper() for x in list(not_contam.keys())]
+    contam_names = [x.upper() for x in contam.keys()]
+    not_contam_names = [x.upper() for x in not_contam.keys()]
 
     # check each sequence to see if it is a contaminant
     for name, seq in all_sequences_d.items():
@@ -163,6 +163,8 @@ def main(consensus, outpath, gene_region, logfile):
         # if the sequence is not hiv, save to contam file
         if name in contam_names:
             print("Non HIV sequence found:\n\t", name)
+            print(name)
+            print(contam)
             new_name = name + contam[name]
             with open(contam_out, 'a') as handle1:
                 outstr = ">{0}\n{1}\n".format(new_name, seq)

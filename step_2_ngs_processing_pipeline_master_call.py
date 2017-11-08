@@ -409,7 +409,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         aln_path = os.path.join(path, '4aligned')
         move_file = os.path.join(aln_path, clean_name)
         copyfile(all_cleaned_outname, move_file)
-        os.remove(all_cleaned_outname)
+        os.unlink(all_cleaned_outname)
 
         # call alignment script
         print("Aligning the sequences")
