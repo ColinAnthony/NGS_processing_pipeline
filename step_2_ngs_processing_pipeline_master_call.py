@@ -172,6 +172,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     initual_run_step = run_step
     if run_step <= 4:
         # make temp dirs
+        print("making temp folders")
         for folder in folders_to_make:
             flder = os.path.join(path, folder)
             os.makedirs(flder, exist_ok=True)
@@ -336,9 +337,10 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
         # copy back to permanent folder, remove temp folder
         run_step = 10
-
+    input("enter")
     # copy data to permanent folders, delete temp folders/files
     if run_step == 10:
+        print('copying data from temp folders')
         for folder in folders_to_make:
             temp_folder = os.path.join(path, folder)
             perm_folder = temp_folder.replace("_temp", "")
@@ -355,6 +357,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         # clear the new_data folder
         condition = True
         if run_only:
+            print('removing temp files')
             while condition:
                 response = input("remove files from 0new_data folder? (yes or no)")
                 if response.lower() == "yes" or response.lower() == "y":
@@ -448,9 +451,9 @@ if __name__ == "__main__":
     parser.add_argument('-sf', '--script_folder', default=argparse.SUPPRESS, type=str,
                         help='the path to the folder containing the pipeline scripts', required=True)
     parser.add_argument('-f', '--fwd_primer', default=argparse.SUPPRESS, type=str,
-                        help='The fwd primer for these samples (eg: NNNNGGAAATATGGAAAGGAAGGAC)', required=True)
+                        help='The fwd primer for these samples (eg: NNNNGGAAATATGGAAAGGAAGGAC)', required=False)
     parser.add_argument('-r', '--cDNA_primer', default=argparse.SUPPRESS, type=str,
-                        help='The cDNA primer for these samples (eg: NNNNNNNNNNNTCTTCTAATACTGTATCATCTG)', required=True)
+                        help='The cDNA primer for these samples (eg: NNNNNNNNNNNTCTTCTAATACTGTATCATCTG)', required=False)
     parser.add_argument('-fr', '--frame', type=int,
                         help='The reading frame (1, 2 or 3)', required=False)
     parser.add_argument('-s', '--stops', default=False, action='store_true',
@@ -462,11 +465,11 @@ if __name__ == "__main__":
                              '(eg: V1 V2) (options include: V1, V2 , V3, V4, V5)', required=False)
     parser.add_argument('-rs', '--run_step', type=int, default=1,
                         help='rerun the pipeline from a given step:\n'
-                             '1 = step 1: rename raw files\n'
-                             '2 = step 2: run binner\n'
-                             '3 = step 3: clean consensus sequences\n'
-                             '4 = step 4: remove contam sequencse\n'
-                             '5 = step 5: align the sequences\n'
+                             '1 = step 1: rename raw files;\n'
+                             '2 = step 2: run binner;\n'
+                             '3 = step 3: clean consensus sequences;\n'
+                             '4 = step 4: remove contam sequences;\n'
+                             '5 = step 5: align the sequences;\n'
                              '6 = step 6: calculate sequencing depth stats for each step of pipeline ', required=False)
     parser.add_argument('-ro', '--run_only', default=False, action='store_true',
                         help='run only the specified run_step)', required="--run_step" in sys.argv)

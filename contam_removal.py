@@ -4,7 +4,6 @@ from __future__ import division
 import os
 import argparse
 import collections
-import tempfile
 from Bio import SeqIO
 from Bio.Blast import NCBIWWW
 from Bio.Blast import NCBIXML
@@ -16,11 +15,11 @@ __author__ = 'Colin Anthony'
 
 
 def fasta_to_dct(fn):
-    '''
+    """
     converts a fasta file to a dictionary where key = seq name, value = sequence
     :param fn: a fasta file
     :return: a dictionary
-    '''
+    """
     dct = collections.defaultdict(list)
     for seq_record in SeqIO.parse(open(fn), "fasta"):
         dct[seq_record.description.replace(" ", "_").upper()] = str(seq_record.seq).replace("-", "").upper()
@@ -29,12 +28,12 @@ def fasta_to_dct(fn):
 
 
 def blastn_seqs(infile, gene_region, outpath):
-    '''
-    :param name: sequence name
-    :param sequence: (str) the sequence to blast
-    :param logfile: the logfile path and name
+    """
+    :param infile: fasta file to blast
+    :param gene_region: (str) the target gene region
+    :param outpath: path to the outfile
     :return: (bool) True or False depending on whether sequence is not hiv
-    '''
+    """
 
     # assign temp file
     # tmp_dir = tempfile.gettempdir()
@@ -51,9 +50,9 @@ def blastn_seqs(infile, gene_region, outpath):
     threads = 4
 
     print("running blast")
-    ## run online blast
+    # # run online blast
     # blast_results = NCBIWWW.qblast('blastn', 'nt', query=infile, entrez_query='"HIV-1"[organism]')
-    ## write online blast results to file
+    # # write online blast results to file
     # with open(tmpfile, 'w') as handle:
     #     handle.write(blast_results.read())
 
@@ -87,16 +86,16 @@ def blastn_seqs(infile, gene_region, outpath):
                 region = title_name.upper().split("_")[-1]
                 if i == 0:
                     first_region = title_name.upper().split("_")[-1]
-                for hsp in alignment.hsps:
-                    # get the e_value in case you want to store it
-                    exp_value = hsp.expect
+                # for hsp in alignment.hsps:
+                #     # get the e_value in case you want to store it
+                #     exp_value = hsp.expect
 
                 if region == target_gene:
                     found = True
-                    good_records[query_seq_name] = "_hiv_" + region
+                    good_records[query_seq_name.upper()] = "_hiv_" + region.lower()
                     break
             if not found:
-                bad_records[query_seq_name] = "_hiv_" + first_region
+                bad_records[query_seq_name.upper()] = "_hiv_" + first_region.lower()
 
         else:
             # no hit in db
@@ -153,12 +152,16 @@ def main(consensus, outpath, gene_region, logfile):
 
     # checck for contam
     contam, not_contam = blastn_seqs(consensus, gene_region, outpath)
+    # set all output names to uppercase to ensure input > output names match
+    contam_names = [x.upper() for x in list(contam.keys())]
+    not_contam_names = [x.upper() for x in list(not_contam.keys())]
 
     # check each sequence to see if it is a contaminant
     for name, seq in all_sequences_d.items():
-
+        # set input name to uppercase to ensure match to output name
+        name = name.upper()
         # if the sequence is not hiv, save to contam file
-        if name in contam.keys():
+        if name in contam_names:
             print("Non HIV sequence found:\n\t", name)
             new_name = name + contam[name]
             with open(contam_out, 'a') as handle1:
@@ -166,13 +169,13 @@ def main(consensus, outpath, gene_region, logfile):
                 handle1.write(outstr)
 
         # if is not contam, to write to good outfile
-        elif name in not_contam.keys():
+        elif name in not_contam_names:
             with open(consensus_out, 'a') as handle2:
                 outstr = ">{0}\n{1}\n".format(name, seq)
                 handle2.write(outstr)
 
         else:
-            print("not contam, not not contam. Something strange happened", name)
+            print("Input names did not match with output names. Something strange happened for: ", name)
             # todo add logging
 
     print("contam check complete")
