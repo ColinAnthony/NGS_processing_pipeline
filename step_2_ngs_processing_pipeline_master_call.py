@@ -148,9 +148,10 @@ def call_contam_check(consensuses, contam_removal_script, contam_removed_path, g
 def call_align(envelope, script_folder, to_align, aln_path, fname):
 
     if envelope is not None:
+        loops = " ".join(envelope)
         align_all = os.path.join(script_folder, 'align_all_env_samples.py')
 
-        cmd5 = 'python3 {0}  -i {1} -o {2} -l {3}'.format(align_all, to_align, aln_path, fname, envelope)
+        cmd5 = 'python3 {0}  -i {1} -o {2} -n {3} -l {4}'.format(align_all, to_align, aln_path, fname, loops)
     else:
         align_all = os.path.join(script_folder, 'align_all_samples.py')
         cmd5 = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
@@ -337,7 +338,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
 
         # copy back to permanent folder, remove temp folder
         run_step = 10
-    input("enter")
+
     # copy data to permanent folders, delete temp folders/files
     if run_step == 10:
         print('copying data from temp folders')
@@ -460,7 +461,7 @@ if __name__ == "__main__":
                         help='Remove sequences with stop codons?)', required=False)
     parser.add_argument('-l', '--length', type=int,
                         help='The minimum read length)', required=False)
-    parser.add_argument('-e', '--envelope', default=None, nargs="+",
+    parser.add_argument('-e', '--envelope', type=str, default=None, nargs="+",
                         help='If your sequences are of HIV envelope, which V-loops are in the sequence?'
                              '(eg: V1 V2) (options include: V1, V2 , V3, V4, V5)', required=False)
     parser.add_argument('-rs', '--run_step', type=int, default=1,
