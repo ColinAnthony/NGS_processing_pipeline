@@ -9,14 +9,14 @@ __author__ = 'Colin Anthony'
 
 
 def main(your_path, gene_region, fnames):
-    '''
+    """
     create folder structure for a sequencing project
     :param your_path: (str) path to where the folders should be make
     :param gene_region: (str) gene region being sequenced
     :param fnames: (list) list of top level directories to populate
     :return:
-    '''
-
+    """
+    your_path = os.path.abspath(your_path)
     third_level_dirs = ['0new_data', '0raw', '1consensus', '2cleaned', '3contam_removal', '4aligned', '5haplotype',
                         '6analysis']
     fourth_level_dirs = ['aa_freq', 'divergence', 'entropy', 'glycans', 'loops', 'tree']

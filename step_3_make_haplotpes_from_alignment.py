@@ -14,6 +14,7 @@ __author__ = 'Colin Anthony'
 def main(infile, field, script_folder):
 
     # split into sample files
+    infile = os.path.abspath(infile)
     alignment_path = os.path.split(infile)[0]
     parent_path = os.path.split(alignment_path)[0]
     haplo_outpath = os.path.join(parent_path, '5haplotype')
