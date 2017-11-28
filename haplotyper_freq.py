@@ -11,13 +11,13 @@ __author__ = 'colin'
 
 
 def hapl_collapse(fastafile, seq_name, outfile):
-    '''
+    """
     Haplotype a fasta file by collapsing identical sequences into a single sequence with a frequency count.
     :param fastafile: input fasta file
     :param seq_name: (str) prefix for sequence name
     :param outfile: the path to where the outfile is created
     :return: dictionary of key = sequence, value  = count of that sequence
-    '''
+    """
 
     # import seqs to dict and get count of each unique sequence
     total = 0

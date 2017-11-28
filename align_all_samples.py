@@ -14,10 +14,11 @@ __author__ = 'Colin Anthony'
 
 
 def fasta_to_dct_rev(fn):
-    '''Converts a fasta file to a dictionary
+    """
+    Converts a fasta file to a dictionary
     :param fn: a fasta file
     :return: a dictionary key = sequence, value = list of sequence names with that sequence
-    '''
+    """
 
     dct = collections.defaultdict(list)
     for seq_record in SeqIO.parse(open(fn), "fasta"):
@@ -27,12 +28,12 @@ def fasta_to_dct_rev(fn):
 
 
 def align_dna(dna_dict, tmp_file):
-    '''
+    """
     does a mafft multiple sequence alignment on a fasta file
     :param dna_dict (dict) dictionary containing the conserved regions f the sequence
     :param tmp_file: (srt) path to temp folder
     :return: (dict) dictionary of aligned sequences for all conserved regions
-    '''
+    """
     # write temp outfile
     tmp_file_in = os.path.join(tmp_file + '.fasta')
     tmp_file_out = os.path.join(tmp_file + '.aln')

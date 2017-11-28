@@ -17,10 +17,10 @@ __author__ = 'Colin Anthony'
 
 
 def fasta_to_dct(fn):
-    '''
+    """
     :param fn: (str)infile name
     :return: (dict) dictionary of names and sequences
-    '''
+    """
     dct = {}
     for seq_record in SeqIO.parse(open(fn), "fasta"):
         dct[seq_record.description.replace(" ", "_").upper()] = str(seq_record.seq).replace("-", "").upper()

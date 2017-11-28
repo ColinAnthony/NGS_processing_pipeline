@@ -11,11 +11,11 @@ __author__ = 'Colin Anthony'
 
 
 def fasta_to_dct(fn):
-    '''
+    """
     :param fn: (str)infile name
     :param frame: (int) reading frame (1, 2 or 3)
     :return: (dict) dictionary of names and sequences
-    '''
+    """
     dct = {}
     for seq_record in SeqIO.parse(open(fn), "fasta"):
         dct[seq_record.description.replace(" ", "_")] = str(seq_record.seq).replace("-", "").upper()
@@ -23,10 +23,10 @@ def fasta_to_dct(fn):
 
 
 def translate_dna(sequence):
-    '''
+    """
     :param sequence: a DNA string
     :return: a protein string from the forward reading frame with the least number of stop codons, if the lowest number is equal between two reading frames "*" is returned
-    '''
+    """
     codontable = {
         'ATA': 'I', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
         'ACA': 'T', 'ACC': 'T', 'ACG': 'T', 'ACT': 'T',
@@ -67,10 +67,10 @@ def translate_dna(sequence):
 
 
 def degen_remove(d):
-    '''
+    """
     :param d: (dict) dictionary of sequence names and DNA sequences)
     :return: (dict) (dict) dictionary with sequences with degenerate bases removed
-    '''
+    """
     badseq = ['M', 'R', 'W', 'S', 'Y', 'K', 'B', 'D', 'H', 'V', 'N']
     degen = 0
     n_d = collections.defaultdict(str)
@@ -89,10 +89,10 @@ def degen_remove(d):
 
 
 def stops_remove(d, frame):
-    '''
+    """
     :param d: (dict) dictionary of sequence names and DNA sequences)
     :return: (dict) dictionary with sequences with stop codons removed
-    '''
+    """
     stops = 0
     good_d = collections.defaultdict(str)
     bad_d = collections.defaultdict(str)
@@ -108,10 +108,10 @@ def stops_remove(d, frame):
 
 
 def length_check(d):
-    '''
+    """
     :param d: (dict) dictionary of sequence names and DNA sequences)
     :return: (dict) dictionary with short sequences removed
-    '''
+    """
     short = 0
     n_d = collections.defaultdict(str)
     bad_d = collections.defaultdict(str)

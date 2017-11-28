@@ -107,11 +107,11 @@ def blastn_seqs(infile, gene_region, outpath):
 
 
 def regex_contam(name, query_sequence):
-    '''
+    """
     :param query_sequence: (str) the sequence to blast
     :param hxb2_region: (str_ hxb2 sequence for the relevant gene region
     :return: (bool) True or False depending on whether sequence is hiv or not
-    '''
+    """
 
     # gag1
     # hxb2_seq = "GCGAAAAATTAGATAATTGGGAAAGAATTAAGTTAAGGCCAGGAGGAAAGAAACACTATATGCTAAAAC"

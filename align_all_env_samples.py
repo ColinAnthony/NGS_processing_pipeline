@@ -16,10 +16,10 @@ __author__ = 'Colin Anthony'
 
 
 def translate_dna(sequence):
-    '''
+    """
     :param sequence: (str) a DNA sequence string
     :return: (str) a protein string from the forward reading frame 1
-    '''
+    """
     codontable = {'ATA': 'I', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
                   'ACA': 'T', 'ACC': 'T', 'ACG': 'T', 'ACT': 'T',
                   'AAC': 'N', 'AAT': 'N', 'AAA': 'K', 'AAG': 'K',
@@ -49,10 +49,11 @@ def translate_dna(sequence):
 
 
 def fasta_to_dct_rev(fn):
-    '''Converts a fasta file to a dictionary
+    """
+    Converts a fasta file to a dictionary
     :param fn: a fasta file
     :return: a dictionary key = sequence, value = list of sequence names with that sequence
-    '''
+    """
 
     dct = collections.defaultdict(list)
     for seq_record in SeqIO.parse(open(fn), "fasta"):
@@ -63,10 +64,11 @@ def fasta_to_dct_rev(fn):
 
 
 def fasta_to_dct(fn):
-    '''Converts a fasta file to a dictionary
+    """
+    Converts a fasta file to a dictionary
     :param fn: a fasta file
     :return: a dictionary
-    '''
+    """
 
     dct = collections.defaultdict(list)
     for seq_record in SeqIO.parse(open(fn), "fasta"):
@@ -75,11 +77,11 @@ def fasta_to_dct(fn):
 
 
 def slice_n_dice(seq, loop_list):
-    '''
+    """
     :param seq: (str) DNA sequence
     :param loop_list (list) list of V-loops to strip out of sequence
     :return: (str) sliced conserved regions of sequence, sliced v-loop region
-    '''
+    """
     start_v1 = r'(TTAAA[CT]TG[CT]ACCAAT){s<6}'
     end_v1 = r'(AATTGC[TA]CTTTCAAT[AG][TC]AAC[TC]ACA){s<6}'
     start_v2 = r'(TATA[AG]A[CT][CT]TGAT[AG]TA){s<6}'
@@ -213,13 +215,13 @@ def slice_n_dice(seq, loop_list):
 
 
 def align_cons_dna(tmp_file, loop_s, nam, slave_dict):
-    '''
+    """
     :param tmp_file: (srt) path to temp folder
     :param loop_s: (list) list of the variable loops to extract
     :param nam: (str) suffix for temp outfile name
     :param slave_dict (dict) dictionary containing the conserved regions f the sequence
     :return: (dict) dictionary of aligned sequences for all conserved regions
-    '''
+    """
     # write each conserved region to a separate file
     for j in range(len(loop_s) + 1):
         for index, seq_list in slave_dict.items():
@@ -247,13 +249,13 @@ def align_cons_dna(tmp_file, loop_s, nam, slave_dict):
 
 
 def align_cons_prt(tmp_file, loop_s, nam, slave_dict, aligner):
-    '''
+    """
     :param tmp_file: (srt) path to temp folder
     :param loop_s: (list) list of the variable loops to extract
     :param nam: (str) suffix for temp outfile name
     :param slave_dict (dict) dictionary containing the conserved regions f the sequence
     :return: (dict) dictionary of aligned sequences for all conserved regions
-    '''
+    """
     for j in range(len(loop_s) + 1):
         with open(tmp_file + '_' + str(j) + '.fas', 'w') as handle1:
             handle1.write('')
@@ -303,10 +305,10 @@ def align_cons_prt(tmp_file, loop_s, nam, slave_dict, aligner):
 
 
 def v_loop_handler(loop_dict):
-    '''
+    """
     :param loop_dict: (dict) dictionary of extracted loop sequences
     :return: (dict) dictionary of extracted loop sequences padded with gaps in the middle
-    '''
+    """
     length_d = collections.defaultdict(dict)
     max_l = collections.defaultdict(int)
     s = collections.OrderedDict(sorted(loop_dict.items()))
@@ -328,11 +330,11 @@ def v_loop_handler(loop_dict):
 
 
 def v_loop_aligner(loop_dict, tmppath, aligner):
-    '''
+    """
         :param loop_dict: (dict) dictionary of extracted loop sequences
         :param tmppath: (str) path to temp folder including temp outfile prefix
         :return: (dict) dictionary of aligned loop sequences
-    '''
+    """
     ref_dict = collections.defaultdict(list)
     trans_dict = collections.defaultdict(list)
     num_loops = 0
@@ -389,11 +391,11 @@ def v_loop_aligner(loop_dict, tmppath, aligner):
 
 
 def patch_and_repair(aln_seqs, loop_dict):
-    '''
+    """
     :param aln_seqs: (dict) dictionary of aligned conserverved regions
     :param loop_dict: (dict) dictionary of extracted loop sequences
     :return: (dict) dictionary of lookup indexes and merged conserved and variable regions
-    '''
+    """
     master_universe = collections.defaultdict(list)
     for cons_region, al_dict in aln_seqs.items():
         for s_idx, sequence in al_dict.items():
@@ -414,14 +416,14 @@ def patch_and_repair(aln_seqs, loop_dict):
 
 
 def writeout_and_sanity_check(master_universe, finalout, master_ref_dict, l_bad, inf):
-    '''
+    """
     :param master_universe: (dict) dictionary containing the index and final merged sequence
     :param finalout: (dict) dictionary containing the index and final merged sequence
     :param master_ref_dict: (dict) dictionary containing the index and list of sequence names
     :param l_bad: (int) number of sequences where v-loop not found
     :param inf: (str) path and name of original infule
     :return: (None) writes outfile and prints input/output sequence check
-    '''
+    """
 
     final_out_fn = finalout + "_align.fasta"
     with open(final_out_fn, 'w') as handle:
