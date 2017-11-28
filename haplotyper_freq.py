@@ -5,7 +5,7 @@ import os
 import collections
 import argparse
 from Bio import SeqIO
-#
+
 
 __author__ = 'colin'
 
@@ -47,6 +47,9 @@ def hapl_collapse(fastafile, seq_name, outfile):
 def main(infile, outpath):
 
     print("Collapsing to haplotypes on file: \n\t {}".format(infile))
+
+    infile = os.path.abspath(infile)
+    outpath = os.path.abspath(outpath)
 
     # set the outfile name
     name = os.path.split(infile)[-1]

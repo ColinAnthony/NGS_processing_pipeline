@@ -2,7 +2,7 @@
 from __future__ import print_function
 from __future__ import division
 import argparse
-from Bio import SeqIO
+from itertools import groupby
 import os
 import collections
 
@@ -10,15 +10,36 @@ import collections
 __author__ = 'Colin Anthony'
 
 
-def fasta_to_dct(fn):
+def py3_fasta_iter(fasta_name):
     """
-    :param fn: (str)infile name
-    :param frame: (int) reading frame (1, 2 or 3)
-    :return: (dict) dictionary of names and sequences
+    modified from Brent Pedersen: https://www.biostars.org/p/710/#1412
+    given a fasta file. yield tuples of header, sequence
     """
-    dct = {}
-    for seq_record in SeqIO.parse(open(fn), "fasta"):
-        dct[seq_record.description.replace(" ", "_")] = str(seq_record.seq).replace("-", "").upper()
+    fh = open(str(fasta_name), 'r')
+    faiter = (x[1] for x in groupby(fh, lambda line: line[0] == ">"))
+    for header in faiter:
+        # drop the ">"
+        header_str = header.__next__()[1:].strip()
+        # join all sequence lines to one.
+        seq = "".join(s.strip() for s in faiter.__next__())
+        yield (header_str, seq)
+
+
+def fasta_to_dct(file_name):
+    """
+    :param file_name: The fasta formatted file to read from.
+    :return: a dictionary of the contents of the file name given. Dictionary in the format:
+    {sequence_id: sequence_string, id_2: sequence_2, etc.}
+    """
+    dct = collections.defaultdict(str)
+    my_gen = py3_fasta_iter(file_name)
+    for k, v in my_gen:
+        new_key = k.replace(" ", "_")
+        if new_key in dct.keys():
+            print("Duplicate sequence ids found. Exiting")
+            raise KeyError("Duplicate sequence ids found")
+        dct[new_key] = str(v).replace("~", "_")
+
     return dct
 
 
