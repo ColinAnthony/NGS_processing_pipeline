@@ -59,7 +59,7 @@ def main(infile, outpath, field):
             unique_field = name.split("_")[0:field]
             new_name = "_".join(unique_field) + "_sep.fasta"
             out_file_name = os.path.join(outpath, new_name)
-            d[out_file_name].append(name, str(seq))
+            d[out_file_name].append((name, str(seq)))
 
     # write the grouped sequences to their outfiles
     for out_file, seq_objs in d.items():
