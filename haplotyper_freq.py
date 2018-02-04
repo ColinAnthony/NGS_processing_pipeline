@@ -4,10 +4,43 @@ from __future__ import division
 import os
 import collections
 import argparse
-from Bio import SeqIO
+from itertools import groupby
 
 
 __author__ = 'colin'
+
+
+def py3_fasta_iter(fasta_name):
+    """
+    modified from Brent Pedersen: https://www.biostars.org/p/710/#1412
+    given a fasta file. yield tuples of header, sequence
+    """
+    fh = open(str(fasta_name), 'r')
+    faiter = (x[1] for x in groupby(fh, lambda line: line[0] == ">"))
+    for header in faiter:
+        # drop the ">"
+        header_str = header.__next__()[1:].strip()
+        # join all sequence lines to one.
+        seq = "".join(s.strip() for s in faiter.__next__())
+        yield (header_str, seq)
+
+
+def fasta_to_dct(file_name):
+    """
+    :param file_name: The fasta formatted file to read from.
+    :return: a dictionary of the contents of the file name given. Dictionary in the format:
+    {sequence_id: sequence_string, id_2: sequence_2, etc.}
+    """
+    dct = collections.defaultdict(str)
+    my_gen = py3_fasta_iter(file_name)
+    for k, v in my_gen:
+        new_key = k.replace(" ", "_")
+        if new_key in dct.keys():
+            print("Duplicate sequence ids found. Exiting")
+            raise KeyError("Duplicate sequence ids found")
+        dct[new_key] = str(v).replace("~", "_")
+
+    return dct
 
 
 def hapl_collapse(fastafile, seq_name, outfile):
@@ -21,9 +54,12 @@ def hapl_collapse(fastafile, seq_name, outfile):
 
     # import seqs to dict and get count of each unique sequence
     total = 0
+
+    all_seqs_d = fasta_to_dct(fastafile)
+
     dct = collections.defaultdict(int)
-    for seq_record in SeqIO.parse(open(fastafile), "fasta"):
-        dct[str(seq_record.seq).replace("~", "-").upper()] += 1
+    for name, seq in all_seqs_d.items():
+        dct[str(seq).replace("~", "-").upper()] += 1
         total += 1
 
     # list of sequences, sorted by count, max to min
