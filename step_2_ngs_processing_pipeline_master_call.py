@@ -54,16 +54,18 @@ def rename_sequences(raw_files_search):
 
     print("renaming raw files")
     for inf_R1 in raw_files_search:
-        print(inf_R1)
+        print(inf_R1) # /data/hvtn503/breakthrough/GAG_2/0raw_temp/159400956_1110_013wpi_GAG_2_NN_S104_L001_R1_001.fastq
         inf_R2 = inf_R1.replace("R1_001.fastq", "R2_001.fastq")
         path = os.path.split(inf_R1)[0]
-        inf_R1_name = os.path.split(inf_R1)[-1]
+        inf_R1_name = os.path.split(inf_R1)[-1]  # 159400956_1110_013wpi_GAG_2_NN_S104_L001_R1_001.fastq
         inf_R2_name = os.path.split(inf_R2)[-1]
 
-        outf_R1 = inf_R1_name.replace("-", "_")
+        outf_R1 = inf_R1_name.replace("-", "_")  # 159400956_1110_013wpi_GAG_2_NN_S104_L001_R1_001.fastq
         outf_R2 = inf_R2_name.replace("-", "_")
-        outf_R1_rename = re.sub("S[0-9][0-9]_L[0-9][0-9][0-9]_R1_[0-9][0-9][0-9].fastq", "R1.fastq", outf_R1)
-        outf_R1_rename = os.path.join(path, outf_R1_rename)
+        outf_R1_rename = re.sub("S[0-9]+_L[0-9][0-9][0-9]_R1_[0-9][0-9][0-9].fastq", "R1.fastq", outf_R1)
+        outf_R1_rename_with_path = os.path.join(path, outf_R1_rename)
+        # /data/hvtn503/breakthrough/GAG_2/0raw_temp/159400956_1110_013wpi_GAG_2_NN_S104_L001_R1_001.fastq
+
 
         if outf_R1_rename == outf_R1:
             # check if they have already been renamed
@@ -74,10 +76,11 @@ def rename_sequences(raw_files_search):
                 print("Unable to rename R1 file {0}\ncheck the file renaming regex".format(inf_R1))
                 sys.exit()
         else:
-            os.rename(inf_R1, outf_R1_rename)
+            os.rename(inf_R1, outf_R1_rename_with_path)
         print(outf_R1_rename)
-        outf_R2_rename = re.sub("S[0-9][0-9]_L[0-9][0-9][0-9]_R2_[0-9][0-9][0-9].fastq", "R2.fastq", outf_R2)
-        outf_R2_rename = os.path.join(path, outf_R2_rename)
+
+        outf_R2_rename = re.sub("S[0-9]+_L[0-9][0-9][0-9]_R2_[0-9][0-9][0-9].fastq", "R2.fastq", outf_R2)
+        outf_R2_rename_with_path = os.path.join(path, outf_R2_rename)
         if outf_R2_rename == outf_R2:
             if outf_R2.split("_")[-1] == "R2.fastq":
                 print("file was already in correct format?")
@@ -86,7 +89,7 @@ def rename_sequences(raw_files_search):
                 print("Unable to rename R2 file {0}\ncheck the file renaming regex".format(inf_R2))
                 sys.exit()
         else:
-            os.rename(inf_R2, outf_R2_rename)
+            os.rename(inf_R2, outf_R2_rename_with_path)
 
 
 def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_primer, counter, logfile):
