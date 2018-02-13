@@ -389,10 +389,12 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
             while condition:
                 response = input("remove files from 0new_data folder? (yes or no)")
                 if response.lower() == "yes" or response.lower() == "y":
+                    condition = False
                     new_files_to_remove = os.path.join(new_data, "*")
                     for file in glob(new_files_to_remove):
                         os.unlink(file)
                 elif response.lower() == "no" or response.lower() == "n":
+                    condition = False
                     print("not deleting files")
                 else:
                     print("response not valid, please enter either: 'yes', or 'y' to delete or 'no', or 'n' to keep")
