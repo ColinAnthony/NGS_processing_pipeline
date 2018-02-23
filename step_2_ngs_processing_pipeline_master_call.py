@@ -209,7 +209,7 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
             flder = os.path.join(path, folder)
             if os.path.isdir(flder):
                 print("Deleting exisiting folders")
-                os.rmdir(flder)
+                os.remove(flder)
             os.makedirs(flder, exist_ok=True)
 
     new_data = os.path.join(path, "0new_data")
