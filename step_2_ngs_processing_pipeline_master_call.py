@@ -201,8 +201,12 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
     if run_step <= 4:
         # make temp dirs
         print("making temp folders")
+
         for folder in folders_to_make:
             flder = os.path.join(path, folder)
+            if os.path.isdir(flder):
+                print("Deleting exisiting folders")
+                os.unlink(flder)
             os.makedirs(flder, exist_ok=True)
 
     new_data = os.path.join(path, "0new_data")

@@ -19,14 +19,15 @@ def get_primer_lens_score(primer):
     bases = ['A', 'C', 'G', 'T']
 
     for base in str(primer):
-        if base not in bases:
+        if base == 'N':
             count_Ns += 1
+        elif base in bases:
+            non_Ns += 1
         else:
             non_Ns += 1
 
     if count_Ns == 0:
-        print("could not find primer ID in primer")
-        sys.exit()
+        sys.exit("could not find primer ID in primer")
     total = len(primer)
 
     if non_Ns < 0:
@@ -73,7 +74,7 @@ def run_motifbinner(logfile, fwd_read, rev_read, outpath, fwd_primer, fwd_primer
     if counter == 0:
         with open(logfile, 'a') as handle:
             handle.write("MotifBinner2 commands:\n{0}\n".format(cmd))
-
+    print(cmd)
     subprocess.call(cmd, shell=True)
 
 
