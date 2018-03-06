@@ -98,6 +98,17 @@ def degen_remove(d):
     bad_d = collections.defaultdict(str)
     for name, seq in d.items():
         found = False
+        start_N_replace = True
+        seq = list(seq)
+        for i, nucl in enumerate(seq):
+            if i < 4 and nucl == 'N' and start_N_replace:
+                seq[i] = ''
+                if seq[i + 1] == 'N':
+                    start_N_replace = True
+                else:
+                    start_N_replace = False
+        seq = "".join(seq)
+
         for base in badseq:
             if base in seq and found is False:
                 bad_d[name] = seq
@@ -159,11 +170,13 @@ def main(infile, outp, frame, stops, length, logfile):
     inseq_no = len(d)
 
     # remove sequences with degenerate bases
+    print('removing degenerates')
     cln1_d, bad_d1, degen_no = degen_remove(d)
 
     # remove sequences with stop codons
     stops_no = 0
     if stops:
+        print('removing stops')
         if frame is None:
             print("Warning, no reading frame was specified, using reading frame 1 as default")
             frame = 0
@@ -176,6 +189,7 @@ def main(infile, outp, frame, stops, length, logfile):
 
     # remove short sequences
     if length is None:
+        print('removing short sequences')
         cln3_d = cln2_d
         bad_d3 = {}
         short_no = 0
