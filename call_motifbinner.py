@@ -38,7 +38,11 @@ def get_primer_lens_score(primer):
 
 
 def run_motifbinner(logfile, fwd_read, rev_read, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
-                    cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix, counter):
+                    cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix, counter, nonoverlap):
+    if not nonoverlap:
+        overlap_option = "--overlapping"
+    else:
+        overlap_option = "--non_overlapping"
 
     fwd_pid = 'NULL'
     rev_pid_fragment = 2
@@ -57,18 +61,19 @@ def run_motifbinner(logfile, fwd_read, rev_read, outpath, fwd_primer, fwd_primer
           '--ncpu=3 ' \
           '--min_read_length=290 '\
           '--merged_read_length=240 '\
-          '--overlapping '.format(fwd_read,
-                                  fwd_primer,
-                                  fwd_primer_lens,
-                                  fwd_primer_score,
-                                  rev_read,
-                                  cDNA_primer,
-                                  cDNA_primer_lens,
-                                  cDNA_primer_score,
-                                  fwd_pid,
-                                  rev_pid_fragment,
-                                  outpath,
-                                  name_prefix)
+          '--{12}'.format(fwd_read,
+                          fwd_primer,
+                          fwd_primer_lens,
+                          fwd_primer_score,
+                          rev_read,
+                          cDNA_primer,
+                          cDNA_primer_lens,
+                          cDNA_primer_score,
+                          fwd_pid,
+                          rev_pid_fragment,
+                          outpath,
+                          name_prefix,
+                          overlap_option)
 
     # only write to log file if this is the first iteration
     if counter == 0:
@@ -78,7 +83,7 @@ def run_motifbinner(logfile, fwd_read, rev_read, outpath, fwd_primer, fwd_primer
     subprocess.call(cmd, shell=True)
 
 
-def main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, logfile):
+def main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, nonoverlap, logfile):
 
     print("calling MotifBinner")
     fwd_primer = fwd_primer.upper()
@@ -90,7 +95,7 @@ def main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, l
 
     # run motifbinner call function
     run_motifbinner(logfile, read1, read2, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
-                cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix, counter)
+                cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix, nonoverlap, counter)
 
 
 if __name__ == "__main__":
@@ -113,6 +118,8 @@ if __name__ == "__main__":
                         help='Counter to keep track of logging commands to the log file', required=True)
     parser.add_argument('-l', '--logfile', default=argparse.SUPPRESS, type=str,
                         help='The path and name of the log file', required=True)
+    parser.add_argument('-v', '--nonoverlap', default=False, action='store_true',
+                        help="Use if reads don't)", required=False)
 
     args = parser.parse_args()
     read1 = args.read1
@@ -122,6 +129,7 @@ if __name__ == "__main__":
     cDNA_primer = args.cDNA_primer
     name_prefix = args.name_prefix
     counter = args.counter
+    nonoverlap = args.nonoverlap
     logfile = args.logfile
 
-    main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, logfile)
+    main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, nonoverlap, logfile)

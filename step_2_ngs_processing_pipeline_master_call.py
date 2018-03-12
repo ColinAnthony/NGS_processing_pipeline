@@ -92,7 +92,7 @@ def rename_sequences(raw_files_search):
             os.rename(inf_R2, outf_R2_rename_with_path)
 
 
-def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_primer, counter, logfile):
+def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_primer, nonoverlap, counter, logfile):
 
     if type(raw_files) is not list:
         raise TypeError('Expected list of raw files, got: ', raw_files)
@@ -102,7 +102,7 @@ def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_prim
         read2 = file.replace("R1.fastq", "R2.fastq")
         name_prefix = os.path.split(file)[-1].replace("_R1.fastq", "")
 
-        cmd1 = 'python3 {0} -r1 {1} -r2 {2} -o {3} -f {4} -r {5} -n {6} -c {7} -l {8}'.format(motifbinner,
+        cmd1 = 'python3 {0} -r1 {1} -r2 {2} -o {3} -f {4} -r {5} -n {6} -c {7} -l {8} -v '.format(motifbinner,
                                                                                               read1,
                                                                                               read2,
                                                                                               cons_outpath,
@@ -185,9 +185,10 @@ def call_align(envelope, script_folder, to_align, aln_path, fname):
     subprocess.call(cmd5, shell=True)
 
 
-def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope, run_step,
+def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, stops, length, envelope, run_step,
          run_only):
-
+    get_script_path = os.path.realpath(__file__)
+    script_folder = os.path.split(get_script_path)[0]
     path = os.path.abspath(path)
     script_folder = os.path.abspath(script_folder)
 
@@ -256,7 +257,8 @@ def main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame,
         cons_outpath = os.path.join(path, '1consensus_temp', 'binned')
         counter = 0
         try:
-            call_motifbinner(rename_in, motifbinner, cons_outpath, fwd_primer, cDNA_primer, counter, logfile)
+            call_motifbinner(rename_in, motifbinner, cons_outpath, fwd_primer, cDNA_primer, nonoverlap, counter,
+                             logfile)
             run_step += 1
         except Exception as e:
             print(e)
@@ -485,8 +487,6 @@ if __name__ == "__main__":
     parser.add_argument('-g', '--gene_region', default=argparse.SUPPRESS, type=str,
                         help='the genomic region being sequenced, '
                              'valid options: GAG_1/GAG_2/ENV_C1C2/POL_1/NEF_1 etc..', required=True)
-    parser.add_argument('-sf', '--script_folder', default=argparse.SUPPRESS, type=str,
-                        help='the path to the folder containing the pipeline scripts', required=True)
     parser.add_argument('-f', '--fwd_primer', default=argparse.SUPPRESS, type=str,
                         help='The fwd primer for these samples (eg: NNNNGGAAATATGGAAAGGAAGGAC)', required=False)
     parser.add_argument('-r', '--cDNA_primer', default=argparse.SUPPRESS, type=str,
@@ -500,6 +500,8 @@ if __name__ == "__main__":
     parser.add_argument('-e', '--envelope', type=str, default=None, nargs="+",
                         help='If your sequences are of HIV envelope, which V-loops are in the sequence?'
                              '(eg: V1 V2) (options include: V1, V2 , V3, V4, V5)', required=False)
+    parser.add_argument('-v', '--nonoverlap', default=False, action='store_true',
+                        help="Use if reads don't overlap)", required=False)
     parser.add_argument('-rs', '--run_step', type=int, default=1,
                         help='rerun the pipeline from a given step:\n'
                              '1 = step 1: rename raw files;\n'
@@ -514,10 +516,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     path = args.path
     name = args.name
-    script_folder = args.script_folder
     gene_region = args.gene_region
     fwd_primer = args.fwd_primer
     cDNA_primer = args.cDNA_primer
+    nonoverlap = args.nonoverlap
     frame = args.frame
     stops = args.stops
     length = args.length
@@ -525,5 +527,5 @@ if __name__ == "__main__":
     run_step = args.run_step
     run_only = args.run_only
 
-    main(path, name, script_folder, gene_region, fwd_primer, cDNA_primer, frame, stops, length, envelope, run_step,
+    main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, stops, length, envelope, run_step,
          run_only)
