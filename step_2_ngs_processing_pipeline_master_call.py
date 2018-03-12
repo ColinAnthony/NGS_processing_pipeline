@@ -97,12 +97,17 @@ def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_prim
     if type(raw_files) is not list:
         raise TypeError('Expected list of raw files, got: ', raw_files)
 
+    if nonoverlap:
+        overlap_flag = "-v"
+    else:
+        overlap_flag = ""
+
     for file in raw_files:
         read1 = file
         read2 = file.replace("R1.fastq", "R2.fastq")
         name_prefix = os.path.split(file)[-1].replace("_R1.fastq", "")
 
-        cmd1 = 'python3 {0} -r1 {1} -r2 {2} -o {3} -f {4} -r {5} -n {6} -c {7} -l {8} -v '.format(motifbinner,
+        cmd1 = 'python3 {0} -r1 {1} -r2 {2} -o {3} -f {4} -r {5} -n {6} -c {7} -l {8} {9} '.format(motifbinner,
                                                                                               read1,
                                                                                               read2,
                                                                                               cons_outpath,
@@ -110,7 +115,8 @@ def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_prim
                                                                                               cDNA_primer,
                                                                                               name_prefix,
                                                                                               counter,
-                                                                                              logfile)
+                                                                                              logfile,
+                                                                                              overlap_flag)
 
         try:
             subprocess.call(cmd1, shell=True)
