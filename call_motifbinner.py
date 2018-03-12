@@ -40,9 +40,9 @@ def get_primer_lens_score(primer):
 def run_motifbinner(logfile, fwd_read, rev_read, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
                     cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix, counter, nonoverlap):
     if not nonoverlap:
-        overlap_option = "--overlapping"
+        overlap_option = "overlapping"
     else:
-        overlap_option = "--non_overlapping"
+        overlap_option = "non_overlapping"
 
     fwd_pid = 'NULL'
     rev_pid_fragment = 2
