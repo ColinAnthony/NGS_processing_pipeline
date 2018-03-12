@@ -83,7 +83,7 @@ def run_motifbinner(logfile, fwd_read, rev_read, outpath, fwd_primer, fwd_primer
     subprocess.call(cmd, shell=True)
 
 
-def main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, nonoverlap, logfile):
+def main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, non_overlap, logfile):
 
     print("calling MotifBinner")
     fwd_primer = fwd_primer.upper()
@@ -95,7 +95,7 @@ def main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, n
 
     # run motifbinner call function
     run_motifbinner(logfile, read1, read2, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
-                cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix, nonoverlap, counter)
+                cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix, non_overlap, counter)
 
 
 if __name__ == "__main__":
@@ -118,7 +118,7 @@ if __name__ == "__main__":
                         help='Counter to keep track of logging commands to the log file', required=True)
     parser.add_argument('-l', '--logfile', default=argparse.SUPPRESS, type=str,
                         help='The path and name of the log file', required=True)
-    parser.add_argument('-v', '--nonoverlap', default=False, action='store_true',
+    parser.add_argument('-v', '--non_overlap', default=False, action='store_true',
                         help="Use if reads don't)", required=False)
 
     args = parser.parse_args()
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     cDNA_primer = args.cDNA_primer
     name_prefix = args.name_prefix
     counter = args.counter
-    nonoverlap = args.nonoverlap
+    non_overlap = args.non_overlap
     logfile = args.logfile
 
-    main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, nonoverlap, logfile)
+    main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, non_overlap, logfile)
