@@ -273,7 +273,7 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
 
         # check if the consensus files exist
         nested_consensuses_path = os.path.join(path,
-                                               '1consensus_temp/binned/*/*_buildConsensus/*_kept_buildConsensus.fastq')
+                                               '1consensus_temp/binned/*/*_buildConsensus/*_buildConsensus.fastq')
         nested_consesnsuses = glob(nested_consensuses_path)
         if not nested_consesnsuses:
             print("No consensus sequences were found\n"
