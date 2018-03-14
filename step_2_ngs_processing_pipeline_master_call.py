@@ -193,9 +193,6 @@ def call_align(envelope, script_folder, to_align, aln_path, fname):
 
 def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, stops, length, envelope, run_step,
          run_only):
-    #Todo: there is probably a bug when specifying -rs, where -rs is not 1 or 2
-    #Todo: need to check whether the data from 0new_data gets to the correct temp_folder
-
     get_script_path = os.path.realpath(__file__)
     script_folder = os.path.split(get_script_path)[0]
     path = os.path.abspath(path)
@@ -291,7 +288,8 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
         consensus_path = os.path.join(path, '1consensus_temp')
         for cons_file in nested_consesnsuses:
             old_path, old_name = os.path.split(cons_file)
-            new_name = old_name.replace("_kept_buildConsensus", "")
+            new_name1 = old_name.replace("_buildConsensus", "")
+            new_name = new_name1.replace("_kept", "")
             new_file = os.path.join(consensus_path, new_name)
             copyfile(cons_file, new_file)
 
@@ -490,7 +488,7 @@ if __name__ == "__main__":
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('-p', '--path', default=argparse.SUPPRESS, type=str,
-                        help='The path to the gene region subfolder (GAG_1/ or env_C1C2/ or POL_1/...)', required=True)
+                        help='The path to the gene region subfolder (GAG_1/ or ENV_C1C2/ or POL_1/...)', required=True)
     parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=str,
                         help='the prefix name of your outfile', required=True)
     parser.add_argument('-g', '--gene_region', default=argparse.SUPPRESS, type=str,
@@ -514,7 +512,7 @@ if __name__ == "__main__":
     parser.add_argument('-rs', '--run_step', type=int, default=1,
                         help='rerun the pipeline from a given step:\n'
                              '1 = step 1: rename raw files;\n'
-                             '2 = step 2: run binner;\n'
+                             '2 = step 2: run MotifBinner2;\n'
                              '3 = step 3: clean consensus sequences;\n'
                              '4 = step 4: remove contam sequences;\n'
                              '5 = step 5: align the sequences;\n'
