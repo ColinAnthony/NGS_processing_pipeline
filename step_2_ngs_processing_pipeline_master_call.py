@@ -501,8 +501,14 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
         print("moving concatenated file to 4aligned folder")
         aln_path = os.path.join(path, '4aligned')
         move_file = os.path.join(aln_path, "*_all.fasta")
-        copyfile(all_cleaned_outname, move_file)
-        os.unlink(all_cleaned_outname)
+        if nonoverlap:
+            copyfile(all_cleaned_outname_fwd, move_file)
+            os.unlink(all_cleaned_outname_fwd)
+            copyfile(all_cleaned_outname_rev, move_file)
+            os.unlink(all_cleaned_outname_rev)
+        else:
+            copyfile(all_cleaned_outname, move_file)
+            os.unlink(all_cleaned_outname)
 
         # call alignment script
         print("Aligning the sequences")
