@@ -99,7 +99,7 @@ def degen_remove(d):
     for name, seq in d.items():
         found = False
         start_N_replace = True
-        seq = list(seq)
+        seq = list(seq.upper())
         for i, nucl in enumerate(seq):
             if i < 4 and nucl == 'N' and start_N_replace:
                 seq[i] = ''
@@ -177,11 +177,8 @@ def main(infile, outp, frame, stops, length, logfile):
     stops_no = 0
     if stops:
         print('removing stops')
-        if frame is None:
-            print("Warning, no reading frame was specified, using reading frame 1 as default")
-            frame = 0
-        else:
-            frame = int(frame) - 1
+        # account for python zero indexing
+        frame = int(frame) - 1
         cln2_d, bad_d2, stops_no = stops_remove(cln1_d, frame)
     else:
         cln2_d = cln1_d
@@ -256,7 +253,7 @@ if __name__ == "__main__":
                         help='The input .fastq file', required=True)
     parser.add_argument('-o', '--outpath', type=str,
                         help='The path to where the output files will be created', required=True)
-    parser.add_argument('-f', '--frame',
+    parser.add_argument('-f', '--frame', default=1,
                         help='The reading frame (1, 2 or 3)', required=False)
     parser.add_argument('-s', '--stops', default=False, action='store_true',
                         help='Remove sequences with stop codons?)', required=False)

@@ -196,7 +196,6 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
     get_script_path = os.path.realpath(__file__)
     script_folder = os.path.split(get_script_path)[0]
     path = os.path.abspath(path)
-    print("path", path)
     script_folder = os.path.abspath(script_folder)
 
     # define logfile filename
@@ -215,14 +214,12 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
 
         for folder in folders_to_make:
             flder = os.path.join(path, folder)
-            print(flder)
             if os.path.isdir(flder):
                 print("Deleting exisiting folders")
                 rmtree(flder)
             os.makedirs(flder, exist_ok=True)
 
     new_data = os.path.join(path, "0new_data")
-    print(new_data)
 
     # Step 1: rename the raw sequences
     if run_step == 1:
@@ -335,7 +332,17 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
                 file_name = os.path.split(file)[-1]
                 move_location = os.path.join(move_folder, file_name)
                 copyfile(file, move_location)
-
+        if nonoverlap:
+            for file in glob(move_folder):
+                print(file)
+                if "_rev.fasta" in file:
+                    print("found")
+                    out = file + ".temp"
+                    cmd_rev_comp = 'seqmagick convert --reverse-complement {0} {1}'.format(file, out)
+                    subprocess.call(cmd_rev_comp, shell=True)
+                    os.unlink(file)
+                    os.rename(out, file)
+                    input("enter")
         print("Removing 'bad' sequences")
         remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
         consensus_search = os.path.join(move_folder, '*.fasta')
