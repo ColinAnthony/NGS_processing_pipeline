@@ -330,10 +330,12 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
                 file_name = os.path.split(file)[-1]
                 move_location = os.path.join(move_folder, file_name)
                 copyfile(file, move_location)
-        print("overlap", nonoverlap)
 
         if nonoverlap:
+            print(move_folder)
+
             for file in glob(move_folder):
+                print(file)
                 if "rev.fasta" in file.split("_"):
                     out = file + ".temp"
                     print(out)
@@ -341,6 +343,7 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
                     subprocess.call(cmd_rev_comp, shell=True)
                     os.unlink(file)
                     os.rename(out, file)
+            input("enter")
         print("Removing 'bad' sequences")
         remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
         consensus_search = os.path.join(move_folder, '*.fasta')
