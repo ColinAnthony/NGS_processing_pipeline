@@ -323,26 +323,24 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
 
     # Step 3: call remove bad sequences
     if run_step == 3:
-        print('path', path)
         move_folder = os.path.join(path, '1consensus_temp')
         if initual_run_step == 3:
             files_to_move = os.path.join(new_data, "*.fasta")
             for file in glob(files_to_move):
-                print(file)
                 file_name = os.path.split(file)[-1]
                 move_location = os.path.join(move_folder, file_name)
                 copyfile(file, move_location)
+        print("overlap", nonoverlap)
+
         if nonoverlap:
             for file in glob(move_folder):
-                print(file)
-                if "_rev.fasta" in file:
-                    print("found")
+                if "rev.fasta" in file.split("_"):
                     out = file + ".temp"
+                    print(out)
                     cmd_rev_comp = 'seqmagick convert --reverse-complement {0} {1}'.format(file, out)
                     subprocess.call(cmd_rev_comp, shell=True)
                     os.unlink(file)
                     os.rename(out, file)
-                    input("enter")
         print("Removing 'bad' sequences")
         remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
         consensus_search = os.path.join(move_folder, '*.fasta')
