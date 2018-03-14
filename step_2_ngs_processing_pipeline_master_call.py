@@ -445,27 +445,62 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
         # cat all cleaned files into one file + the relevant HXB2 sequence
         print("merging all cleaned and contam removed fasta files into one file")
         all_clean_path = os.path.join(path, '3contam_removal')
-        clean_name = name + "_" + gene_region + "_all.fasta"
-        all_cleaned_outname = os.path.join(all_clean_path, clean_name)
         contam_removed_path = os.path.join(path, '3contam_removal')
-        cleaned_files_search = os.path.join(contam_removed_path, '*_good.fasta')
-        cleaned_files = glob(cleaned_files_search)
-        if not cleaned_files:
-            print("No cleaned fasta files were found\n"
-                  "Check that the fasta files still have sequences in them after the removal of bad sequences")
-            sys.exit()
+        if nonoverlap:
+            clean_name_fwd = name + "_" + gene_region + "_fwd_all.fasta"
+            clean_name_rev = name + "_" + gene_region + "_rev_all.fasta"
+            all_cleaned_outname_fwd = os.path.join(all_clean_path, clean_name_fwd)
+            all_cleaned_outname_rev = os.path.join(all_clean_path, clean_name_rev)
 
-        with open(all_cleaned_outname, 'w') as outfile:
-            outfile.write(">{0}\n{1}\n".format(hxb2_gene, hxb2_seq))
-            for fasta_file in cleaned_files:
-                with open(fasta_file) as infile:
-                    for line in infile:
-                        outfile.write(line + "\n")
+            cleaned_files_search_fwd = os.path.join(contam_removed_path, '*fwd_good.fasta')
+            cleaned_files_search_rev = os.path.join(contam_removed_path, '*rev_good.fasta')
+
+            cleaned_files_fwd = glob(cleaned_files_search_fwd)
+            cleaned_files_ref = glob(cleaned_files_search_rev)
+
+            if not cleaned_files_fwd:
+                sys.exit("No cleaned fwd-fasta files were found\n"
+                      "Check that the fasta files still have sequences in them after the removal of bad sequences")
+            if not cleaned_files_ref:
+                sys.exit("No cleaned rev-fasta files were found\n"
+                      "Check that the fasta files still have sequences in them after the removal of bad sequences")
+        else:
+            clean_name = name + "_" + gene_region + "_all.fasta"
+            all_cleaned_outname = os.path.join(all_clean_path, clean_name)
+
+            cleaned_files_search = os.path.join(contam_removed_path, '*_good.fasta')
+            cleaned_files = glob(cleaned_files_search)
+            if not cleaned_files:
+                print("No cleaned fasta files were found\n"
+                      "Check that the fasta files still have sequences in them after the removal of bad sequences")
+                sys.exit()
+
+        if nonoverlap:
+            with open(all_cleaned_outname_fwd, 'w') as outfile:
+                outfile.write(">{0}\n{1}\n".format(hxb2_gene, hxb2_seq))
+                for fasta_file in cleaned_files:
+                    with open(fasta_file) as infile:
+                        for line in infile:
+                            outfile.write(line + "\n")
+
+            with open(all_cleaned_outname_rev, 'w') as outfile:
+                outfile.write(">{0}\n{1}\n".format(hxb2_gene, hxb2_seq))
+                for fasta_file in cleaned_files:
+                    with open(fasta_file) as infile:
+                        for line in infile:
+                            outfile.write(line + "\n")
+        else:
+            with open(all_cleaned_outname, 'w') as outfile:
+                outfile.write(">{0}\n{1}\n".format(hxb2_gene, hxb2_seq))
+                for fasta_file in cleaned_files:
+                    with open(fasta_file) as infile:
+                        for line in infile:
+                            outfile.write(line + "\n")
 
         # move concatenated file to 4aligned
         print("moving concatenated file to 4aligned folder")
         aln_path = os.path.join(path, '4aligned')
-        move_file = os.path.join(aln_path, clean_name)
+        move_file = os.path.join(aln_path, "*_all.fasta")
         copyfile(all_cleaned_outname, move_file)
         os.unlink(all_cleaned_outname)
 
