@@ -336,7 +336,7 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
             search_fwd_rev = os.path.join(new_data, "*rev.fasta")
             for file in glob(search_fwd_rev):
                 print(file)
-                out = file + ".temp"
+                out = file + "_temp.fasta"
                 print(out)
                 cmd_rev_comp = 'seqmagick convert --reverse-complement {0} {1}'.format(file, out)
                 subprocess.call(cmd_rev_comp, shell=True)
