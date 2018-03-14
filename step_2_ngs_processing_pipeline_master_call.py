@@ -478,14 +478,14 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
         if nonoverlap:
             with open(all_cleaned_outname_fwd, 'w') as outfile:
                 outfile.write(">{0}\n{1}\n".format(hxb2_gene, hxb2_seq))
-                for fasta_file in cleaned_files:
+                for fasta_file in cleaned_files_fwd:
                     with open(fasta_file) as infile:
                         for line in infile:
                             outfile.write(line + "\n")
 
             with open(all_cleaned_outname_rev, 'w') as outfile:
                 outfile.write(">{0}\n{1}\n".format(hxb2_gene, hxb2_seq))
-                for fasta_file in cleaned_files:
+                for fasta_file in cleaned_files_ref:
                     with open(fasta_file) as infile:
                         for line in infile:
                             outfile.write(line + "\n")
