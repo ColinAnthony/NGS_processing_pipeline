@@ -80,7 +80,7 @@ def hapl_collapse(fastafile, seq_name, outfile):
             handle.write('>{0}\n{1}\n'.format(n, sequence))
 
 
-def main(infile, outpath):
+def main(infile, outpath, field):
 
     print("Collapsing to haplotypes on file: \n\t {}".format(infile))
 
@@ -94,7 +94,7 @@ def main(infile, outpath):
     infile_name = os.path.split(infile)[-1]
 
     # get prefix for sequence names from infile name
-    seq_name = "_".join(infile_name.split("_")[:4])
+    seq_name = "_".join(infile_name.split("_")[:field])
 
     # run the haplotyping function
     hapl_collapse(infile, seq_name, out)
@@ -107,9 +107,13 @@ if __name__ == "__main__":
                         help='The input fata file')
     parser.add_argument('-o', '--outpath', required=True, type=str,
                         help='path for output.')
+    parser.add_argument('-f', '--field', type=int, default=4, required=False,
+                        help="The field that differentiates your samples/time points (use the last field if multiple."
+                             "(ie: 4 for 'CAP177_2000_004wpi_V3C4_GGGACTCTAGTG_28, or 2 for SVB008_SP_GGTAGTCTAGTG_231")
 
     args = parser.parse_args()
     infile = args.infile
     outpath = args.outpath
+    field = args.field
 
-    main(infile, outpath)
+    main(infile, outpath, field)
