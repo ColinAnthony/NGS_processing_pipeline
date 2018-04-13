@@ -193,10 +193,12 @@ def call_align(envelope, script_folder, to_align, aln_path, fname):
 
 def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, stops, length, envelope, run_step,
          run_only):
+
     get_script_path = os.path.realpath(__file__)
     script_folder = os.path.split(get_script_path)[0]
-    path = os.path.abspath(path)
     script_folder = os.path.abspath(script_folder)
+
+    path = os.path.abspath(path)
 
     # define logfile filename
     logfile = os.path.join(path, (gene_region + "_logfile.txt"))
