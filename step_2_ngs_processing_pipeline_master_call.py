@@ -518,6 +518,12 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
         inpath, fname = os.path.split(to_align)
         fname = fname.replace(".fasta", "_aligned.fasta")
         call_align(envelope, script_folder, to_align, aln_path, fname)
+
+        # translate alignment
+        transl_name = fname.replace("_aligned.fasta", "_aligned_translated.fasta")
+        cmd = "seqmagick convert --sort length-asc --upper --translate dna2protein --line-wrap 0 {0} {1}".format(fname, transl_name)
+        subprocess.call(cmd, shell=True)
+
         run_step += 1
 
         if run_only:
