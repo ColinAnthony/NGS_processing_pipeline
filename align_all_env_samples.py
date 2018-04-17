@@ -420,6 +420,7 @@ def patch_and_repair(aln_seqs, loop_dict):
     :return: (dict) dictionary of lookup indexes and merged conserved and variable regions
     """
     master_universe = collections.defaultdict(list)
+    print(aln_seqs)
     for cons_region, al_dict in aln_seqs.items():
         for s_idx, sequence in al_dict.items():
             master_universe[s_idx].append([cons_region, sequence])
