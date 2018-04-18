@@ -69,10 +69,12 @@ def fasta_to_dct_rev(file_name):
 def prelim_align(sequence, reference, name):
     """
     Pairwise align sequence to reference, to find reading frame and frame-shift in/dels
-    :param sequence: (str) a DNA sequence
-    :return: a pairwise alignment object
+    :param sequence: (str) a query DNA sequence
+    :param reference: (str) a reference DNA sequence (must start in reading frame 1)
+    :param name: the name of the query sequence
+    :return: (str) aligned query sequence, (str) aligned ref sequence, (int) reading frame for query sequence
     """
-    ## biopython pairwise (scoring: match,  miss-match, gap open, gap extend)
+    # # biopython pairwise (scoring: match,  miss-match, gap open, gap extend)
     # alignment = pairwise2.align.localms(sequence, reference, 3, -1, -8, -2)
     # start_end_positions = [(0, alignment[4]), (alignment[3], alignment[4])]
 
@@ -84,8 +86,8 @@ def prelim_align(sequence, reference, name):
     # get the query and ref aligned seqs
     seq_align = str(alignment[0])
     ref_align = str(alignment[1])
-    print(">{0}\n{1}".format(name, seq_align))
-    print(">ref\n{}".format(ref_align))
+    # print(">{0}\n{1}".format(name, seq_align))
+    # print(">ref\n{}".format(ref_align))
 
     # get start position for reference and query
     ref_start = start_end_positions[1][0]
@@ -101,19 +103,19 @@ def prelim_align(sequence, reference, name):
         print(start_end_positions)
         sys.exit("Preliminary alignment issue\nQuery sequence was truncated during alignment\nExiting")
 
-
     return seq_align, ref_align, frame
 
 
 def gap_padding(seq_align, ref_align, frame, sequence, name):
     """
     pads sequence with gaps for indels and to set reading frame to frame 1
-    :param alignment: (skbio object) a pairwise alignment object
-    :param start_end_positions: (tuple) the query and reference start and end positions
-    :param sequence: (str) pre alignment query sequence
-    :return: (str) gap padded query sequence
+    :param seq_align: (str) an aligned query sequence
+    :param ref_align: (str) the corresponding aligned reference sequence
+    :param frame: (int) the reading frame for the query sequence
+    :param sequence: (str) the un-aligned query sequence
+    :param name: (str) the query sequence name
+    :return: (str) a gap-padded query sequence to correct for indels and set reading frame to frame 1
     """
-
     # convert query seq to list to allow mutability
     new_seq = list(sequence)
 
@@ -142,7 +144,7 @@ def gap_padding(seq_align, ref_align, frame, sequence, name):
 
     # convert to string and return
     new_seq = "".join(new_seq)
-    print(">{0}\n{1}".format(name, new_seq))
+    # print(">{0}\n{1}".format(name, new_seq))
     return "".join(new_seq)
 
 
@@ -216,7 +218,6 @@ def main(infile, ref, outpath, name):
         seq_align, ref_align, frame = prelim_align(seq, reference, s_name)
         padded_sequence = gap_padding(seq_align, ref_align, frame, seq, s_name)
         prot_seq = translate_dna(padded_sequence)
-
 
     print("Aligning completed")
 
