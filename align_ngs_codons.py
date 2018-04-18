@@ -8,8 +8,8 @@ import collections
 from itertools import groupby
 import regex
 from skbio.alignment import local_pairwise_align_ssw
-from skbio.alignment import StripedSmithWaterman
 from skbio import DNA
+# from Bio import pairwise2
 
 
 __author__ = 'Colin Anthony'
@@ -66,23 +66,26 @@ def fasta_to_dct_rev(file_name):
     return dct
 
 
-def prelim_align(sequence, reference):
+def prelim_align(sequence, reference, name):
     """
     Pairwise align sequence to reference, to find reading frame and frame-shift in/dels
     :param sequence: (str) a DNA sequence
-    :return: a sequence with gaps to account for frame shift indels and the reading frame
+    :return: a pairwise alignment object
     """
+    ## biopython pairwise (scoring: match,  miss-match, gap open, gap extend)
+    # alignment = pairwise2.align.localms(sequence, reference, 3, -1, -8, -2)
+    # start_end_positions = [(0, alignment[4]), (alignment[3], alignment[4])]
+
     # reference = consensus of subtype C
     alignment, score, start_end_positions = local_pairwise_align_ssw(DNA(sequence), DNA(reference), gap_open_penalty=8,
-                                                                     gap_extend_penalty=2, match_score=2,
-                                                                     mismatch_score=-1, substitution_matrix=None)
+                                                                     gap_extend_penalty=2, match_score=4,
+                                                                     mismatch_score=-1.5, substitution_matrix=None)
 
     # get the query and ref aligned seqs
     seq_align = str(alignment[0])
     ref_align = str(alignment[1])
-
-    # convert query seq to list to allow mutability
-    new_seq = list(sequence)
+    print(">{0}\n{1}".format(name, seq_align))
+    print(">ref\n{}".format(ref_align))
 
     # get start position for reference and query
     ref_start = start_end_positions[1][0]
@@ -93,20 +96,44 @@ def prelim_align(sequence, reference):
 
     # report align start pos if alignment starts after query seq start
     if start_end_positions[0][0] != 0:
-        print("seq    ,    ref")
+        print("  seq    ,    ref")
+        print("start/end, start/end")
         print(start_end_positions)
+        sys.exit("Preliminary alignment issue\nQuery sequence was truncated during alignment\nExiting")
+
+
+    return seq_align, ref_align, frame
+
+
+def gap_padding(seq_align, ref_align, frame, sequence, name):
+    """
+    pads sequence with gaps for indels and to set reading frame to frame 1
+    :param alignment: (skbio object) a pairwise alignment object
+    :param start_end_positions: (tuple) the query and reference start and end positions
+    :param sequence: (str) pre alignment query sequence
+    :return: (str) gap padded query sequence
+    """
+
+    # convert query seq to list to allow mutability
+    new_seq = list(sequence)
 
     # find frame shirt deletions (gap in query)
     for i in range(frame, len(seq_align)):
-        if seq_align[i] == "-":
-            if seq_align[i+1] != "-" and seq_align[i - 1] != "-":
-                new_seq[i] = "-"
+        if seq_align[i] == "-" and i > 2:
+            if seq_align[i + 1] != "-" and seq_align[i - 1] != "-":
+                new_seq.insert(i, "-")
 
     # find frame shirt insertions (gap in reference)
     for i in range(frame, len(ref_align)):
         if ref_align[i] == "-":
             if ref_align[i + 1] != "-" and ref_align[i - 1] != "-":
-                new_seq.insert(i+2, "--")
+                gap_frame = i % 3
+                if gap_frame == 0:
+                    new_seq.insert(i + 1, "--")
+                if gap_frame == 1:
+                    new_seq.insert(i + 3, "--")
+                if gap_frame == 2:
+                    new_seq.insert(i + 2, "--")
 
     # pad query to be in reading frame 1
     if frame != 3:
@@ -115,8 +142,8 @@ def prelim_align(sequence, reference):
 
     # convert to string and return
     new_seq = "".join(new_seq)
-
-    return "".join(new_seq), frame
+    print(">{0}\n{1}".format(name, new_seq))
+    return "".join(new_seq)
 
 
 def translate_dna(sequence):
@@ -124,10 +151,6 @@ def translate_dna(sequence):
     :param sequence: (str) a DNA sequence string
     :return: (str) a protein string from the forward reading frame 1
     """
-
-    # protein_from_dna = sequence.translate()
-
-
     codontable = {'ATA': 'I', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
                   'ACA': 'T', 'ACC': 'T', 'ACG': 'T', 'ACT': 'T',
                   'AAC': 'N', 'AAT': 'N', 'AAA': 'K', 'AAG': 'K',
@@ -147,51 +170,25 @@ def translate_dna(sequence):
                   '---': '-',
                   }
 
-    seq = sequence.upper().replace("-", "")
-
+    seq = sequence.upper()
     prot = []
-    prot_fr_1 = []
-    prot_fr_2 = []
-    prot_fr_3 = []
 
     for n in range(0, len(seq), 3):
         if seq[n:n + 3] in codontable:
             residue = codontable[seq[n:n + 3]]
         else:
             residue = "X"
-        prot_fr_1.append(residue)
 
-    for n in range(1, len(seq), 3):
-        if seq[n:n + 3] in codontable:
-            residue = codontable[seq[n:n + 3]]
-        else:
-            residue = "X"
-        prot_fr_2.append(residue)
+        prot.append(residue)
 
-    for n in range(2, len(seq), 3):
-        if seq[n:n + 3] in codontable:
-            residue = codontable[seq[n:n + 3]]
-        else:
-            residue = "X"
-        prot_fr_3.append(residue)
-
-    # find stop codons
-    if "*" not in prot_fr_1:
-        prot = prot_fr_1
-        return "".join(prot)
-    elif "*" not in prot_fr_2:
-        prot = prot_fr_2
-        return "".join(prot)
-    elif "*" not in prot_fr_3:
-        prot = prot_fr_3
-        return "".join(prot)
+    return "".join(prot)
 
 
 def split_regions(sequence):
     print("")
 
 
-def main(infile, outpath, name):
+def main(infile, ref, outpath, name):
 
     # get absolute paths
     infile = os.path.abspath(infile)
@@ -202,7 +199,7 @@ def main(infile, outpath, name):
 
     # read in fasta file
     in_seqs_d = fasta_to_dct_rev(infile)
-    reference = "ATGAGAGTGAGGGGGATACTGAGGAATTGGCCACAATGGTGGATATGGGGCATCTTAGGCTTTTGGATGTTAATGATTTGTAGTGTGGTGGGAAACTTGTGGGTCACAGTCTATTATGGGGTACCTGTGTGGAAAGAAGCAAAAACTACTCTATTCTGTGCATCAGATGCTAAAGCATATGAGAAAGAAGTGCATAATGTCTGGGCTACACATGCCTGTGTACCCACAGACCCCAACCCACAAGAAATAGTTTTGGAAAATGTAACAGAAAATTTTAACATGTGGAAAAATGACATGGTGGATCAGATGCATGAGGATATAATCAGTTTATGGGATCAAAGCCTAAAGCCATGTGTAAAGTTGACCCCACTCTGTGTCACTTTAAATTGTACAAATGCTACTATTAATAATACTTACTACAATAATAGCATGAATGAAGAAATAAAAAATTGCTCTTTCAATACAACCACAGAAATAAGAGATAAGAAACAGAAAGCGTATGCACTTTTTTATAGACCTGATATAGTACCACTTAATGAGAATAATAGTGAGTATATATTAATAAATTGTAATACCTCAACCATAACACAAGCCTGTCCAAAGGTCACTTTTGACCCAATTCCTATACATTATTGTGCTCCAGCTGGTTATGCGATTCTAAAGTGTAATAATAAGACATTCAATGGGACAGGACCATGCAATAATGTCAGCACAGTACAATGTACACATGGAATTAAGCCAGTGGTATCAACTCAACTACTGTTAAATGGTAGCCTAGCAGAAGAAGAGATAATAATTAGATCTGAAAATCTGACAGACAATGCCAAAACAATAATAGTACATCTTAATGAATCTGTAGAAATTGTGTGTACAAGACCCAACAATAATACAAGAAAAAGTATAAGGATAGGACCAGGACAAACATTCTATGCAACAGGTGACATAATAGGAGACATAAGACAAGCACATTGTAACATTAGTAAAAAAAAATGGAATAAAACTTTAGAAAAGGTAAAGGAAAAATTAAAAGAACACTTCCCTAATAAAACAATAAAATTTGAACCATCCTCAGGAGGGGACCTAGAAATTACAACACATAGCTTTAATTGTAGAGGAGAATTTTTCTATTGCAATACATCAAAACTGTTTAATAATACATACAATAGTACAACAAATACAAATGCAACCATCACACTCCCATGCAGAATAAAACAAATTATAAACATGTGGCAGGAGGTAGGACGAGCAATGTATGCCCCTCCCATTGCAGGAAACATAACATGTAACTCAAATATCACAGGACTACTATTGACACGTGATGGAGGAAAAAATAACACAAATAACACAGAGACATTCAGACCTGGAGGAGGAAATATGAAGGACAATTGGAGAAGTGAATTATATAAATATAAAGTGGTAGAAATTAAGCCATTGGGAATAGCACCCACTAAGGCAAAAAGGAGAGTGGTGGAGAGAGAAAAAAGAGCAGTGGGAATAGGAGCTGTGTTCCTTGGGTTCTTGGGAGCAGCAGGAAGCACTATGGGCGCGGCGTCAATAACGCTGACGGTACAGGCCAGACAATTGTTGTCTGGTATAGTGCAACAGCAAAGCAATTTGCTGAGAGCTATAGAGGCGCAACAGCATATGTTGCAACTCACAGTCTGGGGCATTAAGCAGCTCCAGGCAAGAGTCCTGGCTATAGAAAGATACCTAAAGGATCAACAGCTCCTAGGAATTTGGGGCTGCTCTGGAAAACTCATCTGCACCACTGCTGTGCCTTGGAACTCCAGTTGGAGTAATAAATCTCAAGAAGATATTTGGGATAACATGACCTGGATGCAGTGGGATAGAGAAATTAGTAATTACACAAACACAATATACAGGTTGCTTGAAGAATCGCAAAACCAGCAGGAGAAAAATGAAAAAGATTTATTAGCATTGGACAGTTGGAAAAATCTGTGGAATTGGTTTAACATAACAAATTGGCTGTGGTATATAAAAATATTCATAATGATAGTAGGAGGCTTGATAGGTTTAAGAATAATTTTTGCTGTGCTTTCTATAGTGAATAGAGTTAGGCAGGGATACTCACCTTTGTCGTTTCAGACCCTTACCCCAAACCCGAGGGGACCCGACAGGCTCGGAAGAATCGAAGAAGAAGGTGGAGAGCAAGACAGAGACAGATCCATTCGATTAGTGAGCGGATTCTTAGCACTTGCCTGGGACGATCTGCGGAGCCTGTGCCTCTTCAGCTACCACCAATTGAGAGACTTCATATTGATTGCAGCGAGAGCAGTGGAACTTCTGGGACGCAGCAGTCTCAGGGGACTACAGAGGGGGTGGGAAGCCCTTAAGTATCTGGGAAGTCTTGTGCAGTATTGGGGTCTGGAACTAAAAAAGAGTGCTATTAGTCTGCTTGATACCATAGCAATAGCAGTAGCTGAAGGAACAGATAGGATTATAGAATTAATACAAAGAATTTGTAGAGCTATCCGCAACATACCTAGAAGAATAAGACAGGGCTTTGAAGCAGCTTTGCTATAA"
+    reference = list(fasta_to_dct(ref).values())[0]
 
     # generate seq_code to seq name list lookup dictionary
     first_look_up_d = collections.defaultdict(list)
@@ -212,13 +209,13 @@ def main(infile, outpath, name):
         first_look_up_d[unique_id] = names_list
         first_seq_code_d[seq] = unique_id
 
-    unit_test_d = collections.defaultdict
     # translate sequences
     for seq, code in first_seq_code_d.items():
         s_name = first_look_up_d[code][0]
-        padded_sequence, frame = prelim_align(seq, reference)
-
-        prot_seq = translate_dna(padded_sequence, frame)
+        # print(s_name)
+        seq_align, ref_align, frame = prelim_align(seq, reference, s_name)
+        padded_sequence = gap_padding(seq_align, ref_align, frame, seq, s_name)
+        prot_seq = translate_dna(padded_sequence)
 
 
     print("Aligning completed")
@@ -229,6 +226,8 @@ if __name__ == "__main__":
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i', '--infile', default=argparse.SUPPRESS, type=str,
                         help='The input file', required=True)
+    parser.add_argument('-r', '--ref', default=argparse.SUPPRESS, type=str,
+                        help='The reference sequence file. Must be in reading frame 1', required=True)
     parser.add_argument('-o', '--outpath', default=argparse.SUPPRESS, type=str,
                         help='The path for the output file', required=True)
     parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=str,
@@ -236,7 +235,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     infile = args.infile
+    ref = args.ref
     outpath = args.outpath
     name = args.name
 
-    main(infile, outpath, name)
+    main(infile, ref, outpath, name)
