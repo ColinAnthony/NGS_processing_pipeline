@@ -9,7 +9,9 @@ from itertools import groupby
 from skbio.alignment import local_pairwise_align_ssw
 from skbio import DNA
 from skbio import Protein
+import tempfile
 # from Bio import pairwise2
+
 
 
 __author__ = 'Colin Anthony'
@@ -226,7 +228,7 @@ def posnumcalc(hxb2seq, start):
     return pos_num
 
 
-def find_cons_var_regions(prot_sequence):
+def find_cons_regions(prot_sequence):
     """
     function to identify variable and conserved region of a sequence (envelope)
     :param prot_sequence: (str) a protein query sequence
@@ -367,6 +369,185 @@ def find_cons_var_regions(prot_sequence):
                                  "C3": (408, 463),
                                  "C4": (466, 856),}
 
+    alignment, score, start_end_positions = local_pairwise_align_ssw(Protein(prot_sequence), Protein(hxb2_prot),
+                                                                     gap_open_penalty=8, gap_extend_penalty=2,
+                                                                     match_score=4, mismatch_score=-1.5,
+                                                                     substitution_matrix=blosum80)
+
+    # get the query and ref aligned seqs
+    seq_align = str(alignment[0])
+    ref_align = str(alignment[1])
+    print(">{0}\n{1}".format(name, seq_align))
+    print(">ref\n{}".format(ref_align))
+
+    # get start position for reference and query
+    ref_start = start_end_positions[1][0]
+    seq_start = start_end_positions[0][0]
+    if seq_start > 0:
+        sys.exit("Query sequence was truncated during alignment\nExiting")
+
+    # get hxb2 numbering
+    hxb2_numbering = posnumcalc(ref_align, ref_start)
+    print(hxb2_numbering)
+
+    # extract the cons and var regions to dicts
+    cons_d = collections.defaultdict(str)
+
+    for cons_region, index_tup in hxb2_cons_regions_index_d.items():
+        start = index_tup[0]
+        end = index_tup[1]
+        if start in hxb2_numbering and end in hxb2_numbering:
+            # check that indexing is correct! not trimming off a resi at the end...
+            cons_region_slice = seq_align[start:end]
+            cons_d[cons_region] = cons_region_slice
+        elif start not in hxb2_numbering and end in hxb2_numbering:
+            cons_region_slice = seq_align[:end]
+            cons_d[cons_region] = cons_region_slice
+        elif start in hxb2_numbering and end not in hxb2_numbering:
+            cons_region_slice = seq_align[start:]
+            cons_d[cons_region] = cons_region_slice
+        else:
+            sys.exit("HXB2 coordinates for {0} not found\nHXb2 numbering was {}".format(cons_region, hxb2_numbering))
+
+    return cons_d
+
+
+def find_var_regions(prot_sequence):
+    """
+    function to identify variable and conserved region of a sequence (envelope)
+    :param prot_sequence: (str) a protein query sequence
+    :return: (dict) dict of cons regions, (dict) dict of var regions
+    """
+    hxb2_prot = "MRVKEKYQHLWRWGWRWGTMLLGMLMICSATEKLWVTVYYGVPVWKEATTTLFCASDAKAYDTEVHNVWATHACVPTDPNPQEVVLVNVTENFNMWKNDMVE" \
+                "QMHEDIISLWDQSLKPCVKLTPLCVSLKCTDLKNDTNTNSSSGRMIMEKGEIKNCSFNISTSIRGKVQKEYAFFYKLDIIPIDNDTTSYKLTSCNTSVITQA" \
+                "CPKVSFEPIPIHYCAPAGFAILKCNNKTFNGTGPCTNVSTVQCTHGIRPVVSTQLLLNGSLAEEEVVIRSVNFTDNAKTIIVQLNTSVEINCTRPNNNTRKR" \
+                "IRIQRGPGRAFVTIGKIGNMRQAHCNISRAKWNNTLKQIASKLREQFGNNKTIIFKQSSGGDPEIVTHSFNCGGEFFYCNSTQLFNSTWFNSTWSTEGSNNT" \
+                "EGSDTITLPCRIKQIINMWQKVGKAMYAPPISGQIRCSSNITGLLLTRDGGNSNNESEIFRPGGGDMRDNWRSELYKYKVVKIEPLGVAPTKAKRRVVQREK" \
+                "RAVGIGALFLGFLGAAGSTMGAASMTLTVQARQLLSGIVQQQNNLLRAIEAQQHLLQLTVWGIKQLQARILAVERYLKDQQLLGIWGCSGKLICTTAVPWNA" \
+                "SWSNKSLEQIWNHTTWMEWDREINNYTSLIHSLIEESQNQQEKNEQELLELDKWASLWNWFNITNWLWYIKLFIMIVGGLVGLRIVFAVLSIVNRVRQGYSP" \
+                "LSFQTHLPTPRGPDRPEGIEEEGGERDRDRSIRLVNGSLALIWDDLRSLCLFSYHRLRDLLLIVTRIVELLGRRGWEALKYWWNLLQYWSQELKNSAVSLLN" \
+                "ATAIAVAEGTDRVIEVVQGACRAIRHIPRRIRQGLERILLX"
+
+    blosum62 = {
+        'A': {'A': 4, 'R': -1, 'N': -2, 'D': -2, 'C': 0, 'Q': -1, 'E': -1, 'G': 0, 'H': -2, 'I': -1, 'L': -1, 'K': -1,
+              'M': -1, 'F': -2, 'P': -1, 'S': 1, 'T': 0, 'W': -3, 'Y': -2, 'V': 0, 'B': -2, 'Z': -1, 'X': 0, '*': -4},
+        'R': {'A': -1, 'R': 5, 'N': 0, 'D': -2, 'C': -3, 'Q': 1, 'E': 0, 'G': -2, 'H': 0, 'I': -3, 'L': -2, 'K': 2,
+              'M': -1, 'F': -3, 'P': -2, 'S': -1, 'T': -1, 'W': -3, 'Y': -2, 'V': -3, 'B': -1, 'Z': 0, 'X': -1,
+              '*': -4},
+        'N': {'A': -2, 'R': 0, 'N': 6, 'D': 1, 'C': -3, 'Q': 0, 'E': 0, 'G': 0, 'H': 1, 'I': -3, 'L': -3, 'K': 0,
+              'M': -2, 'F': -3, 'P': -2, 'S': 1, 'T': 0, 'W': -4, 'Y': -2, 'V': -3, 'B': 3, 'Z': 0, 'X': -1, '*': -4},
+        'D': {'A': -2, 'R': -2, 'N': 1, 'D': 6, 'C': -3, 'Q': 0, 'E': 2, 'G': -1, 'H': -1, 'I': -3, 'L': -4, 'K': -1,
+              'M': -3, 'F': -3, 'P': -1, 'S': 0, 'T': -1, 'W': -4, 'Y': -3, 'V': -3, 'B': 4, 'Z': 1, 'X': -1, '*': -4},
+        'C': {'A': 0, 'R': -3, 'N': -3, 'D': -3, 'C': 9, 'Q': -3, 'E': -4, 'G': -3, 'H': -3, 'I': -1, 'L': -1, 'K': -3,
+              'M': -1, 'F': -2, 'P': -3, 'S': -1, 'T': -1, 'W': -2, 'Y': -2, 'V': -1, 'B': -3, 'Z': -3, 'X': -2,
+              '*': -4},
+        'Q': {'A': -1, 'R': 1, 'N': 0, 'D': 0, 'C': -3, 'Q': 5, 'E': 2, 'G': -2, 'H': 0, 'I': -3, 'L': -2, 'K': 1,
+              'M': 0, 'F': -3, 'P': -1, 'S': 0, 'T': -1, 'W': -2, 'Y': -1, 'V': -2, 'B': 0, 'Z': 3, 'X': -1, '*': -4},
+        'E': {'A': -1, 'R': 0, 'N': 0, 'D': 2, 'C': -4, 'Q': 2, 'E': 5, 'G': -2, 'H': 0, 'I': -3, 'L': -3, 'K': 1,
+              'M': -2, 'F': -3, 'P': -1, 'S': 0, 'T': -1, 'W': -3, 'Y': -2, 'V': -2, 'B': 1, 'Z': 4, 'X': -1, '*': -4},
+        'G': {'A': 0, 'R': -2, 'N': 0, 'D': -1, 'C': -3, 'Q': -2, 'E': -2, 'G': 6, 'H': -2, 'I': -4, 'L': -4, 'K': -2,
+              'M': -3, 'F': -3, 'P': -2, 'S': 0, 'T': -2, 'W': -2, 'Y': -3, 'V': -3, 'B': -1, 'Z': -2, 'X': -1,
+              '*': -4},
+        'H': {'A': -2, 'R': 0, 'N': 1, 'D': -1, 'C': -3, 'Q': 0, 'E': 0, 'G': -2, 'H': 8, 'I': -3, 'L': -3, 'K': -1,
+              'M': -2, 'F': -1, 'P': -2, 'S': -1, 'T': -2, 'W': -2, 'Y': 2, 'V': -3, 'B': 0, 'Z': 0, 'X': -1, '*': -4},
+        'I': {'A': -1, 'R': -3, 'N': -3, 'D': -3, 'C': -1, 'Q': -3, 'E': -3, 'G': -4, 'H': -3, 'I': 4, 'L': 2, 'K': -3,
+              'M': 1, 'F': 0, 'P': -3, 'S': -2, 'T': -1, 'W': -3, 'Y': -1, 'V': 3, 'B': -3, 'Z': -3, 'X': -1, '*': -4},
+        'L': {'A': -1, 'R': -2, 'N': -3, 'D': -4, 'C': -1, 'Q': -2, 'E': -3, 'G': -4, 'H': -3, 'I': 2, 'L': 4, 'K': -2,
+              'M': 2, 'F': 0, 'P': -3, 'S': -2, 'T': -1, 'W': -2, 'Y': -1, 'V': 1, 'B': -4, 'Z': -3, 'X': -1, '*': -4},
+        'K': {'A': -1, 'R': 2, 'N': 0, 'D': -1, 'C': -3, 'Q': 1, 'E': 1, 'G': -2, 'H': -1, 'I': -3, 'L': -2, 'K': 5,
+              'M': -1, 'F': -3, 'P': -1, 'S': 0, 'T': -1, 'W': -3, 'Y': -2, 'V': -2, 'B': 0, 'Z': 1, 'X': -1, '*': -4},
+        'M': {'A': -1, 'R': -1, 'N': -2, 'D': -3, 'C': -1, 'Q': 0, 'E': -2, 'G': -3, 'H': -2, 'I': 1, 'L': 2, 'K': -1,
+              'M': 5, 'F': 0, 'P': -2, 'S': -1, 'T': -1, 'W': -1, 'Y': -1, 'V': 1, 'B': -3, 'Z': -1, 'X': -1, '*': -4},
+        'F': {'A': -2, 'R': -3, 'N': -3, 'D': -3, 'C': -2, 'Q': -3, 'E': -3, 'G': -3, 'H': -1, 'I': 0, 'L': 0, 'K': -3,
+              'M': 0, 'F': 6, 'P': -4, 'S': -2, 'T': -2, 'W': 1, 'Y': 3, 'V': -1, 'B': -3, 'Z': -3, 'X': -1, '*': -4},
+        'P': {'A': -1, 'R': -2, 'N': -2, 'D': -1, 'C': -3, 'Q': -1, 'E': -1, 'G': -2, 'H': -2, 'I': -3, 'L': -3,
+              'K': -1, 'M': -2, 'F': -4, 'P': 7, 'S': -1, 'T': -1, 'W': -4, 'Y': -3, 'V': -2, 'B': -2, 'Z': -1, 'X': -2,
+              '*': -4},
+        'S': {'A': 1, 'R': -1, 'N': 1, 'D': 0, 'C': -1, 'Q': 0, 'E': 0, 'G': 0, 'H': -1, 'I': -2, 'L': -2, 'K': 0,
+              'M': -1, 'F': -2, 'P': -1, 'S': 4, 'T': 1, 'W': -3, 'Y': -2, 'V': -2, 'B': 0, 'Z': 0, 'X': 0, '*': -4},
+        'T': {'A': 0, 'R': -1, 'N': 0, 'D': -1, 'C': -1, 'Q': -1, 'E': -1, 'G': -2, 'H': -2, 'I': -1, 'L': -1, 'K': -1,
+              'M': -1, 'F': -2, 'P': -1, 'S': 1, 'T': 5, 'W': -2, 'Y': -2, 'V': 0, 'B': -1, 'Z': -1, 'X': 0, '*': -4},
+        'W': {'A': -3, 'R': -3, 'N': -4, 'D': -4, 'C': -2, 'Q': -2, 'E': -3, 'G': -2, 'H': -2, 'I': -3, 'L': -2,
+              'K': -3, 'M': -1, 'F': 1, 'P': -4, 'S': -3, 'T': -2, 'W': 11, 'Y': 2, 'V': -3, 'B': -4, 'Z': -3, 'X': -2,
+              '*': -4},
+        'Y': {'A': -2, 'R': -2, 'N': -2, 'D': -3, 'C': -2, 'Q': -1, 'E': -2, 'G': -3, 'H': 2, 'I': -1, 'L': -1, 'K': -2,
+              'M': -1, 'F': 3, 'P': -3, 'S': -2, 'T': -2, 'W': 2, 'Y': 7, 'V': -1, 'B': -3, 'Z': -2, 'X': -1, '*': -4},
+        'V': {'A': 0, 'R': -3, 'N': -3, 'D': -3, 'C': -1, 'Q': -2, 'E': -2, 'G': -3, 'H': -3, 'I': 3, 'L': 1, 'K': -2,
+              'M': 1, 'F': -1, 'P': -2, 'S': -2, 'T': 0, 'W': -3, 'Y': -1, 'V': 4, 'B': -3, 'Z': -2, 'X': -1, '*': -4},
+        'B': {'A': -2, 'R': -1, 'N': 3, 'D': 4, 'C': -3, 'Q': 0, 'E': 1, 'G': -1, 'H': 0, 'I': -3, 'L': -4, 'K': 0,
+              'M': -3, 'F': -3, 'P': -2, 'S': 0, 'T': -1, 'W': -4, 'Y': -3, 'V': -3, 'B': 4, 'Z': 1, 'X': -1, '*': -4},
+        'Z': {'A': -1, 'R': 0, 'N': 0, 'D': 1, 'C': -3, 'Q': 3, 'E': 4, 'G': -2, 'H': 0, 'I': -3, 'L': -3, 'K': 1,
+              'M': -1, 'F': -3, 'P': -1, 'S': 0, 'T': -1, 'W': -3, 'Y': -2, 'V': -2, 'B': 1, 'Z': 4, 'X': -1, '*': -4},
+        'X': {'A': 0, 'R': -1, 'N': -1, 'D': -1, 'C': -2, 'Q': -1, 'E': -1, 'G': -1, 'H': -1, 'I': -1, 'L': -1, 'K': -1,
+              'M': -1, 'F': -1, 'P': -2, 'S': 0, 'T': 0, 'W': -2, 'Y': -1, 'V': -1, 'B': -1, 'Z': -1, 'X': -1, '*': -4},
+        '*': {'A': -4, 'R': -4, 'N': -4, 'D': -4, 'C': -4, 'Q': -4, 'E': -4, 'G': -4, 'H': -4, 'I': -4, 'L': -4,
+              'K': -4, 'M': -4, 'F': -4, 'P': -4, 'S': -4, 'T': -4, 'W': -4, 'Y': -4, 'V': -4, 'B': -4, 'Z': -4,
+              'X': -4, '*': 1},
+        '-': {'A': -4, 'R': -4, 'N': -4, 'D': -4, 'C': -4, 'Q': -4, 'E': -4, 'G': -4, 'H': -4, 'I': -4, 'L': -4,
+              'K': -4, 'M': -4, 'F': -4, 'P': -4, 'S': -4, 'T': -4, 'W': -4, 'Y': -4, 'V': -4, 'B': -4, 'Z': -4,
+              'X': -4, '*': 1}
+    }
+
+    blosum80 = {
+        'A': {'A': 5, 'R': -2, 'N': -2, 'D': -2, 'C': -1, 'Q': -1, 'E': -1, 'G': 0, 'H': -2, 'I': -2, 'L': -2, 'K': -1,
+              'M': -1, 'F': -3, 'P': -1, 'S': 1, 'T': 0, 'W': -3, 'Y': -2, 'V': 0, 'B': -2, 'Z': -1, 'X': -1, '*': -6},
+        'R': {'A': -2, 'R': 6, 'N': -1, 'D': -2, 'C': -4, 'Q': 1, 'E': -1, 'G': -3, 'H': 0, 'I': -3, 'L': -3, 'K': 2,
+              'M': -2, 'F': -4, 'P': -2, 'S': -1, 'T': -1, 'W': -4, 'Y': -3, 'V': -3, 'B': -2, 'Z': 0, 'X': -1,
+              '*': -6},
+        'N': {'A': -2, 'R': -1, 'N': 6, 'D': 1, 'C': -3, 'Q': 0, 'E': -1, 'G': -1, 'H': 0, 'I': -4, 'L': -4, 'K': 0,
+              'M': -3, 'F': -4, 'P': -3, 'S': 0, 'T': 0, 'W': -4, 'Y': -3, 'V': -4, 'B': 4, 'Z': 0, 'X': -1, '*': -6},
+        'D': {'A': -2, 'R': -2, 'N': 1, 'D': 6, 'C': -4, 'Q': -1, 'E': 1, 'G': -2, 'H': -2, 'I': -4, 'L': -5, 'K': -1,
+              'M': -4, 'F': -4, 'P': -2, 'S': -1, 'T': -1, 'W': -6, 'Y': -4, 'V': -4, 'B': 4, 'Z': 1, 'X': -1, '*': -6},
+        'C': {'A': -1, 'R': -4, 'N': -3, 'D': -4, 'C': 9, 'Q': -4, 'E': -5, 'G': -4, 'H': -4, 'I': -2, 'L': -2, 'K': -4,
+              'M': -2, 'F': -3, 'P': -4, 'S': -2, 'T': -1, 'W': -3, 'Y': -3, 'V': -1, 'B': -4, 'Z': -4, 'X': -1,
+              '*': -6},
+        'Q': {'A': -1, 'R': 1, 'N': 0, 'D': -1, 'C': -4, 'Q': 6, 'E': 2, 'G': -2, 'H': 1, 'I': -3, 'L': -3, 'K': 1,
+              'M': 0, 'F': -4, 'P': -2, 'S': 0, 'T': -1, 'W': -3, 'Y': -2, 'V': -3, 'B': 0, 'Z': 3, 'X': -1, '*': -6},
+        'E': {'A': -1, 'R': -1, 'N': -1, 'D': 1, 'C': -5, 'Q': 2, 'E': 6, 'G': -3, 'H': 0, 'I': -4, 'L': -4, 'K': 1,
+              'M': -2, 'F': -4, 'P': -2, 'S': 0, 'T': -1, 'W': -4, 'Y': -3, 'V': -3, 'B': 1, 'Z': 4, 'X': -1, '*': -6},
+        'G': {'A': 0, 'R': -3, 'N': -1, 'D': -2, 'C': -4, 'Q': -2, 'E': -3, 'G': 6, 'H': -3, 'I': -5, 'L': -4, 'K': -2,
+              'M': -4, 'F': -4, 'P': -3, 'S': -1, 'T': -2, 'W': -4, 'Y': -4, 'V': -4, 'B': -1, 'Z': -3, 'X': -1,
+              '*': -6},
+        'H': {'A': -2, 'R': 0, 'N': 0, 'D': -2, 'C': -4, 'Q': 1, 'E': 0, 'G': -3, 'H': 8, 'I': -4, 'L': -3, 'K': -1,
+              'M': -2, 'F': -2, 'P': -3, 'S': -1, 'T': -2, 'W': -3, 'Y': 2, 'V': -4, 'B': -1, 'Z': 0, 'X': -1, '*': -6},
+        'I': {'A': -2, 'R': -3, 'N': -4, 'D': -4, 'C': -2, 'Q': -3, 'E': -4, 'G': -5, 'H': -4, 'I': 5, 'L': 1, 'K': -3,
+              'M': 1, 'F': -1, 'P': -4, 'S': -3, 'T': -1, 'W': -3, 'Y': -2, 'V': 3, 'B': -4, 'Z': -4, 'X': -1, '*': -6},
+        'L': {'A': -2, 'R': -3, 'N': -4, 'D': -5, 'C': -2, 'Q': -3, 'E': -4, 'G': -4, 'H': -3, 'I': 1, 'L': 4, 'K': -3,
+              'M': 2, 'F': 0, 'P': -3, 'S': -3, 'T': -2, 'W': -2, 'Y': -2, 'V': 1, 'B': -4, 'Z': -3, 'X': -1, '*': -6},
+        'K': {'A': -1, 'R': 2, 'N': 0, 'D': -1, 'C': -4, 'Q': 1, 'E': 1, 'G': -2, 'H': -1, 'I': -3, 'L': -3, 'K': 5,
+              'M': -2, 'F': -4, 'P': -1, 'S': -1, 'T': -1, 'W': -4, 'Y': -3, 'V': -3, 'B': -1, 'Z': 1, 'X': -1,
+              '*': -6},
+        'M': {'A': -1, 'R': -2, 'N': -3, 'D': -4, 'C': -2, 'Q': 0, 'E': -2, 'G': -4, 'H': -2, 'I': 1, 'L': 2, 'K': -2,
+              'M': 6, 'F': 0, 'P': -3, 'S': -2, 'T': -1, 'W': -2, 'Y': -2, 'V': 1, 'B': -3, 'Z': -2, 'X': -1, '*': -6},
+        'F': {'A': -3, 'R': -4, 'N': -4, 'D': -4, 'C': -3, 'Q': -4, 'E': -4, 'G': -4, 'H': -2, 'I': -1, 'L': 0, 'K': -4,
+              'M': 0, 'F': 6, 'P': -4, 'S': -3, 'T': -2, 'W': 0, 'Y': 3, 'V': -1, 'B': -4, 'Z': -4, 'X': -1, '*': -6},
+        'P': {'A': -1, 'R': -2, 'N': -3, 'D': -2, 'C': -4, 'Q': -2, 'E': -2, 'G': -3, 'H': -3, 'I': -4, 'L': -3,
+              'K': -1, 'M': -3, 'F': -4, 'P': 8, 'S': -1, 'T': -2, 'W': -5, 'Y': -4, 'V': -3, 'B': -2, 'Z': -2, 'X': -1,
+              '*': -6},
+        'S': {'A': 1, 'R': -1, 'N': 0, 'D': -1, 'C': -2, 'Q': 0, 'E': 0, 'G': -1, 'H': -1, 'I': -3, 'L': -3, 'K': -1,
+              'M': -2, 'F': -3, 'P': -1, 'S': 5, 'T': 1, 'W': -4, 'Y': -2, 'V': -2, 'B': 0, 'Z': 0, 'X': -1, '*': -6},
+        'T': {'A': 0, 'R': -1, 'N': 0, 'D': -1, 'C': -1, 'Q': -1, 'E': -1, 'G': -2, 'H': -2, 'I': -1, 'L': -2, 'K': -1,
+              'M': -1, 'F': -2, 'P': -2, 'S': 1, 'T': 5, 'W': -4, 'Y': -2, 'V': 0, 'B': -1, 'Z': -1, 'X': -1, '*': -6},
+        'W': {'A': -3, 'R': -4, 'N': -4, 'D': -6, 'C': -3, 'Q': -3, 'E': -4, 'G': -4, 'H': -3, 'I': -3, 'L': -2,
+              'K': -4, 'M': -2, 'F': 0, 'P': -5, 'S': -4, 'T': -4, 'W': 11, 'Y': 2, 'V': -3, 'B': -5, 'Z': -4, 'X': -1,
+              '*': -6},
+        'Y': {'A': -2, 'R': -3, 'N': -3, 'D': -4, 'C': -3, 'Q': -2, 'E': -3, 'G': -4, 'H': 2, 'I': -2, 'L': -2, 'K': -3,
+              'M': -2, 'F': 3, 'P': -4, 'S': -2, 'T': -2, 'W': 2, 'Y': 7, 'V': -2, 'B': -3, 'Z': -3, 'X': -1, '*': -6},
+        'V': {'A': 0, 'R': -3, 'N': -4, 'D': -4, 'C': -1, 'Q': -3, 'E': -3, 'G': -4, 'H': -4, 'I': 3, 'L': 1, 'K': -3,
+              'M': 1, 'F': -1, 'P': -3, 'S': -2, 'T': 0, 'W': -3, 'Y': -2, 'V': 4, 'B': -4, 'Z': -3, 'X': -1, '*': -6},
+        'B': {'A': -2, 'R': -2, 'N': 4, 'D': 4, 'C': -4, 'Q': 0, 'E': 1, 'G': -1, 'H': -1, 'I': -4, 'L': -4, 'K': -1,
+              'M': -3, 'F': -4, 'P': -2, 'S': 0, 'T': -1, 'W': -5, 'Y': -3, 'V': -4, 'B': 4, 'Z': 0, 'X': -1, '*': -6},
+        'Z': {'A': -1, 'R': 0, 'N': 0, 'D': 1, 'C': -4, 'Q': 3, 'E': 4, 'G': -3, 'H': 0, 'I': -4, 'L': -3, 'K': 1,
+              'M': -2, 'F': -4, 'P': -2, 'S': 0, 'T': -1, 'W': -4, 'Y': -3, 'V': -3, 'B': 0, 'Z': 4, 'X': -1, '*': -6},
+        'X': {'A': -1, 'R': -1, 'N': -1, 'D': -1, 'C': -1, 'Q': -1, 'E': -1, 'G': -1, 'H': -1, 'I': -1, 'L': -1,
+              'K': -1, 'M': -1, 'F': -1, 'P': -1, 'S': -1, 'T': -1, 'W': -1, 'Y': -1, 'V': -1, 'B': -1, 'Z': -1,
+              'X': -1, '*': -6},
+        '*': {'A': -6, 'R': -6, 'N': -6, 'D': -6, 'C': -6, 'Q': -6, 'E': -6, 'G': -6, 'H': -6, 'I': -6, 'L': -6,
+              'K': -6, 'M': -6, 'F': -6, 'P': -6, 'S': -6, 'T': -6, 'W': -6, 'Y': -6, 'V': -6, 'B': -6, 'Z': -6,
+              'X': -6, '*': 1}
+    }
+
+    # index = +1 for 0 based indexing of positions
     hxb2_var_regions_index_d = {"V1": (135, 151),
                                  "V2": (394, 408),
                                  "V3": (464, 466),}
@@ -393,24 +574,7 @@ def find_cons_var_regions(prot_sequence):
     print(hxb2_numbering)
 
     # extract the cons and var regions to dicts
-    cons_d = collections.defaultdict(str)
     var_d = collections.defaultdict(str)
-
-    for cons_region, index_tup in hxb2_cons_regions_index_d.items():
-        start = index_tup[0]
-        end = index_tup[1]
-        if start in hxb2_numbering and end in hxb2_numbering:
-            # check that indexing is correct! not trimming off a resi at the end...
-            cons_region_slice = seq_align[start:end]
-            cons_d[cons_region] = cons_region_slice
-        elif start not in hxb2_numbering and end in hxb2_numbering:
-            cons_region_slice = seq_align[:end]
-            cons_d[cons_region] = cons_region_slice
-        elif start in hxb2_numbering and end not in hxb2_numbering:
-            cons_region_slice = seq_align[start:]
-            cons_d[cons_region] = cons_region_slice
-        else:
-            sys.exit("HXB2 coordinates for {0} not found\nHXb2 numbering was {}".format(cons_region, hxb2_numbering))
 
     for var_region, index_tup in hxb2_var_regions_index_d.items():
         start = index_tup[0]
@@ -428,17 +592,27 @@ def find_cons_var_regions(prot_sequence):
         else:
             sys.exit("HXB2 coordinates for {0} not found\nHXb2 numbering was {}".format(var_region, hxb2_numbering))
 
-    return cons_d, var_d
+    return var_d
 
 
-def write_cons_var_regions_to_file(cons_d, var_d):
+def write_regions_to_file(region_dict, path_for_tmp_file):
     print("")
-    cons_fn = ''
-    with open(cons_fn, 'w') as handle:
-        handle.write('')
+    region_fn_prefix = next(tempfile._get_candidate_names())
+    temp_file_objct = tempfile.NamedTemporaryFile(dir=path_for_tmp_file, delete=False, prefix='tmp_')
 
+    file_names = []
+    for seq_code, region_d in region_dict.items():
+        for code, (region, seq) in region_d.items():
+            region_fn = "{0}_{1}.fasta".format(region_fn_prefix, region)
+            region_fn = os.path.join(temp_file_objct, region_fn)
+            file_names.append(region_fn)
+            if os.path.isfile(region_fn):
+                sys.exit("warning {} already exits".format(region_fn))
 
-    return cons_fn
+            with open(region_fn, 'a') as handle:
+                handle.write(">{0}\n{1}\n".format(str(code), seq))
+
+    return file_names
 
 
 def call_aligner(prot_seq_d):
@@ -483,6 +657,8 @@ def backtranslate(padded_dna_input, prot_align):
 
 
 def main(infile, ref, outpath, name):
+    # make this an arg
+    align_var_regions = False
 
     # get absolute paths
     infile = os.path.abspath(infile)
@@ -500,7 +676,7 @@ def main(infile, ref, outpath, name):
     # read in fasta file and reference
     in_seqs_d = fasta_to_dct_rev(infile)
     reference = list(fasta_to_dct(ref).values())[0]
-    reference_trans = translate_dna(reference.replace("-", ""))
+    # reference_trans = translate_dna(reference.replace("-", ""))
 
     # generate seq_code to seq name list lookup dictionary
     first_look_up_d = collections.defaultdict(list)
@@ -510,23 +686,31 @@ def main(infile, ref, outpath, name):
         first_look_up_d[unique_id] = names_list
         first_seq_code_d[seq] = unique_id
 
-    # translate sequences
+    cons_regions_dct = collections.defaultdict(dict)
+    var_regions_dct = collections.defaultdict(dict)
 
-    cons_regions_dct = collections.defaultdict()
-    var_regions_dct = collections.defaultdict()
-    prot_seq_d = collections.defaultdict(dict)
     for seq, code in first_seq_code_d.items():
         s_name = first_look_up_d[code][0]
-        # print(s_name)
+        # get pairwise alignment for query to reference
         seq_align, ref_align, frame = pairwise_align_dna(seq, reference, s_name)
+        # correct for reading frame and indels
         padded_sequence = gap_padding(seq_align, ref_align, frame, seq, s_name)
+        # translate query
         prot_seq = translate_dna(padded_sequence)
-        prot_ref = translate_dna(reference)
-        cons_regions_dct, var_regions_dct = find_cons_var_regions(prot_seq) # split apart? use .update()
+        # extract conserved regions
+        cons_regions_dct[code] = find_cons_regions(prot_seq)
+        # extract variable regions
+        var_regions_dct[code] = find_var_regions(prot_seq)
 
-    write_cons_var_regions_to_file()
+    # write the collected conserved regions to file and align
+    tmp_cons_file_to_align = write_regions_to_file(cons_regions_dct, outpath)
+    align_cons_prot_d = call_aligner(tmp_cons_file_to_align)
 
-    align_prot_d = call_aligner(prot_seq_d)
+    # write the collected conserved regions to file and align (optional)
+    if align_var_regions:
+        tmp_var_file_to_align = write_regions_to_file(var_regions_dct, outpath)
+        align_var_prot_d = call_aligner(tmp_cons_file_to_align)
+
 
     # for align_prot, padd_code_d in align_prot_d.items():
     #     dna_aligned = backtranslate(padded_sequence, align_prot)
