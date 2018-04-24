@@ -92,7 +92,7 @@ def rename_sequences(raw_files_search):
             os.rename(inf_R2, outf_R2_rename_with_path)
 
 
-def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_primer, nonoverlap, counter, logfile):
+def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_primer, nonoverlap, counter, cores, logfile):
 
     if type(raw_files) is not list:
         raise TypeError('Expected list of raw files, got: ', raw_files)
@@ -101,22 +101,23 @@ def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_prim
         overlap_flag = "-v"
     else:
         overlap_flag = ""
-
+    ncpu = "-ncpu {}".format(cores)
     for file in raw_files:
         read1 = file
         read2 = file.replace("R1.fastq", "R2.fastq")
         name_prefix = os.path.split(file)[-1].replace("_R1.fastq", "")
 
-        cmd1 = 'python3 {0} -r1 {1} -r2 {2} -o {3} -f {4} -r {5} -n {6} -c {7} -l {8} {9} '.format(motifbinner,
-                                                                                              read1,
-                                                                                              read2,
-                                                                                              cons_outpath,
-                                                                                              fwd_primer,
-                                                                                              cDNA_primer,
-                                                                                              name_prefix,
-                                                                                              counter,
-                                                                                              logfile,
-                                                                                              overlap_flag)
+        cmd1 = 'python3 {0} -r1 {1} -r2 {2} -o {3} -f {4} -r {5} -n {6} -c {7} -l {8} {9} {10} '.format(motifbinner,
+                                                                                                        read1,
+                                                                                                        read2,
+                                                                                                        cons_outpath,
+                                                                                                        fwd_primer,
+                                                                                                        cDNA_primer,
+                                                                                                        name_prefix,
+                                                                                                        counter,
+                                                                                                        logfile,
+                                                                                                        ncpu,
+                                                                                                        overlap_flag)
 
         try:
             subprocess.call(cmd1, shell=True)
@@ -192,7 +193,7 @@ def call_align(envelope, script_folder, to_align, aln_path, fname):
 
 
 def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, stops, length, envelope, run_step,
-         run_only):
+         run_only, cores):
 
     get_script_path = os.path.realpath(__file__)
     script_folder = os.path.split(get_script_path)[0]
@@ -265,7 +266,7 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
         cons_outpath = os.path.join(path, '1consensus_temp', 'binned')
         counter = 0
         try:
-            call_motifbinner(rename_in, motifbinner, cons_outpath, fwd_primer, cDNA_primer, nonoverlap, counter,
+            call_motifbinner(rename_in, motifbinner, cons_outpath, fwd_primer, cDNA_primer, nonoverlap, counter, cores,
                              logfile)
             run_step += 1
         except Exception as e:
@@ -570,6 +571,8 @@ if __name__ == "__main__":
                              '(eg: V1 V2) (options include: V1, V2 , V3, V4, V5)', required=False)
     parser.add_argument('-v', '--nonoverlap', default=False, action='store_true',
                         help="Use if reads don't overlap)", required=False)
+    parser.add_argument('-ncpu', '--cores', default=3, type=int,
+                        help='the number of CPU cores to use', required=False)
     parser.add_argument('-rs', '--run_step', type=int, default=1,
                         help='rerun the pipeline from a given step:\n'
                              '1 = step 1: rename raw files;\n'
@@ -588,6 +591,7 @@ if __name__ == "__main__":
     fwd_primer = args.fwd_primer
     cDNA_primer = args.cDNA_primer
     nonoverlap = args.nonoverlap
+    cores = args.cores
     frame = args.frame
     stops = args.stops
     length = args.length
@@ -596,4 +600,4 @@ if __name__ == "__main__":
     run_only = args.run_only
 
     main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, stops, length, envelope, run_step,
-         run_only)
+         run_only, cores)
