@@ -119,7 +119,7 @@ if __name__ == "__main__":
     parser.add_argument('-l', '--logfile', default=argparse.SUPPRESS, type=str,
                         help='The path and name of the log file', required=True)
     parser.add_argument('-v', '--non_overlap', default=False, action='store_true',
-                        help="Use if reads don't)", required=False)
+                        help="Use if reads don't overlap)", required=False)
 
     args = parser.parse_args()
     read1 = args.read1
