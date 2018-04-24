@@ -344,7 +344,7 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
                 subprocess.call(cmd_rev_comp, shell=True)
                 os.unlink(file)
                 os.rename(out, file)
-            input("enter")
+
         print("Removing 'bad' sequences")
         remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
         consensus_search = os.path.join(move_folder, '*.fasta')
