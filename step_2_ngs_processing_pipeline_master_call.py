@@ -51,6 +51,11 @@ def fasta_to_dct(file_name):
 
 
 def rename_sequences(raw_files_search):
+    """
+
+    :param raw_files_search:
+    :return:
+    """
 
     print("renaming raw files")
     for inf_R1 in raw_files_search:
@@ -93,6 +98,19 @@ def rename_sequences(raw_files_search):
 
 
 def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_primer, nonoverlap, counter, cores, logfile):
+    """
+
+    :param raw_files:
+    :param motifbinner:
+    :param cons_outpath:
+    :param fwd_primer:
+    :param cDNA_primer:
+    :param nonoverlap:
+    :param counter:
+    :param cores:
+    :param logfile:
+    :return:
+    """
 
     if type(raw_files) is not list:
         raise TypeError('Expected list of raw files, got: ', raw_files)
@@ -127,6 +145,11 @@ def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_prim
 
 
 def delete_gaps(fasta_infiles):
+    """
+    function to read in each fasta file in a list of fasta files, write out de-gapped fasta, replacing original file
+    :param fasta_infiles: (list) list of fasta files
+    :return: None
+    """
 
     for fasta_file in fasta_infiles:
         temp_out = fasta_file.replace(".fasta", ".fasta.bak")
@@ -134,7 +157,7 @@ def delete_gaps(fasta_infiles):
         cons_d = fasta_to_dct(fasta_file)
         with open(temp_out, 'w') as handle:
             for seq_name, seq in cons_d.items():
-
+                seq = seq.upper().replace("-", "")
                 handle.write('>{0}\n{1}\n'.format(seq_name, seq))
 
         os.remove(fasta_file)
@@ -143,6 +166,17 @@ def delete_gaps(fasta_infiles):
 
 
 def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, frame, length, logfile, stops):
+    """
+
+    :param contam_removed_fasta:
+    :param remove_bad_seqs:
+    :param clean_path:
+    :param frame:
+    :param length:
+    :param logfile:
+    :param stops:
+    :return:
+    """
 
     for fasta_file in contam_removed_fasta:
         if stops:
@@ -167,6 +201,15 @@ def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, frame,
 
 
 def call_contam_check(consensuses, contam_removal_script, contam_removed_path, gene_region, logfile):
+    """
+
+    :param consensuses:
+    :param contam_removal_script:
+    :param contam_removed_path:
+    :param gene_region:
+    :param logfile:
+    :return:
+    """
 
     for consensus_file in consensuses:
         cmd3 = 'python3 {0} -i {1} -o {2} -g {3} -l {4}'.format(contam_removal_script,
@@ -179,6 +222,15 @@ def call_contam_check(consensuses, contam_removal_script, contam_removed_path, g
 
 
 def call_align(envelope, script_folder, to_align, aln_path, fname):
+    """
+
+    :param envelope:
+    :param script_folder:
+    :param to_align:
+    :param aln_path:
+    :param fname:
+    :return:
+    """
 
     if envelope is not None:
         loops = " ".join(envelope)
@@ -384,7 +436,7 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
                        "ENV": "ENV", "GP120": "ENV", "GP41": "ENV", "NEF": "NEF",
                        "VIF": "VIF", "VPR": "VPR", "REV": "REV", "VPU": "VPU"}
 
-        gene = gene_region.split("_")[0]
+        gene = gene_region.upper().split("_")[0]
         region_to_check = hxb2_region[gene]
         if not clean_files:
             print("Could not find cleaned fasta files\n"
@@ -503,22 +555,41 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
         # move concatenated file to 4aligned
         print("moving concatenated file to 4aligned folder")
         aln_path = os.path.join(path, '4aligned')
-        move_file = os.path.join(aln_path, "*_all.fasta")
+
         if nonoverlap:
-            copyfile(all_cleaned_outname_fwd, move_file)
+            to_align_name1 = os.path.split(all_cleaned_outname_fwd)[-1]
+            move_file1 = os.path.join(aln_path, to_align_name1)
+            copyfile(all_cleaned_outname_fwd, move_file1)
             os.unlink(all_cleaned_outname_fwd)
-            copyfile(all_cleaned_outname_rev, move_file)
+
+            to_align_name2 = os.path.split(all_cleaned_outname_rev)[-1]
+            move_file2 = os.path.join(aln_path, to_align_name2)
+            copyfile(all_cleaned_outname_rev, move_file2)
             os.unlink(all_cleaned_outname_rev)
         else:
+            to_align_name = os.path.split(all_cleaned_outname)[-1]
+            move_file = os.path.join(aln_path, to_align_name)
             copyfile(all_cleaned_outname, move_file)
             os.unlink(all_cleaned_outname)
 
         # call alignment script
         print("Aligning the sequences")
-        to_align = move_file
-        inpath, fname = os.path.split(to_align)
-        fname = fname.replace(".fasta", "_aligned.fasta")
-        call_align(envelope, script_folder, to_align, aln_path, fname)
+        if nonoverlap:
+            to_align1 = move_file1
+            inpath, fname = os.path.split(to_align1)
+            fname = fname.replace(".fasta", "_aligned.fasta")
+            call_align(envelope, script_folder, to_align1, aln_path, fname)
+
+            to_align2 = move_file2
+            inpath, fname = os.path.split(to_align2)
+            fname = fname.replace(".fasta", "_aligned.fasta")
+            call_align(envelope, script_folder, to_align2, aln_path, fname)
+
+        else:
+            to_align = move_file
+            inpath, fname = os.path.split(to_align)
+            fname = fname.replace(".fasta", "_aligned.fasta")
+            call_align(envelope, script_folder, to_align, aln_path, fname)
 
         # translate alignment
         transl_name = fname.replace("_aligned.fasta", "_aligned_translated.fasta")
