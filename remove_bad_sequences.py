@@ -101,6 +101,7 @@ def degen_remove(d):
         start_N_replace = True
         seq = list(seq.upper())
         for i, nucl in enumerate(seq):
+            # only replace consecutive "N's" with "", over the first 3 bp of the read
             if i < 4 and nucl == 'N' and start_N_replace:
                 seq[i] = ''
                 if seq[i + 1] == 'N':

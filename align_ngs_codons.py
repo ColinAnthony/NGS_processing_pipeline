@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 from __future__ import print_function
 from __future__ import division
 import os
@@ -6,12 +6,15 @@ import sys
 import argparse
 import collections
 from itertools import groupby
+import random
+import string
+import subprocess
+from subprocess import DEVNULL
 from skbio.alignment import local_pairwise_align_ssw
+from skbio.alignment import StripedSmithWaterman
 from skbio import DNA
 from skbio import Protein
-import tempfile
 # from Bio import pairwise2
-
 
 
 __author__ = 'Colin Anthony'
@@ -68,7 +71,7 @@ def fasta_to_dct_rev(file_name):
     return dct
 
 
-def pairwise_align_dna(sequence, reference, name):
+def pairwise_align_dna(sequence, reference):
     """
     Pairwise align sequence to reference, to find reading frame and frame-shift in/dels
     :param sequence: (str) a query DNA sequence
@@ -108,7 +111,7 @@ def pairwise_align_dna(sequence, reference, name):
     return seq_align, ref_align, frame
 
 
-def gap_padding(seq_align, ref_align, frame, sequence, name):
+def gap_padding(seq_align, ref_align, frame, sequence):
     """
     pads sequence with gaps for indels and to set reading frame to frame 1
     :param seq_align: (str) an aligned query sequence
@@ -203,17 +206,17 @@ def posnumcalc(hxb2seq, start):
         if i == 0 and resi == '-':
             print("Can't start numbering. HXB2 starts with a gap. Use a longer HXB2 sequence for the numbering")
         if i != m:
-            if resi != '-' and hxb2seq[i+1] != '-':
+            if resi != '-' and hxb2seq[i + 1] != '-':
                 pos_num.append(n)
                 n += 1
-            elif resi != '-' and hxb2seq[i+1] == '-':
+            elif resi != '-' and hxb2seq[i + 1] == '-':
                 g = n
                 pos_num.append(g)
-            elif resi == '-' and hxb2seq[i+1] == '-':
+            elif resi == '-' and hxb2seq[i + 1] == '-':
                 g = n + s
                 pos_num.append(g)
                 s += 0.01
-            elif resi == '-' and hxb2seq[i+1] != '-':
+            elif resi == '-' and hxb2seq[i + 1] != '-':
                 g = n + s
                 pos_num.append(g)
                 s = 0.01
@@ -367,28 +370,49 @@ def find_cons_regions(prot_sequence):
     hxb2_cons_regions_index_d = {"C1": (0, 135),
                                  "C2": (151, 394),
                                  "C3": (408, 463),
-                                 "C4": (466, 856),}
+                                 "C4": (466, 856), }
 
-    alignment, score, start_end_positions = local_pairwise_align_ssw(Protein(prot_sequence), Protein(hxb2_prot),
-                                                                     gap_open_penalty=8, gap_extend_penalty=2,
-                                                                     match_score=4, mismatch_score=-1.5,
-                                                                     substitution_matrix=blosum80)
+    # alignment, score, start_end_positions = local_pairwise_align_ssw(Protein(prot_sequence), Protein(hxb2_prot),
+    #                                                                  gap_open_penalty=8, gap_extend_penalty=2,
+    #                                                                  match_score=4, mismatch_score=-1.5,
+    #                                                                  substitution_matrix=blosum80)
+
+    query = StripedSmithWaterman(prot_sequence, gap_open_penalty=8, gap_extend_penalty=2, match_score=4,
+                                 mismatch_score=-1.5, substitution_matrix=blosum62)
+    alignment = query(hxb2_prot)
+    print(">q-pre\n", alignment.query_sequence)
+    print(">q\n", alignment.aligned_query_sequence)
+    print(">hxb2\n", alignment.aligned_target_sequence)
+    q_start = alignment.query_begin
+    hxb2_start = alignment.target_begin
+    q_end = alignment.query_end
+    hxb2_end = alignment.target_end_optimal
+    start_end_positions = ((q_start, q_end), (hxb2_start, hxb2_end))
 
     # get the query and ref aligned seqs
     seq_align = str(alignment[0])
     ref_align = str(alignment[1])
-    print(">{0}\n{1}".format(name, seq_align))
-    print(">ref\n{}".format(ref_align))
+    # print(">{0}\n{1}".format(name, seq_align))
+    # print(">ref\n{}".format(ref_align))
+
+    # get length of input sequence
+    seq_len = len(prot_sequence)
+    # print(seq_len)
 
     # get start position for reference and query
     ref_start = start_end_positions[1][0]
     seq_start = start_end_positions[0][0]
-    if seq_start > 0:
-        sys.exit("Query sequence was truncated during alignment\nExiting")
+    seq_end = start_end_positions[0][1]
 
+    if seq_start > 0:
+        add_to_start = prot_sequence[:seq_start]
+        print("Query sequence was truncated during alignment")
+
+    if seq_end < seq_len:
+        add_to_end = prot_sequence[seq_end + 1:]
+        print("Query sequence was truncated during alignment")
     # get hxb2 numbering
     hxb2_numbering = posnumcalc(ref_align, ref_start)
-    print(hxb2_numbering)
 
     # extract the cons and var regions to dicts
     cons_d = collections.defaultdict(str)
@@ -398,16 +422,18 @@ def find_cons_regions(prot_sequence):
         end = index_tup[1]
         if start in hxb2_numbering and end in hxb2_numbering:
             # check that indexing is correct! not trimming off a resi at the end...
-            cons_region_slice = seq_align[start:end]
-            cons_d[cons_region] = cons_region_slice
+            cons_region_slice = seq_align[hxb2_numbering.index(start):hxb2_numbering.index(end)]
+            cons_d[cons_region] = cons_region_slice.replace("-", "")
         elif start not in hxb2_numbering and end in hxb2_numbering:
-            cons_region_slice = seq_align[:end]
-            cons_d[cons_region] = cons_region_slice
+            cons_region_slice = seq_align[:hxb2_numbering.index(end)]
+            cons_d[cons_region] = cons_region_slice.replace("-", "")
         elif start in hxb2_numbering and end not in hxb2_numbering:
-            cons_region_slice = seq_align[start:]
-            cons_d[cons_region] = cons_region_slice
+            cons_region_slice = seq_align[hxb2_numbering.index(start):]
+            cons_d[cons_region] = cons_region_slice.replace("-", "")
         else:
-            sys.exit("HXB2 coordinates for {0} not found\nHXb2 numbering was {}".format(cons_region, hxb2_numbering))
+            message = ""
+            # sys.exit("HXB2 coordinates for {0} not found\nHXb2 numbering was {1}".format(cons_region, hxb2_numbering))
+    # print(cons_d)
 
     return cons_d
 
@@ -549,8 +575,8 @@ def find_var_regions(prot_sequence):
 
     # index = +1 for 0 based indexing of positions
     hxb2_var_regions_index_d = {"V1": (135, 151),
-                                 "V2": (394, 408),
-                                 "V3": (464, 466),}
+                                "V2": (394, 408),
+                                "V3": (464, 466), }
 
     alignment, score, start_end_positions = local_pairwise_align_ssw(Protein(prot_sequence), Protein(hxb2_prot),
                                                                      gap_open_penalty=8, gap_extend_penalty=2,
@@ -560,18 +586,15 @@ def find_var_regions(prot_sequence):
     # get the query and ref aligned seqs
     seq_align = str(alignment[0])
     ref_align = str(alignment[1])
-    print(">{0}\n{1}".format(name, seq_align))
-    print(">ref\n{}".format(ref_align))
+    # print(">{0}\n{1}".format(name, seq_align))
+    # print(">ref\n{}".format(ref_align))
 
     # get start position for reference and query
     ref_start = start_end_positions[1][0]
     seq_start = start_end_positions[0][0]
-    if seq_start > 0:
-        sys.exit("Query sequence was truncated during alignment\nExiting")
 
     # get hxb2 numbering
     hxb2_numbering = posnumcalc(ref_align, ref_start)
-    print(hxb2_numbering)
 
     # extract the cons and var regions to dicts
     var_d = collections.defaultdict(str)
@@ -581,79 +604,157 @@ def find_var_regions(prot_sequence):
         end = index_tup[1]
         if start in hxb2_numbering and end in hxb2_numbering:
             # check that indexing is correct! not trimming off a resi at the end...
-            var_region_slice = seq_align[start:end]
-            var_d[var_region] = var_region_slice
+            var_region_slice = seq_align[hxb2_numbering.index(start):hxb2_numbering.index(end)]
+            var_d[var_region] = var_region_slice.replace("-", "")
         elif start not in hxb2_numbering and end in hxb2_numbering:
-            var_region_slice = seq_align[:end]
-            var_d[var_region] = var_region_slice
+            var_region_slice = seq_align[:hxb2_numbering.index(end)]
+            var_d[var_region] = var_region_slice.replace("-", "")
         elif start in hxb2_numbering and end not in hxb2_numbering:
-            var_region_slice = seq_align[start:]
-            var_d[var_region] = var_region_slice
+            var_region_slice = seq_align[hxb2_numbering.index(start):]
+            var_d[var_region] = var_region_slice.replace("-", "")
         else:
-            sys.exit("HXB2 coordinates for {0} not found\nHXb2 numbering was {}".format(var_region, hxb2_numbering))
-
+            message = ""
+            # sys.exit("HXB2 coordinates for {0} not found\nHXb2 numbering was {1}".format(var_region, hxb2_numbering))
+    # print(var_d)
     return var_d
 
 
 def write_regions_to_file(region_dict, path_for_tmp_file):
-    print("")
-    region_fn_prefix = next(tempfile._get_candidate_names())
-    temp_file_objct = tempfile.NamedTemporaryFile(dir=path_for_tmp_file, delete=False, prefix='tmp_')
+    """
+    function to write dictionary to fasta file
+    :param region_dict: (2D dict) dictionary = {seq_code: {region: sequence}}
+    :param path_for_tmp_file: (str) path to where temp files will be created
+    :return: (list) list of file names that have been written to file.
+    """
+    # create unique temp file name prefix
+    temp_file_prefix = "tmp_"
+    temp_file_prefix += ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+    temp_file = os.path.join(path_for_tmp_file, temp_file_prefix)
 
+    # write dicts to file
     file_names = []
     for seq_code, region_d in region_dict.items():
-        for code, (region, seq) in region_d.items():
-            region_fn = "{0}_{1}.fasta".format(region_fn_prefix, region)
-            region_fn = os.path.join(temp_file_objct, region_fn)
-            file_names.append(region_fn)
-            if os.path.isfile(region_fn):
-                sys.exit("warning {} already exits".format(region_fn))
+        for region, seq in region_d.items():
+            # complete file name
+            region_fn = "{0}_{1}.fasta".format(temp_file, region)
+
+            if region_fn not in file_names:
+                file_names.append(region_fn)
 
             with open(region_fn, 'a') as handle:
-                handle.write(">{0}\n{1}\n".format(str(code), seq))
+                handle.write(">{0}\n{1}\n".format(str(seq_code), seq))
 
     return file_names
 
 
-def call_aligner(prot_seq_d):
+def call_aligner(file_names):
     """
     Takes a dict of protein sequences, writes them to a temp file and aligns them with mafft.
     Aligned file is read back in and returned as a dictionary
     :param prot_seq_d: (dict) dict of protein sequences: key = sequence, value = ID code
     :return: (dict) dictionary of aligned protein sequences: key = sequence, value = ID code
     """
-    region_aligned_d = collections.defaultdict()
+    region_aligned_d = collections.defaultdict(dict)
 
-    # write dict to temp file
-
-    # align temp file
-
-    # read aligned file back in as dict
-
-    # remove temp file
+    for file in file_names:
+        region = os.path.split(file)[-1].split("_")[2].replace(".fasta", "")
+        outfile = file.replace(".fasta", "_aligned.fasta")
+        cmd = "mafft {0} > {1}".format(file, outfile)
+        subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
+        aligned_region_d = fasta_to_dct(outfile)
+        os.unlink(file)
+        os.unlink(outfile)
+        region_aligned_d[region].update(aligned_region_d)
 
     return region_aligned_d
 
 
 def join_regions(cons_regions, var_regions):
-    print("")
-    joined_d = collections.defaultdict(int)
+    """
+    function to join conserved and variable regions to re-create the full sequence
+    :param cons_regions: (dict) dictionary of the conserved regions {"C1": {"code": "seq"}}
+    :param var_regions: dictionary of the variable  regions {"V1": {"code": "seq"}}
+    :return: (dict) dictionary of re-created sequences {"code": "seq"}
+    """
+    joined_d = collections.defaultdict(str)
+
+    # find start/end region
+    full_order = ["C1", "V1", "C2", "V2", "C3", "V3", "C4"]
+
+    cons = []
+    var = []
+
+    for i in full_order:
+        if i in cons_regions:
+            cons.append(i)
+
+    for i in full_order:
+        if i in var_regions:
+            var.append(i)
+
+    start_cons = cons[0]
+    end_cons = cons[-1]
+    start_var = var[0]
+    end_var = var[-1]
+
+    # get start region
+    if full_order.index(start_cons) > full_order.index(start_var):
+        start = full_order.index(start_var)
+    else:
+        start = full_order.index(start_cons)
+
+    # get end region
+    if full_order.index(end_cons) > full_order.index(end_var):
+        end = full_order.index(end_cons)
+    else:
+        end = full_order.index(end_var)
+
+    final_order = full_order[start:end + 1]
+
+    # stitch the regions together in the right order
+    for seq_region in final_order:
+        if seq_region in cons_regions:
+            region_d = cons_regions[seq_region]
+            for seq_code, seq in region_d.items():
+                joined_d[seq_code] += seq
+        elif seq_region in var_regions:
+            region_d = var_regions[seq_region]
+            for seq_code, seq in region_d.items():
+                joined_d[seq_code] += seq
+        else:
+            sys.exit("region not in conserved or var dictionary\ncan't re-create full-length sequence")
 
     return joined_d
 
 
-def backtranslate(padded_dna_input, prot_align):
-    print("")
-    dna_align = ''
-    resi_count = 0
-    for resi in prot_align:
-        if resi == '-':
-            dna_align += '---'
-        else:
-            dna_align += padded_dna_input[(resi_count * 3):((resi_count * 3) + 3)]
-            resi_count += 1
+def backtranslate(padded_dna_d, prot_align_d):
+    """
+    function to backtranslate aligned protein sequence to aligned DNA sequence
+    :param padded_dna_d: (dict) of dna sequences in frame 1, with indels padded with gaps {code: padded_seq}
+    :param prot_align_d: (dict) of protein sequences {code: prot_seq}
+    :return: (dict) of aligned dna sequences
+    """
+    # losing last base/few bases
+    # not all starting at same point??
+    print(prot_align_d)
+    dna_align_d = collections.defaultdict(str)
+    for code, prot_seq in prot_align_d.items():
+        dna_seq = padded_dna_d[code]
+        dna_align = ''
+        resi_count = 0
+        for resi in prot_seq:
+            if resi == '-':
+                dna_align += '---'
+            else:
+                dna_align += dna_seq[(resi_count * 3):((resi_count * 3) + 3)]
+                resi_count += 1
 
-    return dna_align
+        if dna_align.replace("-", "") != dna_seq.replace("-", ""):
+            print("input and output sequences are not identical")
+            # print(">{0}_in\n{1}\n".format(code, dna_seq))
+            # print(">{0}_out\n{1}\n".format(code, dna_align))
+
+    return dna_align_d
 
 
 def main(infile, ref, outpath, name):
@@ -688,13 +789,14 @@ def main(infile, ref, outpath, name):
 
     cons_regions_dct = collections.defaultdict(dict)
     var_regions_dct = collections.defaultdict(dict)
+    padded_seq_dict = collections.defaultdict(str)
 
     for seq, code in first_seq_code_d.items():
-        s_name = first_look_up_d[code][0]
         # get pairwise alignment for query to reference
-        seq_align, ref_align, frame = pairwise_align_dna(seq, reference, s_name)
+        seq_align, ref_align, frame = pairwise_align_dna(seq, reference)
         # correct for reading frame and indels
-        padded_sequence = gap_padding(seq_align, ref_align, frame, seq, s_name)
+        padded_sequence = gap_padding(seq_align, ref_align, frame, seq)
+        padded_seq_dict[code] = padded_sequence
         # translate query
         prot_seq = translate_dna(padded_sequence)
         # extract conserved regions
@@ -709,18 +811,25 @@ def main(infile, ref, outpath, name):
     # write the collected conserved regions to file and align (optional)
     if align_var_regions:
         tmp_var_file_to_align = write_regions_to_file(var_regions_dct, outpath)
-        align_var_prot_d = call_aligner(tmp_cons_file_to_align)
+        var_prot_d = call_aligner(tmp_cons_file_to_align)
+    else:
+        # reformat dict for joining of regions
+        var_prot_d = collections.defaultdict(dict)
+        for seq_code, region_d in var_regions_dct.items():
+            for region, seq in region_d.items():
+                var_prot_d[region][seq_code] = seq
 
+    joined_regions_d = join_regions(align_cons_prot_d, var_prot_d)
 
-    # for align_prot, padd_code_d in align_prot_d.items():
-    #     dna_aligned = backtranslate(padded_sequence, align_prot)
+    dna_aligned = backtranslate(padded_seq_dict, joined_regions_d)
 
     print("Aligning completed")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='',
+    parser = argparse.ArgumentParser(description='Codon aligns NGS sequences using mafft',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
     parser.add_argument('-i', '--infile', default=argparse.SUPPRESS, type=str,
                         help='The input file', required=True)
     parser.add_argument('-r', '--ref', default=argparse.SUPPRESS, type=str,
