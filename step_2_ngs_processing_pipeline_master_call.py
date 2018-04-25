@@ -574,27 +574,22 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
 
         # call alignment script
         print("Aligning the sequences")
-        if nonoverlap:
-            to_align1 = move_file1
-            inpath, fname = os.path.split(to_align1)
-            fname = fname.replace(".fasta", "_aligned.fasta")
-            call_align(envelope, script_folder, to_align1, aln_path, fname)
-
-            to_align2 = move_file2
-            inpath, fname = os.path.split(to_align2)
-            fname = fname.replace(".fasta", "_aligned.fasta")
-            call_align(envelope, script_folder, to_align2, aln_path, fname)
-
-        else:
-            to_align = move_file
-            inpath, fname = os.path.split(to_align)
-            fname = fname.replace(".fasta", "_aligned.fasta")
-            call_align(envelope, script_folder, to_align, aln_path, fname)
+        search_to_align = os.path.join(aln_path, "*_all.fasta")
+        to_align_files = glob(search_to_align)
+        for to_align in to_align_files:
+            inpath, in_file = os.path.split(to_align)
+            out_name = in_file.replace(".fasta", "_aligned.fasta")
+            call_align(envelope, script_folder, to_align, aln_path, out_name)
 
         # translate alignment
-        transl_name = fname.replace("_aligned.fasta", "_aligned_translated.fasta")
-        cmd = "seqmagick convert --sort length-asc --upper --translate dna2protein --line-wrap 0 {0} {1}".format(fname, transl_name)
-        subprocess.call(cmd, shell=True)
+        search_aligned = os.path.join(aln_path, "*_aligned.fasta")
+        to_trans_files = glob(search_aligned)
+        for to_trans in to_trans_files:
+            transl_file = to_trans.replace("_aligned.fasta", "_aligned_translated.fasta")
+            cmd = "seqmagick convert --sort length-asc --upper --translate dna2protein --line-wrap 0 {0} {1}"\
+                .format(to_trans, transl_file)
+
+            subprocess.call(cmd, shell=True)
 
         run_step += 1
 
