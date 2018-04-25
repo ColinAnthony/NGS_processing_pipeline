@@ -84,7 +84,7 @@ def run_motifbinner(logfile, fwd_read, rev_read, outpath, fwd_primer, fwd_primer
     subprocess.call(cmd, shell=True)
 
 
-def main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, non_overlap, cores, logfile):
+def main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, logfile, cores, non_overlap ):
 
     print("calling MotifBinner")
     fwd_primer = fwd_primer.upper()
@@ -97,8 +97,6 @@ def main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, n
     # run motifbinner call function
     run_motifbinner(logfile, read1, read2, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
                     cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix, counter, cores, non_overlap)
-    run_motifbinner(logfile, read1, read2, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
-                cDNA_primer, cDNA_primer_lens, cDNA_primer_score, name_prefix, cores, counter, non_overlap)
 
 
 if __name__ == "__main__":
@@ -138,4 +136,4 @@ if __name__ == "__main__":
     cores = args.cores
     logfile = args.logfile
 
-    main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, non_overlap, cores, logfile)
+    main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, logfile, cores, non_overlap)
