@@ -5,11 +5,11 @@ import os
 import argparse
 import collections
 from itertools import groupby
-from Bio.Blast import NCBIWWW
+# from Bio.Blast import NCBIWWW
 from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastnCommandline
-import regex
 import sys
+
 
 __author__ = 'Colin Anthony'
 
@@ -56,12 +56,17 @@ def blastn_seqs(infile, gene_region, outpath):
     """
 
     # assign temp file
-    # tmp_dir = tempfile.gettempdir()
-    # tmp_out_file = os.path.join(tmp_dir, "tmp_blast_results.xml")
     tmp_out_file = os.path.join(outpath, "tmp_blast.xml")
-    # tmp_out_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
-    # tmp_out_file = tmp_file .name
-    target_gene = gene_region.upper().split("_")[0]
+    target_gene = [gene_region.upper().split("_")[0]]
+
+    # allow blast hit to pass if blasts to overlapping gene
+    if "VIF" in target_gene:
+        target_gene = ["VPR", "VIF"]
+    if "POL" in target_gene:
+        print(gene_region)
+        if gene_region.upper().split("_")[1] == "5":
+            target_gene = ["INT", "VIF"]
+
     # blast settings
     # format_fasta = ">{0}\n{1}".format(s_name, q_sequence)
     blastdb = "lanl_hiv_db"
@@ -73,7 +78,7 @@ def blastn_seqs(infile, gene_region, outpath):
     # # run online blast
     # blast_results = NCBIWWW.qblast('blastn', 'nt', query=infile, entrez_query='"HIV-1"[organism]')
     # # write online blast results to file
-    # with open(tmpfile, 'w') as handle:
+    # with open(tmp_out_file, 'w') as handle:
     #     handle.write(blast_results.read())
 
     # run local blast
@@ -106,14 +111,12 @@ def blastn_seqs(infile, gene_region, outpath):
                 region = title_name.upper().split("_")[-1]
                 if i == 0:
                     first_region = title_name.upper().split("_")[-1]
-                # for hsp in alignment.hsps:
-                #     # get the e_value in case you want to store it
-                #     exp_value = hsp.expect
 
-                if region == target_gene:
+                if region in target_gene:
                     found = True
                     good_records[query_seq_name] = "_hiv_" + region.lower()
                     break
+            # todo: should this be indented?
             if not found:
                 bad_records[query_seq_name] = "_hiv_" + first_region.lower()
 
@@ -124,29 +127,6 @@ def blastn_seqs(infile, gene_region, outpath):
     os.unlink(tmp_out_file)
 
     return bad_records, good_records
-
-
-def regex_contam(name, query_sequence):
-    """
-    :param query_sequence: (str) the sequence to blast
-    :param hxb2_region: (str_ hxb2 sequence for the relevant gene region
-    :return: (bool) True or False depending on whether sequence is hiv or not
-    """
-
-    # gag1
-    # hxb2_seq = "GCGAAAAATTAGATAATTGGGAAAGAATTAAGTTAAGGCCAGGAGGAAAGAAACACTATATGCTAAAAC"
-    # gag2
-    # hxb2_seq = "ACCAAATGAAAGACTGTACTGAGAGACAGGCTAATTTTTTAGGGAAAATTTGGCCTTCCCACAAGGGGAGGCCAGGGAATTTCC"
-
-    # error = int(1 - (len(query_sequence) * 0.7))
-    # hxb2_regex = "r'({0}){{e<{1}}}'".format(hxb2_region, error)
-    hxb2_regex = r'(ACCAAATGAAAGACTGTACTGAGAGACAGGCTAATTTTTTAGGGAAAATTTGGCCTTCCCACAAGGGGAGGCCAGGGAATTTCC){e<8}'
-    match = regex.search(hxb2_regex, query_sequence, regex.BESTMATCH)
-
-    if match is not None:
-        return False
-    else:
-        return True
 
 
 def main(consensus, outpath, gene_region, logfile):

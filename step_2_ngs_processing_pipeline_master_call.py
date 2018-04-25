@@ -438,6 +438,10 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
 
         gene = gene_region.upper().split("_")[0]
         region_to_check = hxb2_region[gene]
+        if region_to_check == "POL":
+            if gene_region.upper().split("_")[1] == "5":
+                region_to_check = "VIF"
+
         if not clean_files:
             print("Could not find cleaned fasta files\n"
                   "It is possible there were no sequences remaining after removal of sequences with degenerate bases\n"
@@ -495,6 +499,12 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
         hxb2_file = os.path.join(script_folder, "HXB2_seqs.fasta")
         hxb2 = fasta_to_dct(hxb2_file)
         hxb2_gene = "HXB2_" + gene_region.split("_")[0]
+
+        # special case to make it work with Mel's multiplex data
+        if hxb2_gene == "HXB2_POL":
+            if gene_region.upper().split("_")[1] == "5":
+                hxb2_gene = "HXB2_VIF"
+
         hxb2_seq = hxb2[hxb2_gene]
 
         # cat all cleaned files into one file + the relevant HXB2 sequence
