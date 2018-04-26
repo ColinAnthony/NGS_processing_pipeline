@@ -368,8 +368,8 @@ def find_cons_regions(prot_sequence):
 
     # index = +1 for 0 based indexing of positions
     hxb2_cons_regions_index_d = {"C1": (0, 135),
-                                 "C2": (151, 394),
-                                 "C3": (408, 463),
+                                 "C2": (152, 394),
+                                 "C3": (409, 460),
                                  "C4": (466, 856), }
 
     # alignment, score, start_end_positions = local_pairwise_align_ssw(Protein(prot_sequence), Protein(hxb2_prot),
@@ -377,40 +377,40 @@ def find_cons_regions(prot_sequence):
     #                                                                  match_score=4, mismatch_score=-1.5,
     #                                                                  substitution_matrix=blosum80)
 
+    # get the query and ref aligned seqs
+    # seq_align = str(alignment[0])
+    # ref_align = str(alignment[1])
+    # print(">{0}\n{1}".format(name, seq_align))
+    # print(">ref\n{}".format(ref_align))
+
     query = StripedSmithWaterman(prot_sequence, gap_open_penalty=8, gap_extend_penalty=2, match_score=4,
                                  mismatch_score=-1.5, substitution_matrix=blosum62)
     alignment = query(hxb2_prot)
-    print(">q-pre\n", alignment.query_sequence)
-    print(">q\n", alignment.aligned_query_sequence)
-    print(">hxb2\n", alignment.aligned_target_sequence)
+
     q_start = alignment.query_begin
     hxb2_start = alignment.target_begin
     q_end = alignment.query_end
     hxb2_end = alignment.target_end_optimal
     start_end_positions = ((q_start, q_end), (hxb2_start, hxb2_end))
-
-    # get the query and ref aligned seqs
-    seq_align = str(alignment[0])
-    ref_align = str(alignment[1])
-    # print(">{0}\n{1}".format(name, seq_align))
-    # print(">ref\n{}".format(ref_align))
+    seq_align = alignment.aligned_query_sequence
+    ref_align = alignment.aligned_target_sequence
+    print(">q-pre\n", alignment.query_sequence)
+    print(">q\n", alignment.aligned_query_sequence)
+    print(">hxb2\n", alignment.aligned_target_sequence)
 
     # get length of input sequence
     seq_len = len(prot_sequence)
-    # print(seq_len)
 
     # get start position for reference and query
     ref_start = start_end_positions[1][0]
     seq_start = start_end_positions[0][0]
     seq_end = start_end_positions[0][1]
 
-    if seq_start > 0:
-        add_to_start = prot_sequence[:seq_start]
-        print("Query sequence was truncated during alignment")
+    if seq_start > 3:
+        print("Query sequence was truncated at 5' end during alignment")
 
-    if seq_end < seq_len:
-        add_to_end = prot_sequence[seq_end + 1:]
-        print("Query sequence was truncated during alignment")
+    if seq_end < seq_len - 3:
+        print("Query sequence was truncated at 3' end during alignment")
     # get hxb2 numbering
     hxb2_numbering = posnumcalc(ref_align, ref_start)
 
@@ -426,14 +426,15 @@ def find_cons_regions(prot_sequence):
             cons_d[cons_region] = cons_region_slice.replace("-", "")
         elif start not in hxb2_numbering and end in hxb2_numbering:
             cons_region_slice = seq_align[:hxb2_numbering.index(end)]
+            # cons_region_slice = prot_sequence[:start] + cons_region_slice
             cons_d[cons_region] = cons_region_slice.replace("-", "")
         elif start in hxb2_numbering and end not in hxb2_numbering:
             cons_region_slice = seq_align[hxb2_numbering.index(start):]
+            # cons_region_slice = cons_region_slice + prot_sequence[end:]
             cons_d[cons_region] = cons_region_slice.replace("-", "")
         else:
             message = ""
             # sys.exit("HXB2 coordinates for {0} not found\nHXb2 numbering was {1}".format(cons_region, hxb2_numbering))
-    # print(cons_d)
 
     return cons_d
 
@@ -574,9 +575,9 @@ def find_var_regions(prot_sequence):
     }
 
     # index = +1 for 0 based indexing of positions
-    hxb2_var_regions_index_d = {"V1": (135, 151),
-                                "V2": (394, 408),
-                                "V3": (464, 466), }
+    hxb2_var_regions_index_d = {"V1": (135, 152),
+                                "V2": (394, 409),
+                                "V3": (460, 466), }
 
     alignment, score, start_end_positions = local_pairwise_align_ssw(Protein(prot_sequence), Protein(hxb2_prot),
                                                                      gap_open_penalty=8, gap_extend_penalty=2,
@@ -603,14 +604,15 @@ def find_var_regions(prot_sequence):
         start = index_tup[0]
         end = index_tup[1]
         if start in hxb2_numbering and end in hxb2_numbering:
-            # check that indexing is correct! not trimming off a resi at the end...
             var_region_slice = seq_align[hxb2_numbering.index(start):hxb2_numbering.index(end)]
             var_d[var_region] = var_region_slice.replace("-", "")
         elif start not in hxb2_numbering and end in hxb2_numbering:
             var_region_slice = seq_align[:hxb2_numbering.index(end)]
+            var_region_slice = prot_sequence[:start] + var_region_slice
             var_d[var_region] = var_region_slice.replace("-", "")
         elif start in hxb2_numbering and end not in hxb2_numbering:
             var_region_slice = seq_align[hxb2_numbering.index(start):]
+            var_region_slice = var_region_slice + prot_sequence[end:]
             var_d[var_region] = var_region_slice.replace("-", "")
         else:
             message = ""

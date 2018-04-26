@@ -372,6 +372,19 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
         consensus_infiles = glob(consensus_search)
         delete_gaps(consensus_infiles)
 
+        if nonoverlap:
+            print("move folder", consensus_path)
+            search_fwd_rev = os.path.join(move_folder, "*rev.fasta")
+            print("reverse complementing *rev.fasta")
+            for file in glob(search_fwd_rev):
+                out = file + "_temp.fasta"
+                print(out)
+                print(file)
+                cmd_rev_comp = 'seqmagick convert --reverse-complement {0} {1}'.format(file, out)
+                subprocess.call(cmd_rev_comp, shell=True)
+                os.unlink(file)
+                os.rename(out, file)
+
         if run_only:
             # copy back to permanent folder, remove temp folder
             run_step = 10
@@ -385,18 +398,6 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
                 file_name = os.path.split(file)[-1]
                 move_location = os.path.join(move_folder, file_name)
                 copyfile(file, move_location)
-
-        if nonoverlap:
-            print("move folder", move_folder)
-            search_fwd_rev = os.path.join(move_folder, "*rev.fasta")
-            for file in glob(search_fwd_rev):
-                out = file + "_temp.fasta"
-                print(out)
-                print(file)
-                cmd_rev_comp = 'seqmagick convert --reverse-complement {0} {1}'.format(file, out)
-                subprocess.call(cmd_rev_comp, shell=True)
-                os.unlink(file)
-                os.rename(out, file)
 
         print("Removing 'bad' sequences")
         remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
