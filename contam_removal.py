@@ -65,7 +65,7 @@ def blastn_seqs(infile, gene_region, outpath):
     if "POL" in target_gene:
         try:
             check_for_overlap = gene_region.upper().split("_")[1]
-            if gene_region.upper().split("_")[1] == "5":
+            if check_for_overlap.upper().split("_")[1] == "5":
                 target_gene = ["INT", "VIF"]
         except IndexError as e:
             print(e, "\nno overlapping gene regions detected")
