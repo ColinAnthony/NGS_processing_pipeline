@@ -116,6 +116,8 @@ def make_primer_dict(primer_file):
 				'fwd': row[1][int(row[2]):].replace(' ', ''),
 				'rev': row[3][int(row[4]):].replace(' ', ''),
 				'overlap': row[5],
+				'fwd_preseq': int(row[2]),
+				'rev_preseq': int(row[4]),
 				'fwd_wild': make_seq_wild(row[1][int(row[2]):].replace(' ', '')),
 				'rev_wild': make_seq_wild(row[3][int(row[4]):].replace(' ', '')),
 			}
@@ -259,7 +261,7 @@ def split_by_primers(fastq_file, primer_dict, orientation, make_sure=True):
 			current_sequence = seq_line
 			for geneRegion in list(primer_dict.keys()):
 				# The geneRegion is the gene target of the primer
-				seq_primer_region = seq_line[4:len(primer_dict[geneRegion][orientation]) + 4]
+				seq_primer_region = seq_line[primer_dict[geneRegion][orientation + '_preseq']:len(primer_dict[geneRegion][orientation]) + primer_dict[geneRegion][orientation + '_preseq']]
 
 				# Level 1: Check exact matches
 				if primer_dict[geneRegion][orientation] == seq_primer_region:
@@ -307,7 +309,7 @@ def split_by_primers(fastq_file, primer_dict, orientation, make_sure=True):
 		line_number_sequence += 1
 		line_number_header += 1
 
-	splitReport = open('splitReport.txt', 'w')
+	splitReport = open(orientation + '_splitReport.txt', 'w')
 	splitReport.write('Exact matches found: ' + str(exact_matches_found) + '\n')
 	splitReport.write('Regex matches found: ' + str(regex_matches_found) + '\n')
 	splitReport.write('Kmer matches found: ' + str(kmer_matches_found) + '\n')
@@ -372,8 +374,7 @@ def primer_blast_search(db_identifier, sequence):
 
 	# Lists are in the form:
 	# query id, subject id, % identity, alignment length, mismatches, gap opens, q. start, q. end, s. start, s. end, evalue, bit score
-	print(List_of_result_lists)
-	print('\n')
+
 	if len(List_of_result_lists) > 0:
 		return List_of_result_lists[0][1]
 	else:
@@ -421,6 +422,7 @@ if __name__ == '__main__':
 
 	# The actual running part.
 	test_primer_dict = make_primer_dict(data['input_data']['primer_csv'])
+	print(test_primer_dict)
 
 	test_primer_dict = add_kmer_keys(test_primer_dict)
 
@@ -440,16 +442,43 @@ if __name__ == '__main__':
 		for gene_region in test_primer_dict.keys():
 
 			step_1_create_folders.main('./', gene_region, patient_list)
+		# Add extra one for reads where no genes matched
+		step_1_create_folders.main('./', 'None', patient_list)
 
 
 	if demultiplex_fastq is True:
 		print("Demultiplexing fastq")
-
 		infast_name = ntpath.basename(data['input_data']['fwd_fastq_file'])
 		split_by_primers(data['input_data']['fwd_fastq_file'], test_primer_dict, 'fwd')
 		infast_name = ntpath.basename(data['input_data']['rev_fastq_file'])
 		split_by_primers(data['input_data']['rev_fastq_file'], test_primer_dict, 'rev')
 
+	if run_main_pipe is True:
+		print("Running main pipeline")
+
+		import step_2_ngs_processing_pipeline_master_call
+
+		for gene_region in test_primer_dict.keys():
+
+			if data['pipelineSettings']['stops'] == "yes":
+				stops = True
+			else:
+				stops = False
+
+			vloop = None
+
+			step_2_ngs_processing_pipeline_master_call.main(
+				path,
+				data['pipelineSettings']['out_prefix'],
+				gene_region, test_primer_dict[gene_region]['fwd'],
+				test_primer_dict[gene_region]['rev'],
+				nonoverlap, data['pipelineSettings']['frame'],
+				stops,
+				data['pipelineSettings']['min_read_length'],
+				vloop,
+				data['pipelineSettings']['run_step'],
+				False
+			)
 
 	# Paths for use in testing
 	'''
