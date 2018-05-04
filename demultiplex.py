@@ -120,6 +120,10 @@ def make_primer_dict(primer_file):
 				'rev_preseq': int(row[4]),
 				'fwd_wild': make_seq_wild(row[1][int(row[2]):].replace(' ', '')),
 				'rev_wild': make_seq_wild(row[3][int(row[4]):].replace(' ', '')),
+				'exact_matches_found': 0,
+				'regex_matches_found': 0,
+				'kmer_matches_found': 0,
+				'blast_matches_found': 0,
 			}
 
 	return res_dict
@@ -222,12 +226,6 @@ def split_by_primers(fastq_file, primer_dict, orientation, make_sure=True):
 	line_number_sequence = 3
 	line_number_header = 4
 
-	exact_matches_found = 0
-	regex_matches_found = 0
-	kmer_matches_found = 0
-	blast_matches_found = 0
-
-
 	if make_sure is True:
 		# Make a fasta file with all primers
 		temp_fasta = open(out_dir + 'primerList.fasta', 'w')
@@ -266,30 +264,26 @@ def split_by_primers(fastq_file, primer_dict, orientation, make_sure=True):
 				# Level 1: Check exact matches
 				if primer_dict[geneRegion][orientation] == seq_primer_region:
 					detected_primer = geneRegion
-					exact_matches_found += 1
+					primer_dict[geneRegion]['exact_matches_found'] += 1
 
 				# Level 2: If no exact match, then look for regex matches
 				elif wildcard_seq_match(primer_dict[geneRegion][orientation + '_wild'], seq_primer_region) is True:
 					detected_primer = geneRegion
-					regex_matches_found += 1
+					primer_dict[geneRegion]['regex_matches_found'] += 1
 
 				# Level 3: If no wildmatch, look for kmer matches
 				else:
 					for kmer in primer_dict[geneRegion][orientation + '_keys']:
 						if kmer in seq_primer_region:
-							#print 'lol'
-							#print kmer
-							#print seq_primer_region
-							#print primer_dict[geneRegion][orientation]
 							detected_primer = geneRegion
-							kmer_matches_found += 1
+							primer_dict[geneRegion]['kmer_matches_found'] += 1
 
 			# Finally, if there is still no match, use the blastDB
 			if detected_primer == 'None':
 
 				detected_primer = primer_blast_search('primers', current_sequence[:shortest_primer_length])
 				if detected_primer != 'None':
-					blast_matches_found += 1
+					primer_dict[geneRegion]['blast_matches_found'] += 1
 
 
 		# Get the plus sign
@@ -309,11 +303,12 @@ def split_by_primers(fastq_file, primer_dict, orientation, make_sure=True):
 		line_number_sequence += 1
 		line_number_header += 1
 
-	splitReport = open(orientation + '_splitReport.txt', 'w')
-	splitReport.write('Exact matches found: ' + str(exact_matches_found) + '\n')
-	splitReport.write('Regex matches found: ' + str(regex_matches_found) + '\n')
-	splitReport.write('Kmer matches found: ' + str(kmer_matches_found) + '\n')
-	splitReport.write('Blast matches found: ' + str(blast_matches_found) + '\n')
+	splitReport = open(orientation + '_splitReport.csv', 'w')
+	splitReport.write('Region,Exact matches,Regex matches,Kmer matches,Blast matches\n')
+	for a_gene_region in primer_dict.keys():
+		out_line = a_gene_region + ',' + str(primer_dict[a_gene_region]['exact_matches_found']) + ',' + str(primer_dict[a_gene_region]['regex_matches_found']) + ',' + str(primer_dict[a_gene_region]['kmer_matches_found']) + ',' + str(primer_dict[a_gene_region]['blast_matches_found']) + '\n'
+		splitReport.write(out_line)
+
 	splitReport.close()
 
 
@@ -433,6 +428,8 @@ if __name__ == '__main__':
 	create_file_structure = True
 	demultiplex_fastq = True
 	run_main_pipe = True
+	make_haplotypes = True
+
 
 	if create_file_structure is True:
 		print("Creating file structure")
@@ -450,6 +447,7 @@ if __name__ == '__main__':
 		print("Demultiplexing fastq")
 		infast_name = ntpath.basename(data['input_data']['fwd_fastq_file'])
 		split_by_primers(data['input_data']['fwd_fastq_file'], test_primer_dict, 'fwd')
+
 		infast_name = ntpath.basename(data['input_data']['rev_fastq_file'])
 		split_by_primers(data['input_data']['rev_fastq_file'], test_primer_dict, 'rev')
 
@@ -460,13 +458,16 @@ if __name__ == '__main__':
 
 		for gene_region in test_primer_dict.keys():
 
+			# Adding the required parameters
 			if data['pipelineSettings']['stops'] == "yes":
 				stops = True
 			else:
 				stops = False
 
 			vloop = None
+			path = args.output_dir + patient_list[0] + '/' + gene_region
 
+			# Calling step 2
 			step_2_ngs_processing_pipeline_master_call.main(
 				path,
 				data['pipelineSettings']['out_prefix'],
@@ -479,6 +480,18 @@ if __name__ == '__main__':
 				data['pipelineSettings']['run_step'],
 				False
 			)
+
+	if make_haplotypes is True:
+		print("Making haplotypes from alignment")
+
+		import step_3_make_haplotpes_from_alignment
+
+		step_3_make_haplotpes_from_alignment.main(
+			data['haplotype_settings']['infile'],
+			data['haplotype_settings']['field'],
+			data['haplotype_settings']['script_folder']
+		)
+
 
 	# Paths for use in testing
 	'''
