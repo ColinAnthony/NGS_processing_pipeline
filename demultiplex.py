@@ -382,8 +382,9 @@ if __name__ == '__main__':
 		Input for primers is csv separated by a comma. 
 		''',
 
-		epilog="""Version 0.01""")
+		epilog="""Version 0.1""")
 
+	parser.add_argument('--config_file', type=str, help='Configuration file for the run in JSON format')
 	parser.add_argument('--output_dir', type=str, help='Location to write the output fastq files')
 
 
@@ -392,7 +393,7 @@ if __name__ == '__main__':
 	# ------------------------------------------------
 	print("Parsing the config file:")
 
-	with open('config.json') as json_data_file:
+	with open(args.config_file) as json_data_file:
 		data = json.load(json_data_file)
 	print(data)
 
