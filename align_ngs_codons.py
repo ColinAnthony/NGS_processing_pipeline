@@ -441,18 +441,24 @@ def get_cons_regions(prot_align_d, start_reg, end_reg):
         start = index_tup[0]
         end = index_tup[1]
         if start in ref_numbering and end in ref_numbering:
-            cons_region_slice = seq_align[ref_numbering.index(start):ref_numbering.index(end)]
-            cons_d[cons_region] = cons_region_slice.replace("-", "")
+            if cons_region == end_reg:
+                cons_region_slice = seq_align[ref_numbering.index(start):ref_numbering.index(end) + 1]
+                cons_d[cons_region] = cons_region_slice.replace("-", "")
+            else:
+                cons_region_slice = seq_align[ref_numbering.index(start):ref_numbering.index(end)]
+                cons_d[cons_region] = cons_region_slice.replace("-", "")
+
         elif start not in ref_numbering and end in ref_numbering:
             cons_region_slice = seq_align[:ref_numbering.index(end)]
             cons_d[cons_region] = cons_region_slice.replace("-", "")
+
         elif start in ref_numbering and end not in ref_numbering:
+            print(seq_align[ref_numbering.index(start)])
             cons_region_slice = seq_align[ref_numbering.index(start):]
             cons_d[cons_region] = cons_region_slice.replace("-", "")
+
         else:
             print("{} region not present".format(cons_region))
-
-
 
         if seq_start > 0:
             slice_to_add_to_start = unaligned_seq[:seq_start]
@@ -462,7 +468,8 @@ def get_cons_regions(prot_align_d, start_reg, end_reg):
                 new_seq = slice_to_add_to_start + cons_d[start_reg]
                 cons_d[start_reg] = new_seq
 
-        if seq_end < seq_len:
+        if seq_end < seq_len -1:
+            print(unaligned_seq)
             slice_to_add_to_end = unaligned_seq[seq_end + 1:]
 
             # get end region
@@ -551,6 +558,11 @@ def write_regions_to_file(region_dict, path_for_tmp_file):
 
     # write dicts to file
     file_names = []
+
+    # catch error when only 1 sequence is present
+    if len(region_dict.keys()) < 2:
+        sys.exit("must have more than 2 sequences to align\nexiting")
+
     for seq_code, region_d in region_dict.items():
         for region, seq in region_d.items():
             # complete file name
@@ -601,7 +613,8 @@ def join_regions(cons_regions, var_regions):
 
     cons = []
     var = []
-
+    print('c', cons_regions)
+    print('v', var_regions)
     for i in full_order:
         if i in cons_regions:
             cons.append(i)
@@ -677,7 +690,7 @@ def backtranslate(padded_dna_d, prot_align_d):
 
 
 def main(infile, ref, outpath, name):
-    # make this an arg
+    # make this an arg?
     align_var_regions = False
 
     # get absolute paths
@@ -686,17 +699,20 @@ def main(infile, ref, outpath, name):
     name = name + "_aligned.fasta"
     outfile = os.path.join(outpath, name)
 
-    get_script_path = os.path.realpath(__file__)
-    script_folder = os.path.split(get_script_path)[0]
-    script_folder = os.path.abspath(script_folder)
-    ref_file = os.path.join(script_folder, "HXB2_seqs.fasta")
-    ref = list(fasta_to_dct(ref_file).values())[0]
-    # ref_trans = translate_dna(ref.replace("-", ""))
+    # get the reference sequence or HXB2 if not specified
+    if not ref:
+        get_script_path = os.path.realpath(__file__)
+        script_folder = os.path.split(get_script_path)[0]
+        script_folder = os.path.abspath(script_folder)
+        ref_file = os.path.join(script_folder, "HXB2_seqs.fasta")
+        reference = list(fasta_to_dct(ref_file).values())[0]
+        # ref_trans = translate_dna(ref.replace("-", ""))
+    else:
+        reference = list(fasta_to_dct(ref).values())[0]
+        # reference_trans = translate_dna(reference.replace("-", ""))
 
     # read in fasta file and reference
     in_seqs_d = fasta_to_dct_rev(infile)
-    reference = list(fasta_to_dct(ref).values())[0]
-    # reference_trans = translate_dna(reference.replace("-", ""))
 
     # generate seq_code to seq name list lookup dictionary
     first_look_up_d = collections.defaultdict(list)
@@ -716,6 +732,7 @@ def main(infile, ref, outpath, name):
         # correct for reading frame and indels
         padded_sequence = gap_padding(seq_align, ref_align, frame, seq)
         padded_seq_dict[code] = padded_sequence
+
         # translate query
         prot_seq = translate_dna(padded_sequence)
 
@@ -728,6 +745,7 @@ def main(infile, ref, outpath, name):
         # extract conserved regions
         cons_regions_dct[code] = get_cons_regions(prot_align_d, start_region, end_region)
         # cons_regions_dct[code] = find_cons_regions(prot_seq)
+
         # extract variable regions
         var_regions_dct[code] = get_var_regions(prot_align_d, start_region, end_region)
         # var_regions_dct[code] = find_var_regions(prot_seq)
@@ -769,8 +787,8 @@ if __name__ == "__main__":
 
     parser.add_argument('-i', '--infile', default=argparse.SUPPRESS, type=str,
                         help='The input file', required=True)
-    parser.add_argument('-r', '--ref', default=argparse.SUPPRESS, type=str,
-                        help='The reference sequence file. Must be in reading frame 1', required=True)
+    parser.add_argument('-r', '--ref', default=False, type=str,
+                        help='The reference sequence file. Must be in reading frame 1', required=False)
     parser.add_argument('-o', '--outpath', default=argparse.SUPPRESS, type=str,
                         help='The path for the output file', required=True)
     parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=str,
