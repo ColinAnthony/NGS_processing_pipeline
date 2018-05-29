@@ -469,7 +469,6 @@ def get_cons_regions(prot_align_d, start_reg, end_reg):
                 cons_d[start_reg] = new_seq
 
         if seq_end < seq_len -1:
-            print(unaligned_seq)
             slice_to_add_to_end = unaligned_seq[seq_end + 1:]
 
             # get end region
@@ -599,7 +598,41 @@ def call_aligner(file_names):
     return region_aligned_d
 
 
-def join_regions(cons_regions, var_regions):
+def pad_var_region_to_longest(var_regions_dct):
+    """
+    pads length variable regions to all have the same length
+    :param var_regions_dct: (dict) dict of the different variable regions for each sequence
+    :return: (dict) gap padded dict of the different variable regions for each sequence
+    """
+    # initialise dicts
+    new_var_regions_dct = collections.defaultdict(dict)
+    var_region_lens = collections.defaultdict(list)
+    max_lens_d = collections.defaultdict(int)
+
+    # get len of each var region
+    for seq_code, var_regions_d in var_regions_dct.items():
+        for var_region, var_seq in var_regions_d.items():
+            var_region_lens[var_region].append(len(var_seq))
+
+    # get max len for each var region
+    for var_reg, var_len_list in var_region_lens.items():
+        max_lens_d[var_reg] = max(var_len_list)
+
+    for seq_code, var_regions_d in var_regions_dct.items():
+        for var_region, var_seq in var_regions_d.items():
+            max_len = max_lens_d[var_region]
+            this_seq_len = len(var_seq)
+            gaps_to_pad = max_len - this_seq_len
+            half_point = this_seq_len // 2
+            new_var_seq = var_seq[:half_point] + "-" * gaps_to_pad + var_seq[half_point:]
+            new_var_regions_dct[seq_code][var_region] = new_var_seq
+
+    print(new_var_regions_dct)
+    input("enter")
+    return  new_var_regions_dct
+
+
+def join_regions(cons_regions, padded_var_regions):
     """
     function to join conserved and variable regions to re-create the full sequence
     :param cons_regions: (dict) dictionary of the conserved regions {"C1": {"code": "seq"}}
@@ -614,13 +647,13 @@ def join_regions(cons_regions, var_regions):
     cons = []
     var = []
     print('c', cons_regions)
-    print('v', var_regions)
+    print('v', padded_var_regions)
     for i in full_order:
         if i in cons_regions:
             cons.append(i)
 
     for i in full_order:
-        if i in var_regions:
+        if i in padded_var_regions:
             var.append(i)
 
     start_cons = cons[0]
@@ -648,8 +681,8 @@ def join_regions(cons_regions, var_regions):
             region_d = cons_regions[seq_region]
             for seq_code, seq in region_d.items():
                 joined_d[seq_code] += seq
-        elif seq_region in var_regions:
-            region_d = var_regions[seq_region]
+        elif seq_region in padded_var_regions:
+            region_d = padded_var_regions[seq_region]
             for seq_code, seq in region_d.items():
                 joined_d[seq_code] += seq
         else:
@@ -750,18 +783,21 @@ def main(infile, ref, outpath, name):
         var_regions_dct[code] = get_var_regions(prot_align_d, start_region, end_region)
         # var_regions_dct[code] = find_var_regions(prot_seq)
 
+    # pad the variable regions with '-', to the longest sequence
+    new_var_regions_dct = pad_var_region_to_longest(var_regions_dct)
+
     # write the collected conserved regions to file and align
     tmp_cons_file_to_align = write_regions_to_file(cons_regions_dct, outpath)
     align_cons_prot_d = call_aligner(tmp_cons_file_to_align)
 
     # write the collected conserved regions to file and align (optional)
     if align_var_regions:
-        tmp_var_file_to_align = write_regions_to_file(var_regions_dct, outpath)
+        tmp_var_file_to_align = write_regions_to_file(new_var_regions_dct, outpath)
         var_prot_d = call_aligner(tmp_cons_file_to_align)
     else:
         # reformat dict for joining of regions
         var_prot_d = collections.defaultdict(dict)
-        for seq_code, region_d in var_regions_dct.items():
+        for seq_code, region_d in new_var_regions_dct.items():
             for region, seq in region_d.items():
                 var_prot_d[region][seq_code] = seq
 
