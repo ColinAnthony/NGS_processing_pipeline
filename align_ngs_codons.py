@@ -11,11 +11,11 @@ import string
 import subprocess
 from subprocess import DEVNULL
 from skbio.alignment import local_pairwise_align_ssw
-from skbio.alignment import StripedSmithWaterman
+# from skbio.alignment import StripedSmithWaterman
 from skbio import DNA
 from skbio import Protein
-# from Bio import pairwise2
-
+import seqanpy
+from Bio import pairwise2
 
 __author__ = 'Colin Anthony'
 
@@ -44,6 +44,7 @@ def fasta_to_dct(file_name):
     dct = collections.defaultdict(str)
     my_gen = py3_fasta_iter(file_name)
     for k, v in my_gen:
+        v = v.replace("-", "")
         new_key = k.replace(" ", "_")
         if new_key in dct.keys():
             print("Duplicate sequence ids found. Exiting")
@@ -62,16 +63,16 @@ def fasta_to_dct_rev(file_name):
     dct = collections.defaultdict(list)
     my_gen = py3_fasta_iter(file_name)
     for k, v in my_gen:
-        new_key = k.replace(" ", "_")
+        new_key = k.replace("-", "")
         if new_key in dct.keys():
             print("Duplicate sequence ids found. Exiting")
             raise KeyError("Duplicate sequence ids found")
-        dct[str(v).replace("~", "_").upper()].append(new_key)
+        dct[str(v).replace(" ", "_").upper()].append(new_key)
 
     return dct
 
 
-def pairwise_align_dna(sequence, reference):
+def pairwise_align_dna(sequence, reference, ref_type):
     """
     Pairwise align sequence to reference, to find reading frame and frame-shift in/dels
     :param sequence: (str) a query DNA sequence
@@ -79,21 +80,33 @@ def pairwise_align_dna(sequence, reference):
     :return: (str) aligned query sequence, (str) aligned ref sequence, (int) reading frame for query sequence
     """
 
-    # # biopython pairwise (scoring: match,  miss-match, gap open, gap extend)
-    # alignment = pairwise2.align.localms(sequence, reference, 3, -1, -8, -2)
-    # start_end_positions = [(0, alignment[4]), (alignment[3], alignment[4])]
-
     # reference = consensus of subtype C
-    alignment, score, start_end_positions = local_pairwise_align_ssw(DNA(sequence), DNA(reference), gap_open_penalty=8,
-                                                                     gap_extend_penalty=2, match_score=4,
-                                                                     mismatch_score=-1.5, substitution_matrix=None)
+    overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-3, score_gapext=-2,
+                                    score_gapopen=-10)
+    overlap = list(overlap)
+    print(overlap)
+    seq_align = overlap[1] #.replace(" ", "-")
+    ref_align = overlap[2] #.replace(" ", "-")
+    print(">sqseq\n{}\n".format(seq_align))
+    print(">sqref\n{}\n".format(ref_align))
 
+    start_end_positions = [(0, ), (0, )]
+    # # biopython pairwise (scoring: match,  miss-match, gap open, gap extend)
+    alignment = pairwise2.align.localms(sequence, reference, 3, -1, -8, -2)
+    start_end_positions = [(0, alignment[0][4]), (alignment[0][3], alignment[0][4])]
+
+    seq_align = str(alignment[0][0])
+    ref_align = str(alignment[0][1])
+
+    # alignment, score, start_end_positions = local_pairwise_align_ssw(DNA(sequence), DNA(reference), gap_open_penalty=8,
+    #                                                                  gap_extend_penalty=2, match_score=3,
+    #                                                                  mismatch_score=-1, substitution_matrix=None)
     # get the query and ref aligned seqs
-    seq_align = str(alignment[0])
-    ref_align = str(alignment[1])
-    # print(">{0}\n{1}".format(name, seq_align))
+    # seq_align = str(alignment[0])
+    # ref_align = str(alignment[1])
+    # print(">aligned\n{1}".format(name, seq_align))
     # print(">ref\n{}".format(ref_align))
-
+    input("enter")
     # get start position for reference and query
     ref_start = start_end_positions[1][0]
     seq_start = start_end_positions[0][0]
@@ -148,7 +161,10 @@ def gap_padding(seq_align, ref_align, frame, sequence):
 
     # convert to string and return
     new_seq = "".join(new_seq)
-    # print(">{0}\n{1}".format(name, new_seq))
+    print(frame)
+    print(">input\n{1}".format(name, seq_align))
+    print(">padded\n{1}".format(name, new_seq))
+    input("enter")
     return "".join(new_seq)
 
 
@@ -157,6 +173,7 @@ def translate_dna(sequence):
     :param sequence: (str) a DNA sequence string
     :return: (str) a protein string from the forward reading frame 1
     """
+    # stop codons represented as "X"
     codontable = {'ATA': 'I', 'ATC': 'I', 'ATT': 'I', 'ATG': 'M',
                   'ACA': 'T', 'ACC': 'T', 'ACG': 'T', 'ACT': 'T',
                   'AAC': 'N', 'AAT': 'N', 'AAA': 'K', 'AAG': 'K',
@@ -230,23 +247,12 @@ def posnumcalc(hxb2seq, start):
     return pos_num
 
 
-def prot_pairwise_align(prot_sequence):
+def prot_pairwise_align(prot_sequence, ref_prot):
     """
     function to pairwise align protein sequence to ref
     :param prot_sequence: (str) a protein query sequence
     :return: (dict) dict of cons regions, (dict) dict of var regions
     """
-
-    ref_prot = "MRVKEKYQHLWRWGWRWGTMLLGMLMICSATEKLWVTVYYGVPVWKEATTTLFCASDAKAYDTEVHNVWATHACVPTDPNPQEVVLVNVTENFNMWKNDMVE" \
-                "QMHEDIISLWDQSLKPCVKLTPLCVSLKCTDLKNDTNTNSSSGRMIMEKGEIKNCSFNISTSIRGKVQKEYAFFYKLDIIPIDNDTTSYKLTSCNTSVITQA" \
-                "CPKVSFEPIPIHYCAPAGFAILKCNNKTFNGTGPCTNVSTVQCTHGIRPVVSTQLLLNGSLAEEEVVIRSVNFTDNAKTIIVQLNTSVEINCTRPNNNTRKR" \
-                "IRIQRGPGRAFVTIGKIGNMRQAHCNISRAKWNNTLKQIASKLREQFGNNKTIIFKQSSGGDPEIVTHSFNCGGEFFYCNSTQLFNSTWFNSTWSTEGSNNT" \
-                "EGSDTITLPCRIKQIINMWQKVGKAMYAPPISGQIRCSSNITGLLLTRDGGNSNNESEIFRPGGGDMRDNWRSELYKYKVVKIEPLGVAPTKAKRRVVQREK" \
-                "RAVGIGALFLGFLGAAGSTMGAASMTLTVQARQLLSGIVQQQNNLLRAIEAQQHLLQLTVWGIKQLQARILAVERYLKDQQLLGIWGCSGKLICTTAVPWNA" \
-                "SWSNKSLEQIWNHTTWMEWDREINNYTSLIHSLIEESQNQQEKNEQELLELDKWASLWNWFNITNWLWYIKLFIMIVGGLVGLRIVFAVLSIVNRVRQGYSP" \
-                "LSFQTHLPTPRGPDRPEGIEEEGGERDRDRSIRLVNGSLALIWDDLRSLCLFSYHRLRDLLLIVTRIVELLGRRGWEALKYWWNLLQYWSQELKNSAVSLLN" \
-                "ATAIAVAEGTDRVIEVVQGACRAIRHIPRRIRQGLERILLX"
-
     blosum62 = {
         'A': {'A': 4, 'R': -1, 'N': -2, 'D': -2, 'C': 0, 'Q': -1, 'E': -1, 'G': 0, 'H': -2, 'I': -1, 'L': -1, 'K': -1,
               'M': -1, 'F': -2, 'P': -1, 'S': 1, 'T': 0, 'W': -3, 'Y': -2, 'V': 0, 'B': -2, 'Z': -1, 'X': 0, '*': -4},
@@ -297,8 +303,8 @@ def prot_pairwise_align(prot_sequence):
               'M': -3, 'F': -3, 'P': -2, 'S': 0, 'T': -1, 'W': -4, 'Y': -3, 'V': -3, 'B': 4, 'Z': 1, 'X': -1, '*': -4},
         'Z': {'A': -1, 'R': 0, 'N': 0, 'D': 1, 'C': -3, 'Q': 3, 'E': 4, 'G': -2, 'H': 0, 'I': -3, 'L': -3, 'K': 1,
               'M': -1, 'F': -3, 'P': -1, 'S': 0, 'T': -1, 'W': -3, 'Y': -2, 'V': -2, 'B': 1, 'Z': 4, 'X': -1, '*': -4},
-        'X': {'A': 0, 'R': -1, 'N': -1, 'D': -1, 'C': -2, 'Q': -1, 'E': -1, 'G': -1, 'H': -1, 'I': -1, 'L': -1, 'K': -1,
-              'M': -1, 'F': -1, 'P': -2, 'S': 0, 'T': 0, 'W': -2, 'Y': -1, 'V': -1, 'B': -1, 'Z': -1, 'X': -1, '*': -4},
+        'X': {'A': 0, 'R': 0, 'N': 0, 'D': -1, 'C': 0, 'Q': 0, 'E': 0, 'G': 0, 'H': 0, 'I': 0, 'L': 0, 'K': 0,
+              'M': 0, 'F': 0, 'P': 0, 'S': 0, 'T': 0, 'W': 0, 'Y': 0, 'V': 0, 'B': 0, 'Z': 0, 'X': 0, '*': 0},
         '*': {'A': -4, 'R': -4, 'N': -4, 'D': -4, 'C': -4, 'Q': -4, 'E': -4, 'G': -4, 'H': -4, 'I': -4, 'L': -4,
               'K': -4, 'M': -4, 'F': -4, 'P': -4, 'S': -4, 'T': -4, 'W': -4, 'Y': -4, 'V': -4, 'B': -4, 'Z': -4,
               'X': -4, '*': 1},
@@ -306,30 +312,29 @@ def prot_pairwise_align(prot_sequence):
               'K': -4, 'M': -4, 'F': -4, 'P': -4, 'S': -4, 'T': -4, 'W': -4, 'Y': -4, 'V': -4, 'B': -4, 'Z': -4,
               'X': -4, '*': 1}
     }
+    # # biopython pairwise (scoring: match,  miss-match, gap open, gap extend)
+    alignment = pairwise2.align.localms(prot_sequence, ref_prot, 3, -1, -8, -2)
+    start_end_positions = [(0, alignment[0][4]), (alignment[0][3], alignment[0][4])]
 
-    # alignment, score, start_end_positions = local_pairwise_align_ssw(Protein(prot_sequence), Protein(hxb2_prot),
-    #                                                                  gap_open_penalty=8, gap_extend_penalty=2,
+    seq_align = str(alignment[0][0])
+    ref_align = str(alignment[0][1])
+    # print(">bio pw\n{}".format(seq_align))
+    # print(">bio pw ref\n{}".format(ref_align))
+
+    # alignment, score, start_end_positions = local_pairwise_align_ssw(Protein(prot_sequence), Protein(ref_prot),
+    #                                                                  gap_open_penalty=6, gap_extend_penalty=2,
     #                                                                  match_score=4, mismatch_score=-1.5,
     #                                                                  substitution_matrix=blosum62)
 
     # get the query and ref aligned seqs
     # seq_align = str(alignment[0])
     # ref_align = str(alignment[1])
-    # print(">{0}\n{1}".format(name, seq_align))
-    # print(">ref\n{}".format(ref_align))
 
-    query = StripedSmithWaterman(prot_sequence, gap_open_penalty=8, gap_extend_penalty=2, match_score=4,
-                                 mismatch_score=-1.5, substitution_matrix=blosum62)
+    # print(start_end_positions)
+    # print("local pw")
+    # print(">sk pw\n{}".format(seq_align))
+    # print(">sk pw ref\n{}".format(ref_align))
 
-    alignment = query(ref_prot)
-
-    q_start = alignment.query_begin
-    ref_start = alignment.target_begin
-    q_end = alignment.query_end
-    ref_end = alignment.target_end_optimal
-    start_end_positions = ((q_start, q_end), (ref_start, ref_end))
-    seq_align = alignment.aligned_query_sequence
-    ref_align = alignment.aligned_target_sequence
     alignment_d = {"inseq": prot_sequence,
                    "query": seq_align,
                    "reference": ref_align,
@@ -339,24 +344,37 @@ def prot_pairwise_align(prot_sequence):
     return alignment_d
 
 
-def find_start_end_regions(alignment_d):
+def set_cons_var_regions():
+    """
+
+    :return:
+    """
+    ref_cons_regions_index_d = {"C1": (0, 131),
+                                "C2": (155, 184),
+                                "C3": (190, 390),
+                                "C4": (413, 460),
+                                "C5": (466, 856),
+                                }
+
+    ref_var_regions_index_d = {"V1": (131, 155),
+                               "V2": (184, 190),
+                               "V3": (390, 413),
+                               "V4": (460, 466),
+                               }
+
+    full_order = ["C1", "V1", "C2", "V2", "C3", "V3", "C4", "V4", "C5"]
+
+    return ref_cons_regions_index_d, ref_var_regions_index_d, full_order
+
+
+def find_start_end_regions(alignment_d, ref_cons_regions_index_d, ref_var_regions_index_d, full_order):
     """
     function to take a pairwise align obj in dict format and find the start and end regions for cons and var boundaries
     :param alignment_d: (dict) dict of pairwise alignment object
+    :param ref_cons_regions_index_d: (dict) of conserved regions
+    :param ref_var_regions_index_d:
     :return: (str) start and end region keys
     """
-
-    ref_cons_regions_index_d = {"C1": (0, 135),
-                                "C2": (152, 394),
-                                "C3": (409, 460),
-                                "C4": (466, 856),
-                                }
-
-    ref_var_regions_index_d = {"V1": (135, 152),
-                               "V2": (394, 409),
-                               "V3": (460, 466),
-                               }
-
     # seq_align = alignment_d["query"]
     ref_align = alignment_d["reference"]
     ref_start = alignment_d["start_end_positions"][1][0]
@@ -384,8 +402,6 @@ def find_start_end_regions(alignment_d):
             print("{} region not present".format(var_region))
 
     # find start/end region
-    full_order = ["C1", "V1", "C2", "V2", "C3", "V3", "C4"]
-
     start_cons = sorted(cons_region_list)[0]
     end_cons = sorted(cons_region_list)[-1]
     start_var = sorted(var_region_list)[0]
@@ -406,20 +422,15 @@ def find_start_end_regions(alignment_d):
     return start, end
 
 
-def get_cons_regions(prot_align_d, start_reg, end_reg):
+def get_cons_regions(prot_align_d, start_reg, end_reg, ref_cons_regions_index_d):
     """
     function to extract conserved regions of a sequence (envelope)
     :param prot_align_d: (dict) dict of pairwise alignment object
     :param start_reg: (str) start region key
     :param end_reg: (str) end region key
+    :param ref_cons_regions_index_d: (dict) of cons regions and their indexes in the reference prot seq
     :return: (dict) dict of cons regions
     """
-    ref_cons_regions_index_d = {"C1": (0, 135),
-                                "C2": (152, 394),
-                                "C3": (409, 460),
-                                "C4": (466, 856),
-                                }
-
     seq_start = prot_align_d["start_end_positions"][0][0]
     ref_start = prot_align_d["start_end_positions"][1][0]
     seq_end = prot_align_d["start_end_positions"][0][1]
@@ -453,7 +464,6 @@ def get_cons_regions(prot_align_d, start_reg, end_reg):
             cons_d[cons_region] = cons_region_slice.replace("-", "")
 
         elif start in ref_numbering and end not in ref_numbering:
-            print(seq_align[ref_numbering.index(start)])
             cons_region_slice = seq_align[ref_numbering.index(start):]
             cons_d[cons_region] = cons_region_slice.replace("-", "")
 
@@ -462,35 +472,30 @@ def get_cons_regions(prot_align_d, start_reg, end_reg):
 
         if seq_start > 0:
             slice_to_add_to_start = unaligned_seq[:seq_start]
-
             # get start region
-            if start_reg in cons_d:
+            if cons_region == start_reg:
                 new_seq = slice_to_add_to_start + cons_d[start_reg]
                 cons_d[start_reg] = new_seq
 
         if seq_end < seq_len -1:
             slice_to_add_to_end = unaligned_seq[seq_end + 1:]
-
             # get end region
-            if end_reg in cons_d:
+            if cons_region == end_reg:
                 new_seq = cons_d[end_reg] + slice_to_add_to_end
                 cons_d[end_reg] = new_seq
 
     return cons_d
 
 
-def get_var_regions(prot_align_d, start_reg, end_reg):
+def get_var_regions(prot_align_d, start_reg, end_reg, ref_var_regions_index_d):
     """
-    function to extract variable regions of a sequence (envelope)
+        function to extract conserved regions of a sequence (envelope)
     :param prot_align_d: (dict) dict of pairwise alignment object
     :param start_reg: (str) start region key
     :param end_reg: (str) end region key
-    :return: (dict) dict of variable regions
+    :param ref_var_regions_index_d: (dict) of variable regions and their indexes in the reference prot seq
+    :return: (dict) dict of var regions
     """
-    ref_var_regions_index_d = {"V1": (135, 152),
-                               "V2": (394, 409),
-                               "V3": (460, 466),
-                               }
 
     seq_start = prot_align_d["start_end_positions"][0][0]
     ref_start = prot_align_d["start_end_positions"][1][0]
@@ -506,7 +511,7 @@ def get_var_regions(prot_align_d, start_reg, end_reg):
     # get hxb2 numbering
     ref_numbering = posnumcalc(ref_align, ref_start)
 
-    # extract the cons regions to dicts
+    # extract the var regions to dicts
     var_d = collections.defaultdict(str)
 
     for var_region, index_tup in ref_var_regions_index_d.items():
@@ -515,9 +520,11 @@ def get_var_regions(prot_align_d, start_reg, end_reg):
         if start in ref_numbering and end in ref_numbering:
             var_region_slice = seq_align[ref_numbering.index(start):ref_numbering.index(end)]
             var_d[var_region] = var_region_slice.replace("-", "")
+
         elif start not in ref_numbering and end in ref_numbering:
             var_region_slice = seq_align[:ref_numbering.index(end)]
             var_d[var_region] = var_region_slice.replace("-", "")
+
         elif start in ref_numbering and end not in ref_numbering:
             var_region_slice = seq_align[ref_numbering.index(start):]
             var_d[var_region] = var_region_slice.replace("-", "")
@@ -528,15 +535,15 @@ def get_var_regions(prot_align_d, start_reg, end_reg):
             slice_to_add_to_start = unaligned_seq[:seq_start]
 
             # get start region
-            if start_reg in var_d:
+            if var_region == start_reg:
                 new_seq = slice_to_add_to_start + var_d[start_reg]
                 var_d[start_reg] = new_seq
 
-        if seq_end < seq_len:
+        if seq_end < seq_len -1:
             slice_to_add_to_end = unaligned_seq[seq_end + 1:]
 
             # get end region
-            if end_reg in var_d:
+            if var_region == end_reg:
                 new_seq = var_d[end_reg] + slice_to_add_to_end
                 var_d[end_reg] = new_seq
 
@@ -627,12 +634,10 @@ def pad_var_region_to_longest(var_regions_dct):
             new_var_seq = var_seq[:half_point] + "-" * gaps_to_pad + var_seq[half_point:]
             new_var_regions_dct[seq_code][var_region] = new_var_seq
 
-    print(new_var_regions_dct)
-    input("enter")
     return  new_var_regions_dct
 
 
-def join_regions(cons_regions, padded_var_regions):
+def join_regions(cons_regions, padded_var_regions, full_order):
     """
     function to join conserved and variable regions to re-create the full sequence
     :param cons_regions: (dict) dictionary of the conserved regions {"C1": {"code": "seq"}}
@@ -642,12 +647,9 @@ def join_regions(cons_regions, padded_var_regions):
     joined_d = collections.defaultdict(str)
 
     # find start/end region
-    full_order = ["C1", "V1", "C2", "V2", "C3", "V3", "C4"]
-
     cons = []
     var = []
-    print('c', cons_regions)
-    print('v', padded_var_regions)
+
     for i in full_order:
         if i in cons_regions:
             cons.append(i)
@@ -698,9 +700,6 @@ def backtranslate(padded_dna_d, prot_align_d):
     :param prot_align_d: (dict) of protein sequences {code: prot_seq}
     :return: (dict) of aligned dna sequences
     """
-    # losing last base/few bases
-    # not all starting at same point??
-    print(prot_align_d)
     dna_align_d = collections.defaultdict(str)
     for code, prot_seq in prot_align_d.items():
         dna_seq = padded_dna_d[code]
@@ -722,8 +721,8 @@ def backtranslate(padded_dna_d, prot_align_d):
     return dna_align_d
 
 
-def main(infile, ref, outpath, name):
-    # make this an arg?
+def main(infile, ref, outpath, name, gene):
+    # ToDo: make this an arg?
     align_var_regions = False
 
     # get absolute paths
@@ -732,18 +731,34 @@ def main(infile, ref, outpath, name):
     name = name + "_aligned.fasta"
     outfile = os.path.join(outpath, name)
 
-    # get the reference sequence or HXB2 if not specified
+    # get the reference sequence or HXB2 if not specified and the HXB2 prot sequence for the gene numbering
     if not ref:
+        ref_type = "HXB2"
+        gene_region = "HXB2_" + gene
         get_script_path = os.path.realpath(__file__)
         script_folder = os.path.split(get_script_path)[0]
         script_folder = os.path.abspath(script_folder)
         ref_file = os.path.join(script_folder, "HXB2_seqs.fasta")
-        reference = list(fasta_to_dct(ref_file).values())[0]
-        # ref_trans = translate_dna(ref.replace("-", ""))
-    else:
-        reference = list(fasta_to_dct(ref).values())[0]
-        # reference_trans = translate_dna(reference.replace("-", ""))
 
+        # get gene sequence
+        hxb2_seqs = fasta_to_dct(ref_file)
+        reference = hxb2_seqs[gene_region]
+        ref_prot_seq = translate_dna(reference.replace("-", ""))
+
+    else:
+        gene_region = "HXB2_" + gene
+        get_script_path = os.path.realpath(__file__)
+        script_folder = os.path.split(get_script_path)[0]
+        script_folder = os.path.abspath(script_folder)
+        prot_ref_file = os.path.join(script_folder, "HXB2_seqs.fasta")
+        reference = list(fasta_to_dct(ref).values())[0]
+        ref_type = "custom"
+
+        # get gene sequence
+        # hxb2_seqs = fasta_to_dct(prot_ref_file)
+        # hxb2_dna_ref = hxb2_seqs[gene_region]
+        # ref_prot_seq = translate_dna(hxb2_dna_ref.replace("-", ""))
+        ref_prot_seq = translate_dna(reference.replace("-", ""))
     # read in fasta file and reference
     in_seqs_d = fasta_to_dct_rev(infile)
 
@@ -759,9 +774,12 @@ def main(infile, ref, outpath, name):
     var_regions_dct = collections.defaultdict(dict)
     padded_seq_dict = collections.defaultdict(str)
 
+    # set the cons and var regions
+    ref_cons_regions_index_d, ref_var_regions_index_d, full_order = set_cons_var_regions()
+
     for seq, code in first_seq_code_d.items():
         # get pairwise alignment for query to reference
-        seq_align, ref_align, frame = pairwise_align_dna(seq, reference)
+        seq_align, ref_align, frame = pairwise_align_dna(seq, reference,ref_type)
         # correct for reading frame and indels
         padded_sequence = gap_padding(seq_align, ref_align, frame, seq)
         padded_seq_dict[code] = padded_sequence
@@ -770,19 +788,22 @@ def main(infile, ref, outpath, name):
         prot_seq = translate_dna(padded_sequence)
 
         # get prot pairwise alignment
-        prot_align_d = prot_pairwise_align(prot_seq)
+        prot_align_d = prot_pairwise_align(prot_seq, ref_prot_seq)
 
         # get start and end regions
-        start_region, end_region = find_start_end_regions(prot_align_d)
+        start_region, end_region = find_start_end_regions(prot_align_d, ref_cons_regions_index_d,
+                                                          ref_var_regions_index_d, full_order)
 
         # extract conserved regions
-        cons_regions_dct[code] = get_cons_regions(prot_align_d, start_region, end_region)
+        cons_regions_dct[code] = get_cons_regions(prot_align_d, start_region, end_region, ref_cons_regions_index_d)
         # cons_regions_dct[code] = find_cons_regions(prot_seq)
 
         # extract variable regions
-        var_regions_dct[code] = get_var_regions(prot_align_d, start_region, end_region)
+        var_regions_dct[code] = get_var_regions(prot_align_d, start_region, end_region, ref_var_regions_index_d)
         # var_regions_dct[code] = find_var_regions(prot_seq)
-
+        print(cons_regions_dct)
+        print(var_regions_dct)
+        input("enter")
     # pad the variable regions with '-', to the longest sequence
     new_var_regions_dct = pad_var_region_to_longest(var_regions_dct)
 
@@ -802,7 +823,7 @@ def main(infile, ref, outpath, name):
                 var_prot_d[region][seq_code] = seq
 
     # join the different variable and conserved regions together in the right order
-    joined_regions_d = join_regions(align_cons_prot_d, var_prot_d)
+    joined_regions_d = join_regions(align_cons_prot_d, var_prot_d, full_order)
 
     # back-translate the protein alignment to a dna alignment
     dna_aligned = backtranslate(padded_seq_dict, joined_regions_d)
@@ -829,11 +850,15 @@ if __name__ == "__main__":
                         help='The path for the output file', required=True)
     parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=str,
                         help='The name for the output file', required=True)
+    parser.add_argument('-g', '--gene', default="ENV", type=str,
+                        help='The name for the gene region (GAG, POL, PRO, RT, RNASE, INT, ENV, GP120, GP41, NEF, VIF, '
+                             'VPR, REV, VPU)', required=False)
 
     args = parser.parse_args()
     infile = args.infile
     ref = args.ref
     outpath = args.outpath
     name = args.name
+    gene = args.gene
 
-    main(infile, ref, outpath, name)
+    main(infile, ref, outpath, name, gene)
