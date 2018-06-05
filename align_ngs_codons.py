@@ -10,12 +10,9 @@ import random
 import string
 import subprocess
 from subprocess import DEVNULL
-from skbio.alignment import local_pairwise_align_ssw
-# from skbio.alignment import StripedSmithWaterman
-from skbio import DNA
-from skbio import Protein
+import regex
 import seqanpy
-from Bio import pairwise2
+
 
 __author__ = 'Colin Anthony'
 
@@ -54,6 +51,25 @@ def fasta_to_dct(file_name):
     return dct
 
 
+def fasta_to_dct_keep_gap(file_name):
+    """
+    :param file_name: The fasta formatted file to read from.
+    :return: a dictionary of the contents of the file name given. Dictionary in the format:
+    {sequence_id: sequence_string, id_2: sequence_2, etc.}
+    """
+    dct = collections.defaultdict(str)
+    my_gen = py3_fasta_iter(file_name)
+    for k, v in my_gen:
+        v = v
+        new_key = k.replace(" ", "_")
+        if new_key in dct.keys():
+            print("Duplicate sequence ids found. Exiting")
+            raise KeyError("Duplicate sequence ids found")
+        dct[new_key] = v.upper()
+
+    return dct
+
+
 def fasta_to_dct_rev(file_name):
     """
     :param file_name: The fasta formatted file to read from.
@@ -72,7 +88,7 @@ def fasta_to_dct_rev(file_name):
     return dct
 
 
-def pairwise_align_dna(sequence, reference, ref_type):
+def pairwise_align_dna(sequence, reference, regex_complied):
     """
     Pairwise align sequence to reference, to find reading frame and frame-shift in/dels
     :param sequence: (str) a query DNA sequence
@@ -80,91 +96,168 @@ def pairwise_align_dna(sequence, reference, ref_type):
     :return: (str) aligned query sequence, (str) aligned ref sequence, (int) reading frame for query sequence
     """
 
-    # reference = consensus of subtype C
-    overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-3, score_gapext=-2,
-                                    score_gapopen=-10)
+    # do overlap pairwise alignment to not get truncated query sequence
+    overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-1, score_gapext=-2,
+                                    score_gapopen=-15)
     overlap = list(overlap)
-    print(overlap)
-    seq_align = overlap[1] #.replace(" ", "-")
-    ref_align = overlap[2] #.replace(" ", "-")
-    print(">sqseq\n{}\n".format(seq_align))
-    print(">sqref\n{}\n".format(ref_align))
 
-    start_end_positions = [(0, ), (0, )]
-    # # biopython pairwise (scoring: match,  miss-match, gap open, gap extend)
-    alignment = pairwise2.align.localms(sequence, reference, 3, -1, -8, -2)
-    start_end_positions = [(0, alignment[0][4]), (alignment[0][3], alignment[0][4])]
+    seq_align = overlap[1]
+    ref_align = overlap[2]
+    # print(">sqseq1\n{}\n".format(seq_align))
+    # print(">sqref1\n{}\n".format(ref_align))
 
-    seq_align = str(alignment[0][0])
-    ref_align = str(alignment[0][1])
+    # get start position in the seq, if not starting at index 0
+    if seq_align[0] == '-':
+        seq_start = regex_complied.search(seq_align).end()
+    else:
+        seq_start = 0
 
-    # alignment, score, start_end_positions = local_pairwise_align_ssw(DNA(sequence), DNA(reference), gap_open_penalty=8,
-    #                                                                  gap_extend_penalty=2, match_score=3,
-    #                                                                  mismatch_score=-1, substitution_matrix=None)
-    # get the query and ref aligned seqs
-    # seq_align = str(alignment[0])
-    # ref_align = str(alignment[1])
-    # print(">aligned\n{1}".format(name, seq_align))
-    # print(">ref\n{}".format(ref_align))
-    input("enter")
-    # get start position for reference and query
-    ref_start = start_end_positions[1][0]
-    seq_start = start_end_positions[0][0]
+    # get end position in the seq, if not starting at index 0
+    len_seq_align = len(seq_align)
+    if seq_align[-1] == '-':
+        # reverse the string and find first non-gap character, mult match.end by -1 to get non-reversed index
+        seq_end = (regex_complied.search(seq_align[::-1]).end()) * -1
+    else:
+        seq_end = -1
 
-    # calculate reading frame (reference must start in frame 1)
-    frame = (ref_start - seq_start) % 3
+    # ref start will be 0 for align_overlap
+    ref_start = 0
+    # len of seq_align and ref_align are the same for align_overlap
+    ref_end = len_seq_align
 
-    # report align start pos if alignment starts after query seq start
-    if start_end_positions[0][0] != 0:
-        print("  seq    ,    ref")
-        print("start/end, start/end")
-        print(start_end_positions)
-        sys.exit("Preliminary alignment issue\nQuery sequence was truncated during alignment\nExiting")
+    start_end_positions = [(seq_start, seq_end), (ref_start, ref_end)]
+
+    # calculate reading frame (reference must start in frame 0)
+    frame = (seq_start - ref_start) % 3
+
+    # truncate the overlap alignment to the region of interest
+    seq_align = seq_align[seq_start:seq_end]
+    ref_align = ref_align[seq_start:seq_end]
+    # print(">sqseq2\n{}\n".format(seq_align))
+    # print(">sqref2\n{}\n".format(ref_align))
 
     return seq_align, ref_align, frame
 
 
-def gap_padding(seq_align, ref_align, frame, sequence):
+def gap_padding(seq_align, ref_align, frame, regex_complied_2):
     """
     pads sequence with gaps for indels and to set reading frame to frame 1
     :param seq_align: (str) an aligned query sequence
     :param ref_align: (str) the corresponding aligned reference sequence
     :param frame: (int) the reading frame for the query sequence
-    :param sequence: (str) the un-aligned query sequence
     :return: (str) a gap-padded query sequence to correct for indels and set reading frame to frame 1
     """
     # convert query seq to list to allow mutability
-    new_seq = list(sequence)
+    new_seq = list(seq_align)
+    indel_gap_fix_master = []
 
-    # find frame shirt deletions (gap in query)
-    for i in range(frame, len(seq_align)):
-        if seq_align[i] == "-" and i > 2:
-            if seq_align[i + 1] != "-" and seq_align[i - 1] != "-":
-                new_seq.insert(i, "-")
+    # get index and len of all del gaps to fix (gaps in query)
+    all_gap_positions_seq = regex_complied_2.finditer(seq_align)
 
-    # find frame shirt insertions (gap in reference)
-    for i in range(frame, len(ref_align)):
-        if ref_align[i] == "-":
-            if ref_align[i + 1] != "-" and ref_align[i - 1] != "-":
-                gap_frame = i % 3
-                if gap_frame == 0:
-                    new_seq.insert(i + 1, "--")
-                if gap_frame == 1:
-                    new_seq.insert(i + 3, "--")
-                if gap_frame == 2:
-                    new_seq.insert(i + 2, "--")
+    for gap_obj in all_gap_positions_seq:
+        gap_start = gap_obj.start()
+        gap_end = gap_obj.end()
+        gap = gap_obj.captures()[0]
+        gap_len = len(gap)
+        gap_shift = gap_len % 3
+        if gap_shift == 1:
+            # changed this from 2 to 1 testing
+            new_gap = "-" * 1
+        elif gap_shift == 2:
+            # changed this from 1 to 2 testing
+            new_gap = "-" * 2
+        else:
+            new_gap = ""
+
+        gap_len_in_seq = gap_len
+        indel_gap_fix_master.append((gap_start, gap_len_in_seq, new_gap))
+
+    # get index and len of all ins gaps to fix (gaps in ref)
+    all_gap_positions_ref = regex_complied_2.finditer(ref_align)
+
+    for gap_obj in all_gap_positions_ref:
+        gap_start = gap_obj.start()
+        gap_end = gap_obj.end()
+        gap = gap_obj.captures()[0]
+        gap_len = len(gap)
+        gap_shift = gap_len % 3
+        if gap_shift == 1:
+            new_gap = "-" * 2
+        elif gap_shift == 2:
+            new_gap = "-" * 1
+        else:
+            new_gap = ""
+        if new_gap != "":
+            gap_len_in_seq = 0
+            indel_gap_fix_master.append((gap_start, gap_len_in_seq, new_gap))
+
+    # sort the list of all gaps to insert by gap start pos
+    indel_gap_fix_master = sorted(indel_gap_fix_master)
+    # print(indel_gap_fix_master)
+
+    # fix all gaps in order
+    index_adjust = 0
+    for gap_tuple in indel_gap_fix_master:
+        # print("index", gap_tuple[0])
+        idx = gap_tuple[0] + index_adjust
+        # print("new index", idx)
+        new_gap = gap_tuple[2]
+        new_gap_len = len(new_gap)
+        old_gap_len = gap_tuple[1]
+        if old_gap_len == new_gap_len:
+            continue
+        if new_gap == "":
+            to_remove = new_seq[idx:(idx + old_gap_len)]
+            # remove unnecessary gap, gap len multiple of 3
+            # print("old gap :", old_gap_len)
+            # print("removing:", to_remove)
+            del new_seq[idx:(idx + old_gap_len)]
+            index_adjust -= old_gap_len
+
+        elif old_gap_len == 0:
+            # add gap for frame-shift insertion
+            # print("inerting:", new_gap)
+
+            if new_gap_len == 1:
+                # todo: should this be "idx+2" as well??
+                new_seq.insert(idx, new_gap)
+                index_adjust += 1
+            elif new_gap_len == 2:
+                new_seq.insert(idx+2, new_gap)
+                index_adjust += 1
+                # index_adjust += len(new_gap) -1
+
+        else:
+            # add gap for frame-shift deletion
+            if old_gap_len == 1:
+                # print("inerting:", new_gap)
+                new_seq.insert(idx, new_gap)
+                index_adjust += 1
+            else:
+                gap_change = old_gap_len - new_gap_len
+                # print("old gap", old_gap_len)
+                # print("truncating:", new_seq[idx:(idx + gap_change)])
+                del new_seq[idx:(idx + gap_change)]
+                if old_gap_len > new_gap_len:
+                    index_adjust -= gap_change
+                else:
+                    index_adjust += gap_change
+
+        # print("inx_adj :", index_adjust)
 
     # pad query to be in reading frame 1
-    if frame != 3:
+    if frame != 0:
         lead_gap = "-" * frame
         new_seq.insert(0, lead_gap)
 
     # convert to string and return
     new_seq = "".join(new_seq)
-    print(frame)
-    print(">input\n{1}".format(name, seq_align))
-    print(">padded\n{1}".format(name, new_seq))
-    input("enter")
+
+    # print(frame)
+    # print(">input\n{1}".format(name, seq_align))
+    # print(">ref\n{1}".format(name, ref_align))
+    # print(">padded\n{1}".format(name, new_seq))
+
     return "".join(new_seq)
 
 
@@ -220,7 +313,7 @@ def posnumcalc(hxb2seq, start):
     m = len(hxb2seq) - 1
     for i, resi in enumerate(hxb2seq):
         if i == 0 and resi == '-':
-            print("Can't start numbering. HXB2 starts with a gap. Use a longer HXB2 sequence for the numbering")
+            print("Can't start numbering. HXB2 starts with a gap. Use a longer HXB2 sequence for the numbering", hxb2seq)
         if i != m:
             if resi != '-' and hxb2seq[i + 1] != '-':
                 pos_num.append(n)
@@ -247,97 +340,47 @@ def posnumcalc(hxb2seq, start):
     return pos_num
 
 
-def prot_pairwise_align(prot_sequence, ref_prot):
+def prot_pairwise_align(prot_sequence, ref_prot, regex_complied):
     """
     function to pairwise align protein sequence to ref
     :param prot_sequence: (str) a protein query sequence
     :return: (dict) dict of cons regions, (dict) dict of var regions
     """
-    blosum62 = {
-        'A': {'A': 4, 'R': -1, 'N': -2, 'D': -2, 'C': 0, 'Q': -1, 'E': -1, 'G': 0, 'H': -2, 'I': -1, 'L': -1, 'K': -1,
-              'M': -1, 'F': -2, 'P': -1, 'S': 1, 'T': 0, 'W': -3, 'Y': -2, 'V': 0, 'B': -2, 'Z': -1, 'X': 0, '*': -4},
-        'R': {'A': -1, 'R': 5, 'N': 0, 'D': -2, 'C': -3, 'Q': 1, 'E': 0, 'G': -2, 'H': 0, 'I': -3, 'L': -2, 'K': 2,
-              'M': -1, 'F': -3, 'P': -2, 'S': -1, 'T': -1, 'W': -3, 'Y': -2, 'V': -3, 'B': -1, 'Z': 0, 'X': -1,
-              '*': -4},
-        'N': {'A': -2, 'R': 0, 'N': 6, 'D': 1, 'C': -3, 'Q': 0, 'E': 0, 'G': 0, 'H': 1, 'I': -3, 'L': -3, 'K': 0,
-              'M': -2, 'F': -3, 'P': -2, 'S': 1, 'T': 0, 'W': -4, 'Y': -2, 'V': -3, 'B': 3, 'Z': 0, 'X': -1, '*': -4},
-        'D': {'A': -2, 'R': -2, 'N': 1, 'D': 6, 'C': -3, 'Q': 0, 'E': 2, 'G': -1, 'H': -1, 'I': -3, 'L': -4, 'K': -1,
-              'M': -3, 'F': -3, 'P': -1, 'S': 0, 'T': -1, 'W': -4, 'Y': -3, 'V': -3, 'B': 4, 'Z': 1, 'X': -1, '*': -4},
-        'C': {'A': 0, 'R': -3, 'N': -3, 'D': -3, 'C': 9, 'Q': -3, 'E': -4, 'G': -3, 'H': -3, 'I': -1, 'L': -1, 'K': -3,
-              'M': -1, 'F': -2, 'P': -3, 'S': -1, 'T': -1, 'W': -2, 'Y': -2, 'V': -1, 'B': -3, 'Z': -3, 'X': -2,
-              '*': -4},
-        'Q': {'A': -1, 'R': 1, 'N': 0, 'D': 0, 'C': -3, 'Q': 5, 'E': 2, 'G': -2, 'H': 0, 'I': -3, 'L': -2, 'K': 1,
-              'M': 0, 'F': -3, 'P': -1, 'S': 0, 'T': -1, 'W': -2, 'Y': -1, 'V': -2, 'B': 0, 'Z': 3, 'X': -1, '*': -4},
-        'E': {'A': -1, 'R': 0, 'N': 0, 'D': 2, 'C': -4, 'Q': 2, 'E': 5, 'G': -2, 'H': 0, 'I': -3, 'L': -3, 'K': 1,
-              'M': -2, 'F': -3, 'P': -1, 'S': 0, 'T': -1, 'W': -3, 'Y': -2, 'V': -2, 'B': 1, 'Z': 4, 'X': -1, '*': -4},
-        'G': {'A': 0, 'R': -2, 'N': 0, 'D': -1, 'C': -3, 'Q': -2, 'E': -2, 'G': 6, 'H': -2, 'I': -4, 'L': -4, 'K': -2,
-              'M': -3, 'F': -3, 'P': -2, 'S': 0, 'T': -2, 'W': -2, 'Y': -3, 'V': -3, 'B': -1, 'Z': -2, 'X': -1,
-              '*': -4},
-        'H': {'A': -2, 'R': 0, 'N': 1, 'D': -1, 'C': -3, 'Q': 0, 'E': 0, 'G': -2, 'H': 8, 'I': -3, 'L': -3, 'K': -1,
-              'M': -2, 'F': -1, 'P': -2, 'S': -1, 'T': -2, 'W': -2, 'Y': 2, 'V': -3, 'B': 0, 'Z': 0, 'X': -1, '*': -4},
-        'I': {'A': -1, 'R': -3, 'N': -3, 'D': -3, 'C': -1, 'Q': -3, 'E': -3, 'G': -4, 'H': -3, 'I': 4, 'L': 2, 'K': -3,
-              'M': 1, 'F': 0, 'P': -3, 'S': -2, 'T': -1, 'W': -3, 'Y': -1, 'V': 3, 'B': -3, 'Z': -3, 'X': -1, '*': -4},
-        'L': {'A': -1, 'R': -2, 'N': -3, 'D': -4, 'C': -1, 'Q': -2, 'E': -3, 'G': -4, 'H': -3, 'I': 2, 'L': 4, 'K': -2,
-              'M': 2, 'F': 0, 'P': -3, 'S': -2, 'T': -1, 'W': -2, 'Y': -1, 'V': 1, 'B': -4, 'Z': -3, 'X': -1, '*': -4},
-        'K': {'A': -1, 'R': 2, 'N': 0, 'D': -1, 'C': -3, 'Q': 1, 'E': 1, 'G': -2, 'H': -1, 'I': -3, 'L': -2, 'K': 5,
-              'M': -1, 'F': -3, 'P': -1, 'S': 0, 'T': -1, 'W': -3, 'Y': -2, 'V': -2, 'B': 0, 'Z': 1, 'X': -1, '*': -4},
-        'M': {'A': -1, 'R': -1, 'N': -2, 'D': -3, 'C': -1, 'Q': 0, 'E': -2, 'G': -3, 'H': -2, 'I': 1, 'L': 2, 'K': -1,
-              'M': 5, 'F': 0, 'P': -2, 'S': -1, 'T': -1, 'W': -1, 'Y': -1, 'V': 1, 'B': -3, 'Z': -1, 'X': -1, '*': -4},
-        'F': {'A': -2, 'R': -3, 'N': -3, 'D': -3, 'C': -2, 'Q': -3, 'E': -3, 'G': -3, 'H': -1, 'I': 0, 'L': 0, 'K': -3,
-              'M': 0, 'F': 6, 'P': -4, 'S': -2, 'T': -2, 'W': 1, 'Y': 3, 'V': -1, 'B': -3, 'Z': -3, 'X': -1, '*': -4},
-        'P': {'A': -1, 'R': -2, 'N': -2, 'D': -1, 'C': -3, 'Q': -1, 'E': -1, 'G': -2, 'H': -2, 'I': -3, 'L': -3,
-              'K': -1, 'M': -2, 'F': -4, 'P': 7, 'S': -1, 'T': -1, 'W': -4, 'Y': -3, 'V': -2, 'B': -2, 'Z': -1, 'X': -2,
-              '*': -4},
-        'S': {'A': 1, 'R': -1, 'N': 1, 'D': 0, 'C': -1, 'Q': 0, 'E': 0, 'G': 0, 'H': -1, 'I': -2, 'L': -2, 'K': 0,
-              'M': -1, 'F': -2, 'P': -1, 'S': 4, 'T': 1, 'W': -3, 'Y': -2, 'V': -2, 'B': 0, 'Z': 0, 'X': 0, '*': -4},
-        'T': {'A': 0, 'R': -1, 'N': 0, 'D': -1, 'C': -1, 'Q': -1, 'E': -1, 'G': -2, 'H': -2, 'I': -1, 'L': -1, 'K': -1,
-              'M': -1, 'F': -2, 'P': -1, 'S': 1, 'T': 5, 'W': -2, 'Y': -2, 'V': 0, 'B': -1, 'Z': -1, 'X': 0, '*': -4},
-        'W': {'A': -3, 'R': -3, 'N': -4, 'D': -4, 'C': -2, 'Q': -2, 'E': -3, 'G': -2, 'H': -2, 'I': -3, 'L': -2,
-              'K': -3, 'M': -1, 'F': 1, 'P': -4, 'S': -3, 'T': -2, 'W': 11, 'Y': 2, 'V': -3, 'B': -4, 'Z': -3, 'X': -2,
-              '*': -4},
-        'Y': {'A': -2, 'R': -2, 'N': -2, 'D': -3, 'C': -2, 'Q': -1, 'E': -2, 'G': -3, 'H': 2, 'I': -1, 'L': -1, 'K': -2,
-              'M': -1, 'F': 3, 'P': -3, 'S': -2, 'T': -2, 'W': 2, 'Y': 7, 'V': -1, 'B': -3, 'Z': -2, 'X': -1, '*': -4},
-        'V': {'A': 0, 'R': -3, 'N': -3, 'D': -3, 'C': -1, 'Q': -2, 'E': -2, 'G': -3, 'H': -3, 'I': 3, 'L': 1, 'K': -2,
-              'M': 1, 'F': -1, 'P': -2, 'S': -2, 'T': 0, 'W': -3, 'Y': -1, 'V': 4, 'B': -3, 'Z': -2, 'X': -1, '*': -4},
-        'B': {'A': -2, 'R': -1, 'N': 3, 'D': 4, 'C': -3, 'Q': 0, 'E': 1, 'G': -1, 'H': 0, 'I': -3, 'L': -4, 'K': 0,
-              'M': -3, 'F': -3, 'P': -2, 'S': 0, 'T': -1, 'W': -4, 'Y': -3, 'V': -3, 'B': 4, 'Z': 1, 'X': -1, '*': -4},
-        'Z': {'A': -1, 'R': 0, 'N': 0, 'D': 1, 'C': -3, 'Q': 3, 'E': 4, 'G': -2, 'H': 0, 'I': -3, 'L': -3, 'K': 1,
-              'M': -1, 'F': -3, 'P': -1, 'S': 0, 'T': -1, 'W': -3, 'Y': -2, 'V': -2, 'B': 1, 'Z': 4, 'X': -1, '*': -4},
-        'X': {'A': 0, 'R': 0, 'N': 0, 'D': -1, 'C': 0, 'Q': 0, 'E': 0, 'G': 0, 'H': 0, 'I': 0, 'L': 0, 'K': 0,
-              'M': 0, 'F': 0, 'P': 0, 'S': 0, 'T': 0, 'W': 0, 'Y': 0, 'V': 0, 'B': 0, 'Z': 0, 'X': 0, '*': 0},
-        '*': {'A': -4, 'R': -4, 'N': -4, 'D': -4, 'C': -4, 'Q': -4, 'E': -4, 'G': -4, 'H': -4, 'I': -4, 'L': -4,
-              'K': -4, 'M': -4, 'F': -4, 'P': -4, 'S': -4, 'T': -4, 'W': -4, 'Y': -4, 'V': -4, 'B': -4, 'Z': -4,
-              'X': -4, '*': 1},
-        '-': {'A': -4, 'R': -4, 'N': -4, 'D': -4, 'C': -4, 'Q': -4, 'E': -4, 'G': -4, 'H': -4, 'I': -4, 'L': -4,
-              'K': -4, 'M': -4, 'F': -4, 'P': -4, 'S': -4, 'T': -4, 'W': -4, 'Y': -4, 'V': -4, 'B': -4, 'Z': -4,
-              'X': -4, '*': 1}
-    }
-    # # biopython pairwise (scoring: match,  miss-match, gap open, gap extend)
-    alignment = pairwise2.align.localms(prot_sequence, ref_prot, 3, -1, -8, -2)
-    start_end_positions = [(0, alignment[0][4]), (alignment[0][3], alignment[0][4])]
 
-    seq_align = str(alignment[0][0])
-    ref_align = str(alignment[0][1])
-    # print(">bio pw\n{}".format(seq_align))
-    # print(">bio pw ref\n{}".format(ref_align))
+    overlap = seqanpy.align_overlap(prot_sequence, ref_prot, band=-1, score_match=4, score_mismatch=-1, score_gapext=-2,
+                                    score_gapopen=-15)
+    overlap = list(overlap)
 
-    # alignment, score, start_end_positions = local_pairwise_align_ssw(Protein(prot_sequence), Protein(ref_prot),
-    #                                                                  gap_open_penalty=6, gap_extend_penalty=2,
-    #                                                                  match_score=4, mismatch_score=-1.5,
-    #                                                                  substitution_matrix=blosum62)
+    seq_align = overlap[1]
+    ref_align = overlap[2]
+    # print(">seq_align\n{}".format(seq_align))
+    # print(">ref_align\n{}".format(ref_align))
+    # input("enter")
+    if seq_align[0] == '-':
+        seq_start = regex_complied.search(seq_align).end()
+    else:
+        seq_start = 0
 
-    # get the query and ref aligned seqs
-    # seq_align = str(alignment[0])
-    # ref_align = str(alignment[1])
+    # get end position in the seq, if not starting at index 0
+    len_seq_align = len(seq_align)
+    if seq_align[-1] == '-':
+        seq_end = (regex_complied.search(seq_align[::-1]).end()) * -1
 
-    # print(start_end_positions)
-    # print("local pw")
-    # print(">sk pw\n{}".format(seq_align))
-    # print(">sk pw ref\n{}".format(ref_align))
+    else:
+        seq_end = -1
+
+    ref_start = 0
+    # len of seq_align and ref_align are the same for align_overlap
+    ref_end = len_seq_align
+
+    seq_align_new = seq_align[seq_start:seq_end]
+    ref_align_new = ref_align[seq_start:seq_end]
+
+    start_end_positions = [(seq_start, seq_end), (seq_start, seq_end)]
 
     alignment_d = {"inseq": prot_sequence,
-                   "query": seq_align,
-                   "reference": ref_align,
+                   "query": seq_align_new,
+                   "reference": ref_align_new,
                    "start_end_positions": start_end_positions,
                    }
 
@@ -346,20 +389,20 @@ def prot_pairwise_align(prot_sequence, ref_prot):
 
 def set_cons_var_regions():
     """
-
+    contains the coordinates for the start and end of each conserved and variable region
     :return:
     """
     ref_cons_regions_index_d = {"C1": (0, 131),
-                                "C2": (155, 184),
-                                "C3": (190, 390),
-                                "C4": (413, 460),
-                                "C5": (466, 856),
+                                "C2": (149, 177),
+                                "C3": (186, 383),
+                                "C4": (394, 441),
+                                "C5": (448, 856),
                                 }
 
-    ref_var_regions_index_d = {"V1": (131, 155),
-                               "V2": (184, 190),
-                               "V3": (390, 413),
-                               "V4": (460, 466),
+    ref_var_regions_index_d = {"V1": (131, 149),
+                               "V2": (177, 186),
+                               "V3": (383, 394),
+                               "V4": (441, 448),
                                }
 
     full_order = ["C1", "V1", "C2", "V2", "C3", "V3", "C4", "V4", "C5"]
@@ -380,7 +423,7 @@ def find_start_end_regions(alignment_d, ref_cons_regions_index_d, ref_var_region
     ref_start = alignment_d["start_end_positions"][1][0]
 
     # get hxb2 numbering
-    hxb2_numbering = posnumcalc(ref_align, ref_start)
+    ref_numbering = posnumcalc(ref_align, ref_start)
 
     cons_region_list = []
     var_region_list = []
@@ -388,7 +431,7 @@ def find_start_end_regions(alignment_d, ref_cons_regions_index_d, ref_var_region
     for cons_region, index_tup in ref_cons_regions_index_d.items():
         start = index_tup[0]
         end = index_tup[1]
-        if start in hxb2_numbering or end in hxb2_numbering:
+        if start in ref_numbering or end in ref_numbering:
             cons_region_list.append(cons_region)
         else:
             print("{} region not present".format(cons_region))
@@ -396,7 +439,7 @@ def find_start_end_regions(alignment_d, ref_cons_regions_index_d, ref_var_region
     for var_region, index_tup in ref_var_regions_index_d.items():
         start = index_tup[0]
         end = index_tup[1]
-        if start in hxb2_numbering or end in hxb2_numbering:
+        if start in ref_numbering or end in ref_numbering:
             var_region_list.append(var_region)
         else:
             print("{} region not present".format(var_region))
@@ -469,20 +512,6 @@ def get_cons_regions(prot_align_d, start_reg, end_reg, ref_cons_regions_index_d)
 
         else:
             print("{} region not present".format(cons_region))
-
-        if seq_start > 0:
-            slice_to_add_to_start = unaligned_seq[:seq_start]
-            # get start region
-            if cons_region == start_reg:
-                new_seq = slice_to_add_to_start + cons_d[start_reg]
-                cons_d[start_reg] = new_seq
-
-        if seq_end < seq_len -1:
-            slice_to_add_to_end = unaligned_seq[seq_end + 1:]
-            # get end region
-            if cons_region == end_reg:
-                new_seq = cons_d[end_reg] + slice_to_add_to_end
-                cons_d[end_reg] = new_seq
 
     return cons_d
 
@@ -567,7 +596,7 @@ def write_regions_to_file(region_dict, path_for_tmp_file):
 
     # catch error when only 1 sequence is present
     if len(region_dict.keys()) < 2:
-        sys.exit("must have more than 2 sequences to align\nexiting")
+        sys.exit("must have more than 1 sequence to align\nexiting")
 
     for seq_code, region_d in region_dict.items():
         for region, seq in region_d.items():
@@ -597,7 +626,7 @@ def call_aligner(file_names):
         outfile = file.replace(".fasta", "_aligned.fasta")
         cmd = "mafft {0} > {1}".format(file, outfile)
         subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
-        aligned_region_d = fasta_to_dct(outfile)
+        aligned_region_d = fasta_to_dct_keep_gap(outfile)
         os.unlink(file)
         os.unlink(outfile)
         region_aligned_d[region].update(aligned_region_d)
@@ -721,15 +750,15 @@ def backtranslate(padded_dna_d, prot_align_d):
     return dna_align_d
 
 
-def main(infile, ref, outpath, name, gene):
-    # ToDo: make this an arg?
-    align_var_regions = False
+def main(infile, ref, outpath, name, gene, var_align):
 
     # get absolute paths
     infile = os.path.abspath(infile)
     outpath = os.path.abspath(outpath)
-    name = name + "_aligned.fasta"
-    outfile = os.path.join(outpath, name)
+    out_name = name + "_aligned.fasta"
+    bad_name = name + "_NOT_aligned.fasta"
+    outfile = os.path.join(outpath, out_name)
+    badfile = os.path.join(outpath, bad_name)
 
     # get the reference sequence or HXB2 if not specified and the HXB2 prot sequence for the gene numbering
     if not ref:
@@ -759,6 +788,7 @@ def main(infile, ref, outpath, name, gene):
         # hxb2_dna_ref = hxb2_seqs[gene_region]
         # ref_prot_seq = translate_dna(hxb2_dna_ref.replace("-", ""))
         ref_prot_seq = translate_dna(reference.replace("-", ""))
+
     # read in fasta file and reference
     in_seqs_d = fasta_to_dct_rev(infile)
 
@@ -776,34 +806,42 @@ def main(infile, ref, outpath, name, gene):
 
     # set the cons and var regions
     ref_cons_regions_index_d, ref_var_regions_index_d, full_order = set_cons_var_regions()
+    regex_complied_1 = regex.compile(r'(^[-]*)', regex.V1)
+    regex_complied_2 = regex.compile(r'([-]+)', regex.V1)
+    # open file for sequences that could not be properly translated (hence codon aligned)
+    with open(badfile, 'w') as handle:
+        for seq, code in first_seq_code_d.items():
+            # get pairwise alignment for query to reference
+            seq_align, ref_align, frame = pairwise_align_dna(seq, reference, regex_complied_1)
+            # correct for reading frame and indels
+            padded_sequence = gap_padding(seq_align, ref_align, frame, regex_complied_2)
+            padded_seq_dict[code] = padded_sequence
 
-    for seq, code in first_seq_code_d.items():
-        # get pairwise alignment for query to reference
-        seq_align, ref_align, frame = pairwise_align_dna(seq, reference,ref_type)
-        # correct for reading frame and indels
-        padded_sequence = gap_padding(seq_align, ref_align, frame, seq)
-        padded_seq_dict[code] = padded_sequence
+            # translate query
+            prot_seq = translate_dna(padded_sequence)
+            # if the seq could not be translated, write to file and skip
+            if prot_seq.count("*") > 2:
+                print("error in getting seq into frame", prot_seq)
+                names_list = first_look_up_d[code]
+                # del first_look_up_d[code]
+                del padded_seq_dict[code]
+                for name_bad in names_list:
+                    handle.write(">{0}\n{1}\n".format(name_bad, seq))
+                continue
 
-        # translate query
-        prot_seq = translate_dna(padded_sequence)
+            # get prot pairwise alignment
+            prot_align_d = prot_pairwise_align(prot_seq, ref_prot_seq, regex_complied_1)
 
-        # get prot pairwise alignment
-        prot_align_d = prot_pairwise_align(prot_seq, ref_prot_seq)
+            # get start and end regions
+            start_region, end_region = find_start_end_regions(prot_align_d, ref_cons_regions_index_d,
+                                                              ref_var_regions_index_d, full_order)
 
-        # get start and end regions
-        start_region, end_region = find_start_end_regions(prot_align_d, ref_cons_regions_index_d,
-                                                          ref_var_regions_index_d, full_order)
+            # extract conserved regions
+            cons_regions_dct[code] = get_cons_regions(prot_align_d, start_region, end_region, ref_cons_regions_index_d)
 
-        # extract conserved regions
-        cons_regions_dct[code] = get_cons_regions(prot_align_d, start_region, end_region, ref_cons_regions_index_d)
-        # cons_regions_dct[code] = find_cons_regions(prot_seq)
+            # extract variable regions
+            var_regions_dct[code] = get_var_regions(prot_align_d, start_region, end_region, ref_var_regions_index_d)
 
-        # extract variable regions
-        var_regions_dct[code] = get_var_regions(prot_align_d, start_region, end_region, ref_var_regions_index_d)
-        # var_regions_dct[code] = find_var_regions(prot_seq)
-        print(cons_regions_dct)
-        print(var_regions_dct)
-        input("enter")
     # pad the variable regions with '-', to the longest sequence
     new_var_regions_dct = pad_var_region_to_longest(var_regions_dct)
 
@@ -811,10 +849,10 @@ def main(infile, ref, outpath, name, gene):
     tmp_cons_file_to_align = write_regions_to_file(cons_regions_dct, outpath)
     align_cons_prot_d = call_aligner(tmp_cons_file_to_align)
 
-    # write the collected conserved regions to file and align (optional)
-    if align_var_regions:
+    # write the collected variable regions to file and align (optional)
+    if var_align:
         tmp_var_file_to_align = write_regions_to_file(new_var_regions_dct, outpath)
-        var_prot_d = call_aligner(tmp_cons_file_to_align)
+        var_prot_d = call_aligner(tmp_var_file_to_align)
     else:
         # reformat dict for joining of regions
         var_prot_d = collections.defaultdict(dict)
@@ -853,6 +891,8 @@ if __name__ == "__main__":
     parser.add_argument('-g', '--gene', default="ENV", type=str,
                         help='The name for the gene region (GAG, POL, PRO, RT, RNASE, INT, ENV, GP120, GP41, NEF, VIF, '
                              'VPR, REV, VPU)', required=False)
+    parser.add_argument('-v', '--var_align', default=False, action="store_true",
+                        help='Align the variable regions as well. May produce messy alignment', required=False)
 
     args = parser.parse_args()
     infile = args.infile
@@ -860,5 +900,6 @@ if __name__ == "__main__":
     outpath = args.outpath
     name = args.name
     gene = args.gene
+    var_align = args.var_align
 
-    main(infile, ref, outpath, name, gene)
+    main(infile, ref, outpath, name, gene, var_align)
