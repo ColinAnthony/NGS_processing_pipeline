@@ -104,7 +104,7 @@ def pairwise_align_dna(sequence, reference, regex_complied):
 
     seq_align = overlap[1]
     ref_align = overlap[2]
-    # print(">sqseq1\n{}\n".format(seq_align))
+    # print(">sqseq1\n{}\n".format(seq_align[-5:]))
     # print(">sqref1\n{}\n".format(ref_align))
 
     # get start position in the seq, if not starting at index 0
@@ -118,7 +118,7 @@ def pairwise_align_dna(sequence, reference, regex_complied):
         # reverse the string and find first non-gap character, mult match.end by -1 to get non-reversed index
         seq_end = (regex_complied.search(seq_align[::-1]).end()) * -1
     else:
-        seq_end = -1
+        seq_end = None
 
     # ref start will be 0 for align_overlap
     ref_start = 0
@@ -129,7 +129,7 @@ def pairwise_align_dna(sequence, reference, regex_complied):
     # truncate the overlap alignment to the region of interest
     seq_align = seq_align[seq_start:seq_end]
     ref_align = ref_align[seq_start:seq_end]
-    # print(">sqseq2\n{}\n".format(seq_align))
+    # print(">sqseq2\n{}\n".format(seq_align[-5:]))
     # print(">sqref2\n{}\n".format(ref_align))
 
     return seq_align, ref_align, frame
@@ -247,10 +247,10 @@ def gap_padding(seq_align, ref_align, frame, regex_complied):
     # convert to string and return
     new_seq = "".join(new_seq)
 
-    # print(frame)
-    # print(">input\n{1}".format(name, seq_align))
-    # print(">ref\n{1}".format(name, ref_align))
-    # print(">padded\n{1}".format(name, new_seq))
+    if seq_align.replace("-", "") != new_seq.replace("-", ""):
+        print("somethig went wrong, input and padded sequences are different")
+        print(">input\n{1}".format(name, seq_align))
+        print(">padded\n{1}".format(name, new_seq))
 
     return "".join(new_seq)
 
@@ -290,6 +290,9 @@ def translate_dna(sequence):
             residue = "X"
 
         prot.append(residue)
+    # convert terminal stop codon to X so that it doesn't get truncated by mafft
+    if prot[-1] == "*":
+        prot[-1] = "X"
 
     return "".join(prot)
 
@@ -352,18 +355,19 @@ def prot_pairwise_align(prot_sequence, ref_prot, regex_complied):
     ref_align = overlap[2]
     # print(">seq_align\n{}".format(seq_align))
     # print(">ref_align\n{}".format(ref_align))
-    # input("enter")
+
     if seq_align[0] == '-':
         seq_start = regex_complied.search(seq_align).end()
     else:
         seq_start = 0
 
     # get end position in the seq, if not starting at index 0
-    if seq_align[-1] == '-':
-        seq_end = (regex_complied.search(seq_align[::-1]).end()) * -1
-
+    if seq_align[-1] == "X":
+        seq_end = None
+    elif seq_align[-1] == '-':
+        seq_end = (regex_complied.search(seq_align[::-1]).end()) * - 1
     else:
-        seq_end = -1
+        seq_end = - 1
 
     seq_align_new = seq_align[seq_start:seq_end]
     ref_align_new = ref_align[seq_start:seq_end]
@@ -375,6 +379,8 @@ def prot_pairwise_align(prot_sequence, ref_prot, regex_complied):
                    "reference": ref_align_new,
                    "start_end_positions": start_end_positions,
                    }
+    # print(">seq_align\n{}".format(seq_align_new[-5:]))
+    # print(">ref_align\n{}".format(ref_align_new))
 
     return alignment_d
 
@@ -387,33 +393,33 @@ def set_cons_var_regions(ref_type):
     """
     # todo: change this to read in from csv file and be accesable via gene region key
     if ref_type != "HXB2":
-        ref_cons_regions_index_d = {"C1": (0, 131),
-                                    "C2": (149, 177),
-                                    "C3": (186, 383),
-                                    "C4": (394, 441),
-                                    "C5": (448, 856),
+        ref_cons_regions_index_d = {"C1": (0, 130),
+                                    "C2": (146, 178),
+                                    "C3": (184, 386),
+                                    "C4": (391, 440),
+                                    "C5": (446, 844),
                                     }
 
-        ref_var_regions_index_d = {"V1": (131, 149),
-                                   "V2": (177, 186),
-                                   "V3": (383, 394),
-                                   "V4": (441, 448),
+        ref_var_regions_index_d = {"V1": (130, 146),
+                                   "V2": (178, 184),
+                                   "V3": (386, 391),
+                                   "V4": (440, 446),
                                    }
 
         full_order = ["C1", "V1", "C2", "V2", "C3", "V3", "C4", "V4", "C5"]
 
     else:
-        ref_cons_regions_index_d = {"C1": (0, 132),
-                                    "C2": (155, 183),
-                                    "C3": (192, 391),
-                                    "C4": (413, 460),
-                                    "C5": (467, 856),
+        ref_cons_regions_index_d = {"C1": (0, 131),
+                                    "C2": (152, 184),
+                                    "C3": (190, 394),
+                                    "C4": (410, 459),
+                                    "C5": (465, 856),
                                     }
 
-        ref_var_regions_index_d = {"V1": (132, 155),
-                                   "V2": (183, 192),
-                                   "V3": (391, 413),
-                                   "V4": (460, 467),
+        ref_var_regions_index_d = {"V1": (131, 152),
+                                   "V2": (184, 190),
+                                   "V3": (394, 410),
+                                   "V4": (459, 465),
                                    }
 
         full_order = ["C1", "V1", "C2", "V2", "C3", "V3", "C4", "V4", "C5"]
@@ -485,16 +491,9 @@ def get_cons_regions(prot_align_d, end_reg, ref_cons_regions_index_d):
     :param ref_cons_regions_index_d: (dict) of cons regions and their indexes in the reference prot seq
     :return: (dict) dict of cons regions
     """
-    # seq_start = prot_align_d["start_end_positions"][0][0]
     ref_start = prot_align_d["start_end_positions"][1][0]
-    # seq_end = prot_align_d["start_end_positions"][0][1]
-    # ref_end = prot_align_d["start_end_positions"][0][1]
-    # unaligned_seq = prot_align_d["inseq"]
     seq_align = prot_align_d["query"]
     ref_align = prot_align_d["reference"]
-
-    # get length of input sequence
-    # seq_len = len(prot_align_d["inseq"])
 
     # get hxb2 numbering
     ref_numbering = posnumcalc(ref_align, ref_start)
@@ -507,8 +506,8 @@ def get_cons_regions(prot_align_d, end_reg, ref_cons_regions_index_d):
         end = index_tup[1]
         if start in ref_numbering and end in ref_numbering:
             if cons_region == end_reg:
-                cons_region_slice = seq_align[ref_numbering.index(start):ref_numbering.index(end) + 1]
-                cons_d[cons_region] = cons_region_slice.replace("-", "")
+                cons_region_slice = seq_align[ref_numbering.index(start):]
+                cons_d[cons_region] = cons_region_slice
             else:
                 cons_region_slice = seq_align[ref_numbering.index(start):ref_numbering.index(end)]
                 cons_d[cons_region] = cons_region_slice.replace("-", "")
@@ -527,25 +526,17 @@ def get_cons_regions(prot_align_d, end_reg, ref_cons_regions_index_d):
     return cons_d
 
 
-def get_var_regions(prot_align_d, start_reg, end_reg, ref_var_regions_index_d):
+def get_var_regions(prot_align_d, end_reg, ref_var_regions_index_d):
     """
     function to extract conserved regions of a sequence (envelope)
     :param prot_align_d: (dict) dict of pairwise alignment object
-    :param start_reg: (str) start region key
     :param end_reg: (str) end region key
     :param ref_var_regions_index_d: (dict) of variable regions and their indexes in the reference prot seq
     :return: (dict) dict of var regions
     """
-
-    seq_start = prot_align_d["start_end_positions"][0][0]
     ref_start = prot_align_d["start_end_positions"][1][0]
-    seq_end = prot_align_d["start_end_positions"][0][1]
-    unaligned_seq = prot_align_d["inseq"]
     seq_align = prot_align_d["query"]
     ref_align = prot_align_d["reference"]
-
-    # get length of input sequence
-    seq_len = len(prot_align_d["inseq"])
 
     # get hxb2 numbering
     ref_numbering = posnumcalc(ref_align, ref_start)
@@ -557,8 +548,12 @@ def get_var_regions(prot_align_d, start_reg, end_reg, ref_var_regions_index_d):
         start = index_tup[0]
         end = index_tup[1]
         if start in ref_numbering and end in ref_numbering:
-            var_region_slice = seq_align[ref_numbering.index(start):ref_numbering.index(end)]
-            var_d[var_region] = var_region_slice.replace("-", "")
+            if var_region == end_reg:
+                var_region_slice = seq_align[ref_numbering.index(start):]
+                var_d[var_region] = var_region_slice
+            else:
+                var_region_slice = seq_align[ref_numbering.index(start):ref_numbering.index(end)]
+                var_d[var_region] = var_region_slice.replace("-", "")
 
         elif start not in ref_numbering and end in ref_numbering:
             var_region_slice = seq_align[:ref_numbering.index(end)]
@@ -569,22 +564,6 @@ def get_var_regions(prot_align_d, start_reg, end_reg, ref_var_regions_index_d):
             var_d[var_region] = var_region_slice.replace("-", "")
         else:
             print("{} region not present".format(var_region))
-
-        if seq_start > 0:
-            slice_to_add_to_start = unaligned_seq[:seq_start]
-
-            # get start region
-            if var_region == start_reg:
-                new_seq = slice_to_add_to_start + var_d[start_reg]
-                var_d[start_reg] = new_seq
-
-        if seq_end < seq_len - 1:
-            slice_to_add_to_end = unaligned_seq[seq_end + 1:]
-
-            # get end region
-            if var_region == end_reg:
-                new_seq = var_d[end_reg] + slice_to_add_to_end
-                var_d[end_reg] = new_seq
 
     return var_d
 
@@ -736,7 +715,7 @@ def join_regions(cons_regions, padded_var_regions, full_order):
 def backtranslate(padded_dna_d, prot_align_d):
     """
     function to backtranslate aligned protein sequence to aligned DNA sequence
-    :param padded_dna_d: (dict) of dna sequences in frame 1, with indels padded with gaps {code: padded_seq}
+    :param padded_dna_d: (dict) of gap padded dna sequences in frame 1, with indels padded with gaps {code: padded_seq}
     :param prot_align_d: (dict) of protein sequences {code: prot_seq}
     :return: (dict) of aligned dna sequences
     """
@@ -811,6 +790,7 @@ def main(infile, ref, outpath, name, gene, var_align):
         first_look_up_d[unique_id] = names_list
         first_seq_code_d[seq] = unique_id
 
+    # initialize dictionaries to collect cons and var regions and gap padded sequences
     cons_regions_dct = collections.defaultdict(dict)
     var_regions_dct = collections.defaultdict(dict)
     padded_seq_dict = collections.defaultdict(str)
@@ -819,6 +799,7 @@ def main(infile, ref, outpath, name, gene, var_align):
     ref_cons_regions_index_d, ref_var_regions_index_d, full_order = set_cons_var_regions(ref_type)
     regex_complied_1 = regex.compile(r'(^[-]*)', regex.V1)
     regex_complied_2 = regex.compile(r'([-]+)', regex.V1)
+
     # open file for sequences that could not be properly translated (hence codon aligned)
     with open(badfile, 'w') as handle:
         for seq, code in first_seq_code_d.items():
@@ -851,7 +832,7 @@ def main(infile, ref, outpath, name, gene, var_align):
             cons_regions_dct[code] = get_cons_regions(prot_align_d, end_region, ref_cons_regions_index_d)
 
             # extract variable regions
-            var_regions_dct[code] = get_var_regions(prot_align_d, start_region, end_region, ref_var_regions_index_d)
+            var_regions_dct[code] = get_var_regions(prot_align_d, end_region, ref_var_regions_index_d)
 
     # pad the variable regions with '-', to the longest sequence
     new_var_regions_dct = pad_var_region_to_longest(var_regions_dct)
@@ -884,7 +865,7 @@ def main(infile, ref, outpath, name, gene, var_align):
             for seq_name in names_list:
                 handle.write(">{0}\n{1}\n".format(seq_name, align_seq))
 
-    print("Aligning completed")
+    print("Codon aligning completed")
 
 
 if __name__ == "__main__":
