@@ -104,7 +104,7 @@ def pairwise_align_dna(sequence, reference, regex_complied):
 
     seq_align = overlap[1]
     ref_align = overlap[2]
-    # print(">sqseq1\n{}\n".format(seq_align[-5:]))
+    # print(">sqseq1\n{}\n".format(seq_align))
     # print(">sqref1\n{}\n".format(ref_align))
 
     # get start position in the seq, if not starting at index 0
@@ -129,9 +129,9 @@ def pairwise_align_dna(sequence, reference, regex_complied):
     # truncate the overlap alignment to the region of interest
     seq_align = seq_align[seq_start:seq_end]
     ref_align = ref_align[seq_start:seq_end]
-    # print(">sqseq2\n{}\n".format(seq_align[-5:]))
+    # print(">sqseq2\n{}\n".format(seq_align))
     # print(">sqref2\n{}\n".format(ref_align))
-
+    # input("enter")
     return seq_align, ref_align, frame
 
 
@@ -245,14 +245,14 @@ def gap_padding(seq_align, ref_align, frame, regex_complied):
         new_seq.insert(0, lead_gap)
 
     # convert to string and return
-    new_seq = "".join(new_seq)
-
-    if seq_align.replace("-", "") != new_seq.replace("-", ""):
+    padded_seq = "".join(new_seq)
+    # print(">padded\n{}".format(padded_seq))
+    if seq_align.replace("-", "") != padded_seq.replace("-", ""):
         print("somethig went wrong, input and padded sequences are different")
         print(">input\n{1}".format(name, seq_align))
-        print(">padded\n{1}".format(name, new_seq))
+        print(">padded\n{1}".format(name, padded_seq))
 
-    return "".join(new_seq)
+    return padded_seq
 
 
 def translate_dna(sequence):
@@ -295,47 +295,6 @@ def translate_dna(sequence):
         prot[-1] = "X"
 
     return "".join(prot)
-
-
-def posnumcalc(ref_seq, start):
-    """
-    Calculates the positional numbering relative to hxb2
-    :param ref_seq: (str) hxb2 protein sequence
-    :param start:  (int) start amino acid position for hxb2
-    :return: (list) list of position numbers [1, 2, 3, 4, 4.01, 4.02, 5]
-    """
-    pos_num = []
-    n = start
-    s = 0.01
-    m = len(ref_seq) - 1
-    for i, resi in enumerate(ref_seq):
-        if i == 0 and resi == '-':
-            print("Can't start numbering. The reference seq starts with a gap. Either your reference is truncated"
-                  "or there was an issue with the alignment", ref_seq)
-        if i != m:
-            if resi != '-' and ref_seq[i + 1] != '-':
-                pos_num.append(n)
-                n += 1
-            elif resi != '-' and ref_seq[i + 1] == '-':
-                g = n
-                pos_num.append(g)
-            elif resi == '-' and ref_seq[i + 1] == '-':
-                g = n + s
-                pos_num.append(g)
-                s += 0.01
-            elif resi == '-' and ref_seq[i + 1] != '-':
-                g = n + s
-                pos_num.append(g)
-                s = 0.01
-                n += 1
-        else:
-            if resi != '-':
-                pos_num.append(n)
-            elif resi == '-':
-                g = n + s
-                pos_num.append(g)
-
-    return pos_num
 
 
 def prot_pairwise_align(prot_sequence, ref_prot, regex_complied):
@@ -391,19 +350,19 @@ def set_cons_var_regions(ref_type):
     :ref_type: (str) the reference coordinates to use
     :return:
     """
-    # todo: change this to read in from csv file and be accesable via gene region key
+    # todo: change this to regex to find region
     if ref_type != "HXB2":
         ref_cons_regions_index_d = {"C1": (0, 130),
-                                    "C2": (146, 178),
-                                    "C3": (184, 386),
-                                    "C4": (391, 440),
-                                    "C5": (446, 844),
+                                    "C2": (156, 177),
+                                    "C3": (185, 383),
+                                    "C4": (395, 440),
+                                    "C5": (447, 844),
                                     }
 
-        ref_var_regions_index_d = {"V1": (130, 146),
-                                   "V2": (178, 184),
-                                   "V3": (386, 391),
-                                   "V4": (440, 446),
+        ref_var_regions_index_d = {"V1": (130, 156),
+                                   "V2": (177, 185),
+                                   "V3": (383, 395),
+                                   "V4": (440, 447),
                                    }
 
         full_order = ["C1", "V1", "C2", "V2", "C3", "V3", "C4", "V4", "C5"]
@@ -427,13 +386,27 @@ def set_cons_var_regions(ref_type):
     return ref_cons_regions_index_d, ref_var_regions_index_d, full_order
 
 
-def find_start_end_regions(alignment_d, ref_cons_regions_index_d, ref_var_regions_index_d, full_order):
+def posnumcalc(ref_seq, start):
+    """
+    Calculates the positional numbering relative to hxb2
+    :param ref_seq: (str) hxb2 protein sequence
+    :param start:  (int) start amino acid position for hxb2
+    :return: (list) list of position numbers [1, 2, 3, 4, 4.01, 4.02, 5]
+    """
+    ref_resi_len = len(ref_seq.replace("-", ""))
+    pos_nums = list(range(start, (start + ref_resi_len) + 1))
+
+    return pos_nums
+
+
+def find_start_end_regions(alignment_d, ref_cons_regions_index_d, ref_var_regions_index_d, full_order, bounds_lower):
     """
     function to take a pairwise align obj in dict format and find the start and end regions for cons and var boundaries
     :param alignment_d: (dict) dict of pairwise alignment object
     :param ref_cons_regions_index_d: (dict) of conserved regions
-    :param ref_var_regions_index_d:
+    :param ref_var_regions_index_d: (dict) of variable regions
     :param full_order: (list) a list of all the conserved and variable regions in sequential order
+    :param bounds_lower: (int) start of reference sequence in amino acid numbering
     :return: (str) start and end region keys
     """
     # seq_align = alignment_d["query"]
@@ -441,7 +414,10 @@ def find_start_end_regions(alignment_d, ref_cons_regions_index_d, ref_var_region
     ref_start = alignment_d["start_end_positions"][1][0]
 
     # get hxb2 numbering
-    ref_numbering = posnumcalc(ref_align, ref_start)
+    if bounds_lower is None:
+        bounds_lower = 0
+    ref_start_idx = ref_start + bounds_lower
+    ref_numbering = posnumcalc(ref_align, ref_start_idx)
 
     cons_region_list = []
     var_region_list = []
@@ -480,23 +456,24 @@ def find_start_end_regions(alignment_d, ref_cons_regions_index_d, ref_var_region
     else:
         end = end_var
 
-    return start, end
+    return start, end, ref_numbering
 
 
-def get_cons_regions(prot_align_d, end_reg, ref_cons_regions_index_d):
+def get_cons_regions(prot_align_d, end_reg, ref_cons_regions_index_d, ref_numbering):
     """
     function to extract conserved regions of a sequence (envelope)
     :param prot_align_d: (dict) dict of pairwise alignment object
     :param end_reg: (str) end region key
     :param ref_cons_regions_index_d: (dict) of cons regions and their indexes in the reference prot seq
+    :param ref_numbering: (list) list of reference sequence position numbers relative to start of coding region
     :return: (dict) dict of cons regions
     """
     ref_start = prot_align_d["start_end_positions"][1][0]
     seq_align = prot_align_d["query"]
     ref_align = prot_align_d["reference"]
 
-    # get hxb2 numbering
-    ref_numbering = posnumcalc(ref_align, ref_start)
+    # get ref numbering
+    # ref_numbering = posnumcalc(ref_align, ref_start)
 
     # extract the cons regions to dicts
     cons_d = collections.defaultdict(str)
@@ -526,12 +503,13 @@ def get_cons_regions(prot_align_d, end_reg, ref_cons_regions_index_d):
     return cons_d
 
 
-def get_var_regions(prot_align_d, end_reg, ref_var_regions_index_d):
+def get_var_regions(prot_align_d, end_reg, ref_var_regions_index_d, ref_numbering):
     """
     function to extract conserved regions of a sequence (envelope)
     :param prot_align_d: (dict) dict of pairwise alignment object
     :param end_reg: (str) end region key
     :param ref_var_regions_index_d: (dict) of variable regions and their indexes in the reference prot seq
+    :param ref_numbering: (list) list of reference sequence position numbers relative to start of coding region
     :return: (dict) dict of var regions
     """
     ref_start = prot_align_d["start_end_positions"][1][0]
@@ -539,7 +517,7 @@ def get_var_regions(prot_align_d, end_reg, ref_var_regions_index_d):
     ref_align = prot_align_d["reference"]
 
     # get hxb2 numbering
-    ref_numbering = posnumcalc(ref_align, ref_start)
+    # ref_numbering = posnumcalc(ref_align, ref_start)
 
     # extract the var regions to dicts
     var_d = collections.defaultdict(str)
@@ -740,7 +718,7 @@ def backtranslate(padded_dna_d, prot_align_d):
     return dna_align_d
 
 
-def main(infile, ref, outpath, name, gene, var_align):
+def main(infile, outpath, name, ref, gene, bounds_lower, bounds_upper, var_align):
 
     # get absolute paths
     infile = os.path.abspath(infile)
@@ -750,34 +728,27 @@ def main(infile, ref, outpath, name, gene, var_align):
     outfile = os.path.join(outpath, out_name)
     badfile = os.path.join(outpath, bad_name)
 
-    # get the reference sequence or HXB2 if not specified and the HXB2 prot sequence for the gene numbering
-    # todo: change this so ref is set as hxb2 or cons_c or custom?
-    if not ref:
-        ref_type = "HXB2"
-        gene_region = "HXB2_" + gene
-        get_script_path = os.path.realpath(__file__)
-        script_folder = os.path.split(get_script_path)[0]
-        script_folder = os.path.abspath(script_folder)
-        ref_file = os.path.join(script_folder, "HXB2_seqs.fasta")
+    # get the reference DNA and prot sequence sequence
+    gene_region = ref + "_" + gene
+    get_script_path = os.path.realpath(__file__)
+    script_folder = os.path.split(get_script_path)[0]
+    script_folder = os.path.abspath(script_folder)
+    ref_file = os.path.join(script_folder, "{}_seqs.fasta".format(ref))
 
-        # get gene sequence
-        hxb2_seqs = fasta_to_dct(ref_file)
-        reference = hxb2_seqs[gene_region]
-        ref_prot_seq = translate_dna(reference.replace("-", ""))
-
+    # get gene sequence
+    if bounds_lower:
+        bl = ((bounds_lower * 3) - 3)
     else:
-        # reference = list(fasta_to_dct(ref).values())[0]
-        ref_type = "custom"
-        # todo: add consensus_c genes for rest of HIV-1 coding regions
-        # get gene sequence
-        gene_region = "consensus_C_" + gene
-        get_script_path = os.path.realpath(__file__)
-        script_folder = os.path.split(get_script_path)[0]
-        script_folder = os.path.abspath(script_folder)
-        prot_ref_file = os.path.join(script_folder, "consensus_c.fasta")
-        con_c_seqs = fasta_to_dct(prot_ref_file)
-        reference = con_c_seqs[gene_region]
-        ref_prot_seq = translate_dna(reference.replace("-", ""))
+        bl = None
+    if bounds_upper:
+        bu = ((bounds_upper * 3) + 3)
+    else:
+        bu = None
+
+    ref_seqs = fasta_to_dct(ref_file)
+    reference = ref_seqs[gene_region][bl:bu]
+
+    ref_prot_seq = translate_dna(reference.replace("-", ""))
 
     # read in fasta file and reference
     in_seqs_d = fasta_to_dct_rev(infile)
@@ -796,7 +767,7 @@ def main(infile, ref, outpath, name, gene, var_align):
     padded_seq_dict = collections.defaultdict(str)
 
     # set the cons and var regions
-    ref_cons_regions_index_d, ref_var_regions_index_d, full_order = set_cons_var_regions(ref_type)
+    ref_cons_regions_index_d, ref_var_regions_index_d, full_order = set_cons_var_regions(ref)
     regex_complied_1 = regex.compile(r'(^[-]*)', regex.V1)
     regex_complied_2 = regex.compile(r'([-]+)', regex.V1)
 
@@ -825,14 +796,15 @@ def main(infile, ref, outpath, name, gene, var_align):
             prot_align_d = prot_pairwise_align(prot_seq, ref_prot_seq, regex_complied_1)
 
             # get start and end regions
-            start_region, end_region = find_start_end_regions(prot_align_d, ref_cons_regions_index_d,
-                                                              ref_var_regions_index_d, full_order)
+            start_region, end_region, ref_numbering = find_start_end_regions(prot_align_d, ref_cons_regions_index_d,
+                                                                             ref_var_regions_index_d, full_order,
+                                                                             bounds_lower)
 
             # extract conserved regions
-            cons_regions_dct[code] = get_cons_regions(prot_align_d, end_region, ref_cons_regions_index_d)
+            cons_regions_dct[code] = get_cons_regions(prot_align_d, end_region, ref_cons_regions_index_d, ref_numbering)
 
             # extract variable regions
-            var_regions_dct[code] = get_var_regions(prot_align_d, end_region, ref_var_regions_index_d)
+            var_regions_dct[code] = get_var_regions(prot_align_d, end_region, ref_var_regions_index_d, ref_numbering)
 
     # pad the variable regions with '-', to the longest sequence
     new_var_regions_dct = pad_var_region_to_longest(var_regions_dct)
@@ -877,25 +849,36 @@ if __name__ == "__main__":
 
     parser.add_argument('-i', '--infile', default=argparse.SUPPRESS, type=str,
                         help='The input file', required=True)
-    parser.add_argument('-r', '--ref', default=False, type=str,
-                        help='The reference sequence file. Must be in reading frame 1, '
-                             'and span the full region of interest in coding space', required=False)
     parser.add_argument('-o', '--outpath', default=argparse.SUPPRESS, type=str,
                         help='The path for the aligned output file', required=True)
     parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=str,
                         help='The name for the output file, ie: sample/participant or study name', required=True)
-    parser.add_argument('-g', '--gene', default="ENV", type=str,
-                        help='The name for the gene region (GAG, POL, PRO, RT, RNASE, INT, ENV, GP120, GP41, NEF, VIF, '
-                             'VPR, REV, VPU)', required=False)
+    parser.add_argument('-r', '--ref', default="CONSENSUS_C", choices=["CONSENSUS_C", "HXB2", "CON_OF_CONS"], type=str,
+                        action='store', help='The choice of reference sequence. Either consensus of subtype C,'
+                                             'HXB2 or consensus of consensus', required=False)
+    parser.add_argument('-g', '--gene', default="ENV", choices=["ENV", "GAG", "POL", "PRO", "NEF", "VIF", "VPR",
+                                                                "REV", "VPU"], type=str,
+                        help='The name for the gene region (ENV, GAG, POL, PRO, NEF, VIF, VPR, REV, VPU)',
+                        required=False)
+    parser.add_argument('-bl', '--bounds_lower', default=None, type=int,
+                        help='The start amino acid positions of your data, relative to the reference, '
+                             'if this is not a full sequence',
+                        required=False)
+    parser.add_argument('-bu', '--bounds_upper', default=None, type=int,
+                        help='The end amino acid positions of your data, relative to the reference, '
+                             'if this is not a full sequence',
+                        required=False)
     parser.add_argument('-v', '--var_align', default=False, action="store_true",
                         help='Align the variable regions as well. May produce messy alignment', required=False)
 
     args = parser.parse_args()
     infile = args.infile
-    ref = args.ref
     outpath = args.outpath
     name = args.name
+    ref = args.ref
     gene = args.gene
+    bounds_upper = args.bounds_upper
+    bounds_lower = args.bounds_lower
     var_align = args.var_align
 
-    main(infile, ref, outpath, name, gene, var_align)
+    main(infile, outpath, name, ref, gene, bounds_lower, bounds_upper, var_align)
