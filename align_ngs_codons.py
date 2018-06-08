@@ -386,6 +386,29 @@ def set_cons_var_regions(ref_type):
     return ref_cons_regions_index_d, ref_var_regions_index_d, full_order
 
 
+def find_cons_var_regions(prot_sequence, ref_type, gene_region):
+    print(prot_sequence)
+    # import csv
+    error = "{e<4}"
+    start_v1 = r'(CVTLNCN)'
+    end_v1 = r'(EIKNCS)'
+    start_v2 = r'()'
+    end_v2 = r'()'
+    start_v3 = r'()'
+    end_v3 = r'()'
+    start_v4 = r'()'
+    end_v4 = r'()'
+    start_V5 = r'()'
+    end_V5 = r'()'
+    # store regex for cons and var regions in a dict of dicts, key = gene region, key = cons/var_region, value = string
+    # look for each region
+    if start_v1.end():
+        c0 = prot_sequence[:start_v1.end()]
+    if start_v1.end() and end_v1.start():
+        v1 = prot_sequence[start_v1.end():end_v1.start()]
+    if start_v2.end() and end_v2.start():
+        v2 = prot_sequence[start_v2.end():end_v2.start()]
+
 def posnumcalc(ref_seq, start):
     """
     Calculates the positional numbering relative to hxb2
