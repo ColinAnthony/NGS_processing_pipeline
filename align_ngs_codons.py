@@ -12,6 +12,7 @@ import subprocess
 from subprocess import DEVNULL
 import regex
 import seqanpy
+import pandas as pd
 
 
 __author__ = 'Colin Anthony'
@@ -342,8 +343,6 @@ def prot_pairwise_align(prot_sequence, ref_prot, regex_complied):
     # print(">ref_align\n{}".format(ref_align_new))
 
     return alignment_d
-
-
 def set_cons_var_regions(ref_type):
     """
     contains the coordinates for the start and end of each conserved and variable region
@@ -384,31 +383,6 @@ def set_cons_var_regions(ref_type):
         full_order = ["C1", "V1", "C2", "V2", "C3", "V3", "C4", "V4", "C5"]
 
     return ref_cons_regions_index_d, ref_var_regions_index_d, full_order
-
-
-def find_cons_var_regions(prot_sequence, ref_type, gene_region):
-    print(prot_sequence)
-    # import csv
-    error = "{e<4}"
-    start_v1 = r'(CVTLNCN)'
-    end_v1 = r'(EIKNCS)'
-    start_v2 = r'()'
-    end_v2 = r'()'
-    start_v3 = r'()'
-    end_v3 = r'()'
-    start_v4 = r'()'
-    end_v4 = r'()'
-    start_V5 = r'()'
-    end_V5 = r'()'
-    # store regex for cons and var regions in a dict of dicts, key = gene region, key = cons/var_region, value = string
-    # look for each region
-    if start_v1.end():
-        c0 = prot_sequence[:start_v1.end()]
-    if start_v1.end() and end_v1.start():
-        v1 = prot_sequence[start_v1.end():end_v1.start()]
-    if start_v2.end() and end_v2.start():
-        v2 = prot_sequence[start_v2.end():end_v2.start()]
-
 def posnumcalc(ref_seq, start):
     """
     Calculates the positional numbering relative to hxb2
@@ -420,8 +394,89 @@ def posnumcalc(ref_seq, start):
     pos_nums = list(range(start, (start + ref_resi_len) + 1))
 
     return pos_nums
+def get_cons_regions(prot_align_d, end_reg, ref_cons_regions_index_d, ref_numbering):
+    """
+    function to extract conserved regions of a sequence (envelope)
+    :param prot_align_d: (dict) dict of pairwise alignment object
+    :param end_reg: (str) end region key
+    :param ref_cons_regions_index_d: (dict) of cons regions and their indexes in the reference prot seq
+    :param ref_numbering: (list) list of reference sequence position numbers relative to start of coding region
+    :return: (dict) dict of cons regions
+    """
+    ref_start = prot_align_d["start_end_positions"][1][0]
+    seq_align = prot_align_d["query"]
+    ref_align = prot_align_d["reference"]
 
+    # get ref numbering
+    # ref_numbering = posnumcalc(ref_align, ref_start)
 
+    # extract the cons regions to dicts
+    cons_d = collections.defaultdict(str)
+
+    for cons_region, index_tup in ref_cons_regions_index_d.items():
+        start = index_tup[0]
+        end = index_tup[1]
+        if start in ref_numbering and end in ref_numbering:
+            if cons_region == end_reg:
+                cons_region_slice = seq_align[ref_numbering.index(start):]
+                cons_d[cons_region] = cons_region_slice
+            else:
+                cons_region_slice = seq_align[ref_numbering.index(start):ref_numbering.index(end)]
+                cons_d[cons_region] = cons_region_slice.replace("-", "")
+
+        elif start not in ref_numbering and end in ref_numbering:
+            cons_region_slice = seq_align[:ref_numbering.index(end)]
+            cons_d[cons_region] = cons_region_slice.replace("-", "")
+
+        elif start in ref_numbering and end not in ref_numbering:
+            cons_region_slice = seq_align[ref_numbering.index(start):]
+            cons_d[cons_region] = cons_region_slice.replace("-", "")
+
+        else:
+            print("{} region not present".format(cons_region))
+
+    return cons_d
+def get_var_regions(prot_align_d, end_reg, ref_var_regions_index_d, ref_numbering):
+    """
+    function to extract conserved regions of a sequence (envelope)
+    :param prot_align_d: (dict) dict of pairwise alignment object
+    :param end_reg: (str) end region key
+    :param ref_var_regions_index_d: (dict) of variable regions and their indexes in the reference prot seq
+    :param ref_numbering: (list) list of reference sequence position numbers relative to start of coding region
+    :return: (dict) dict of var regions
+    """
+    ref_start = prot_align_d["start_end_positions"][1][0]
+    seq_align = prot_align_d["query"]
+    ref_align = prot_align_d["reference"]
+
+    # get hxb2 numbering
+    # ref_numbering = posnumcalc(ref_align, ref_start)
+
+    # extract the var regions to dicts
+    var_d = collections.defaultdict(str)
+
+    for var_region, index_tup in ref_var_regions_index_d.items():
+        start = index_tup[0]
+        end = index_tup[1]
+        if start in ref_numbering and end in ref_numbering:
+            if var_region == end_reg:
+                var_region_slice = seq_align[ref_numbering.index(start):]
+                var_d[var_region] = var_region_slice
+            else:
+                var_region_slice = seq_align[ref_numbering.index(start):ref_numbering.index(end)]
+                var_d[var_region] = var_region_slice.replace("-", "")
+
+        elif start not in ref_numbering and end in ref_numbering:
+            var_region_slice = seq_align[:ref_numbering.index(end)]
+            var_d[var_region] = var_region_slice.replace("-", "")
+
+        elif start in ref_numbering and end not in ref_numbering:
+            var_region_slice = seq_align[ref_numbering.index(start):]
+            var_d[var_region] = var_region_slice.replace("-", "")
+        else:
+            print("{} region not present".format(var_region))
+
+    return var_d
 def find_start_end_regions(alignment_d, ref_cons_regions_index_d, ref_var_regions_index_d, full_order, bounds_lower):
     """
     function to take a pairwise align obj in dict format and find the start and end regions for cons and var boundaries
@@ -482,91 +537,53 @@ def find_start_end_regions(alignment_d, ref_cons_regions_index_d, ref_var_region
     return start, end, ref_numbering
 
 
-def get_cons_regions(prot_align_d, end_reg, ref_cons_regions_index_d, ref_numbering):
+def get_var_regions_dict(ref_type, gene_region, regions_path):
     """
-    function to extract conserved regions of a sequence (envelope)
-    :param prot_align_d: (dict) dict of pairwise alignment object
-    :param end_reg: (str) end region key
-    :param ref_cons_regions_index_d: (dict) of cons regions and their indexes in the reference prot seq
-    :param ref_numbering: (list) list of reference sequence position numbers relative to start of coding region
-    :return: (dict) dict of cons regions
+    imports regex search string from reference csv file
+    :param ref_type: (str) name of the reference
+    :param gene_region: (str) name of the gene
+    :param regions_path: (str) path to the reference csv file
+    :return: (dict) key = variable gene region name , value = sequence string
     """
-    ref_start = prot_align_d["start_end_positions"][1][0]
-    seq_align = prot_align_d["query"]
-    ref_align = prot_align_d["reference"]
+    regions_file = os.path.join(regions_path, "HIV_var_cons_regions.csv")
+    data = pd.read_csv(regions_file, sep=',', header=0, parse_dates=True, na_values=[' '])
+    df = pd.DataFrame(data)
+    print("reference is: ", ref_type)
+    print("gene region is: ", gene_region)
+    ref_df = df.loc[df["reference_type"] == ref_type]
+    ref_gene_df = ref_df.loc[df["gene"] == gene_region]
+    var_regions_dict = dict(zip(ref_gene_df["gene_region"], ref_gene_df["sequence"]))
 
-    # get ref numbering
-    # ref_numbering = posnumcalc(ref_align, ref_start)
+    return var_regions_dict
 
-    # extract the cons regions to dicts
-    cons_d = collections.defaultdict(str)
 
-    for cons_region, index_tup in ref_cons_regions_index_d.items():
-        start = index_tup[0]
-        end = index_tup[1]
-        if start in ref_numbering and end in ref_numbering:
-            if cons_region == end_reg:
-                cons_region_slice = seq_align[ref_numbering.index(start):]
-                cons_d[cons_region] = cons_region_slice
+def find_cons_var_regions(prot_sequence, regions_dict):
+
+    regions_index_d = collections.defaultdict(int)
+    regions_sequences_d = collections.defaultdict(str)
+    for var_reg_name, var_seq in regions_dict.items():
+        region_key = var_reg_name.split("_")[-1]
+        var_reg = var_reg_name.split("_")[0]
+        error = 3
+        pattern = "({0}){{e<{1}}}".format(var_seq, error)
+        match = regex.search(pattern, prot_sequence, regex.BESTMATCH)
+        if match is not None:
+            if region_key == "start":
+                slice_index = match.start()
+            elif region_key == "end":
+                slice_index = match.end()
             else:
-                cons_region_slice = seq_align[ref_numbering.index(start):ref_numbering.index(end)]
-                cons_d[cons_region] = cons_region_slice.replace("-", "")
-
-        elif start not in ref_numbering and end in ref_numbering:
-            cons_region_slice = seq_align[:ref_numbering.index(end)]
-            cons_d[cons_region] = cons_region_slice.replace("-", "")
-
-        elif start in ref_numbering and end not in ref_numbering:
-            cons_region_slice = seq_align[ref_numbering.index(start):]
-            cons_d[cons_region] = cons_region_slice.replace("-", "")
-
+                sys.exit("error in region name: {}\nshould end in 'start' or 'end'.".format(var_reg_name))
+            regions_index_d[var_reg] = slice_index
         else:
-            print("{} region not present".format(cons_region))
+            print(var_reg_name, "not found")
+            slice_index = None
+            regions_index_d[var_reg] = slice_index
 
-    return cons_d
+    for region, reg_idx in sorted(regions_index_d.items(), key=lambda x: x[0].split("_")[0]):
+        print("do something")
 
-
-def get_var_regions(prot_align_d, end_reg, ref_var_regions_index_d, ref_numbering):
-    """
-    function to extract conserved regions of a sequence (envelope)
-    :param prot_align_d: (dict) dict of pairwise alignment object
-    :param end_reg: (str) end region key
-    :param ref_var_regions_index_d: (dict) of variable regions and their indexes in the reference prot seq
-    :param ref_numbering: (list) list of reference sequence position numbers relative to start of coding region
-    :return: (dict) dict of var regions
-    """
-    ref_start = prot_align_d["start_end_positions"][1][0]
-    seq_align = prot_align_d["query"]
-    ref_align = prot_align_d["reference"]
-
-    # get hxb2 numbering
-    # ref_numbering = posnumcalc(ref_align, ref_start)
-
-    # extract the var regions to dicts
-    var_d = collections.defaultdict(str)
-
-    for var_region, index_tup in ref_var_regions_index_d.items():
-        start = index_tup[0]
-        end = index_tup[1]
-        if start in ref_numbering and end in ref_numbering:
-            if var_region == end_reg:
-                var_region_slice = seq_align[ref_numbering.index(start):]
-                var_d[var_region] = var_region_slice
-            else:
-                var_region_slice = seq_align[ref_numbering.index(start):ref_numbering.index(end)]
-                var_d[var_region] = var_region_slice.replace("-", "")
-
-        elif start not in ref_numbering and end in ref_numbering:
-            var_region_slice = seq_align[:ref_numbering.index(end)]
-            var_d[var_region] = var_region_slice.replace("-", "")
-
-        elif start in ref_numbering and end not in ref_numbering:
-            var_region_slice = seq_align[ref_numbering.index(start):]
-            var_d[var_region] = var_region_slice.replace("-", "")
-        else:
-            print("{} region not present".format(var_region))
-
-    return var_d
+    return regions_index_d
 
 
 def write_regions_to_file(region_dict, path_for_tmp_file):
@@ -791,8 +808,16 @@ def main(infile, outpath, name, ref, gene, bounds_lower, bounds_upper, var_align
 
     # set the cons and var regions
     ref_cons_regions_index_d, ref_var_regions_index_d, full_order = set_cons_var_regions(ref)
-    regex_complied_1 = regex.compile(r'(^[-]*)', regex.V1)
-    regex_complied_2 = regex.compile(r'([-]+)', regex.V1)
+    regex_complied_1 = regex.compile(r"(^[-]*)", regex.V1)
+    regex_complied_2 = regex.compile(r"([-]+)", regex.V1)
+    # get the sequences for variable region boundaries for the ref-gene_region
+    var_regions_dict = get_var_regions_dict(ref, gene, script_folder)
+    var_reg_regex_compiled_d = collections.OrderedDict()
+    # todo compile not working :(
+    for var_region_name, var_seq in var_regions_dict.items():
+        regex_complied = regex.compile("({0}){{e<3}}".format(var_seq))
+        # print(regex_complied)
+        var_reg_regex_compiled_d[var_region_name] = regex_complied
 
     # open file for sequences that could not be properly translated (hence codon aligned)
     with open(badfile, 'w') as handle:
@@ -816,18 +841,21 @@ def main(infile, outpath, name, ref, gene, bounds_lower, bounds_upper, var_align
                 continue
 
             # get prot pairwise alignment
-            prot_align_d = prot_pairwise_align(prot_seq, ref_prot_seq, regex_complied_1)
+            # prot_align_d = prot_pairwise_align(prot_seq, ref_prot_seq, regex_complied_1)
+
+            # new regex calls
+            cons_regions_dct[code] = find_cons_var_regions(prot_seq, var_regions_dict)
 
             # get start and end regions
-            start_region, end_region, ref_numbering = find_start_end_regions(prot_align_d, ref_cons_regions_index_d,
-                                                                             ref_var_regions_index_d, full_order,
-                                                                             bounds_lower)
+            # start_region, end_region, ref_numbering = find_start_end_regions(prot_align_d, ref_cons_regions_index_d,
+            #                                                                  ref_var_regions_index_d, full_order,
+            #                                                                  bounds_lower)
 
             # extract conserved regions
-            cons_regions_dct[code] = get_cons_regions(prot_align_d, end_region, ref_cons_regions_index_d, ref_numbering)
+            # cons_regions_dct[code] = get_cons_regions(prot_align_d, end_region, ref_cons_regions_index_d, ref_numbering)
 
             # extract variable regions
-            var_regions_dct[code] = get_var_regions(prot_align_d, end_region, ref_var_regions_index_d, ref_numbering)
+            # var_regions_dct[code] = get_var_regions(prot_align_d, end_region, ref_var_regions_index_d, ref_numbering)
 
     # pad the variable regions with '-', to the longest sequence
     new_var_regions_dct = pad_var_region_to_longest(var_regions_dct)
