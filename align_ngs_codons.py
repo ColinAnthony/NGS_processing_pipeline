@@ -91,7 +91,7 @@ def fasta_to_dct_rev(file_name):
 
 def get_order(env_regions):
     if env_regions:
-        if env_regions == "gp120" or env_regions == "gp160":
+        if env_regions == "GP120" or env_regions == "GP160":
             full_order = ["C1", "V1", "C2", "V2", "C3", "V3", "C4", "V4", "C5"]
         elif env_regions == "C0C1" or env_regions == "C2C3" or env_regions == "gp41":
             full_order = ["C1"]
@@ -337,17 +337,21 @@ def get_var_regions_dict(ref_type, gene_region, regions_path):
 def find_var_region_boundaries(prot_sequence, regions_dict, env_regions):
 
     regions_index_d = collections.defaultdict(int)
-    if env_regions == "C0C1" or env_regions == "C2C3" or env_regions == "gp41" or not env_regions:
+    if env_regions == "C0C1" or env_regions == "C2C3" or env_regions == "GP41" or not env_regions:
         regions_index_d["None"] = None
         return regions_index_d
     else:
         for var_reg_name, var_seq in regions_dict.items():
-            if env_regions == "C1C2" and var_reg_name.split("_")[0] != "V1" or var_reg_name.split("_")[0] != "V2":
+
+            if env_regions == "C1C2" and var_reg_name.split("_")[0].upper() != "V1" \
+                    or env_regions == "C1C2" and var_reg_name.split("_")[0].upper() != "V2":
                 continue
-            elif env_regions == "C3C5" and var_reg_name.split("_")[0] != "V3" or var_reg_name.split("_")[0] != "V4":
+            elif env_regions == "C3C5" and var_reg_name.split("_")[0].upper() != "V3" \
+                    or env_regions == "C3C5" and var_reg_name.split("_")[0].upper() != "V4":
                 continue
+
             else:
-                region_key = var_reg_name.split("_")[-1]
+                region_key = var_reg_name.split("_")[-1].lower()
                 error = 3
                 pattern = "({0}){{e<{1}}}".format(var_seq, error)
                 match = regex.search(pattern, prot_sequence, regex.BESTMATCH)
@@ -371,38 +375,50 @@ def get_cons_regions(prot_sequence, regions_indx_dict, env_regions):
     """
     extract conserved regions from protein sequence
     :param prot_sequence: (str) protein sequence
-    :param regions_dict: (dict) key = var region name, value = index in prot_sequence
+    :param regions_indx_dict: (dict) key = var region name, value = index in prot_sequence
     :param env_regions: (str) the Env regions present in the sequence, if any
     :return: (dict) key = conserved region name, value = (str) slice of prot_sequence
     """
 
     cons_reg_sequences_d = collections.defaultdict(str)
 
-    if env_regions == "C0C1" or env_regions == "C2C3" or env_regions == "gp41" or not env_regions:
+    if env_regions == "C0C1" or env_regions == "C2C3" or env_regions == "GP41" or not env_regions:
         cons_reg_sequences_d[env_regions] = prot_sequence
         return cons_reg_sequences_d
 
     else:
-        if env_regions == "gp120" or env_regions == "gp160":
-            for region, reg_idx in sorted(regions_indx_dict.items(), key=lambda x: x[0].split("_")[0]):
-                if reg_idx is None:
-                    return None
+        if env_regions == "GP120" or env_regions == "GP160":
+            for code, reg_idx_d in sorted(regions_indx_dict.items(), key=lambda x: x[0].split("_")[0]):
+                for region, reg_idx in reg_idx_d.items():
+                    # if missing the regex, send to bad output
+                    if reg_idx is None:
+                        return None
 
-            cons_reg_sequences_d["C1"] = prot_sequence[:regions_indx_dict["V1_start"]]
-            cons_reg_sequences_d["C2"] = prot_sequence[regions_indx_dict["V1_end"]:regions_indx_dict["V2_start"]]
-            cons_reg_sequences_d["C3"] = prot_sequence[regions_indx_dict["V2_end"]:regions_indx_dict["V3_start"]]
-            cons_reg_sequences_d["C4"] = prot_sequence[regions_indx_dict["V3_end"]:regions_indx_dict["V4_start"]]
-            cons_reg_sequences_d["C5"] = prot_sequence[regions_indx_dict["V4_end"]:]
+                cons_reg_sequences_d["1_cons"] = prot_sequence[:reg_idx_d["V1_start"]]
+                cons_reg_sequences_d["2_cons"] = prot_sequence[reg_idx_d["V1_end"]:reg_idx_d["V2_start"]]
+                cons_reg_sequences_d["3_cons"] = prot_sequence[reg_idx_d["V2_end"]:reg_idx_d["V3_start"]]
+                cons_reg_sequences_d["4_cons"] = prot_sequence[reg_idx_d["V3_end"]:reg_idx_d["V4_start"]]
+                cons_reg_sequences_d["5_cons"] = prot_sequence[reg_idx_d["V4_end"]:]
 
         elif env_regions == "C1C2":
-            cons_reg_sequences_d["C1"] = prot_sequence[:regions_indx_dict["V1_start"]]
-            cons_reg_sequences_d["C2"] = prot_sequence[regions_indx_dict["V1_end"]:regions_indx_dict["V2_start"]]
-            cons_reg_sequences_d["C3"] = prot_sequence[regions_indx_dict["V2_end"]:]
+            for code, reg_idx_d in sorted(regions_indx_dict.items(), key=lambda x: x[0].split("_")[0]):
+                for region, reg_idx in reg_idx_d.items():
+                    # if missing the regex, send to bad output
+                    if reg_idx is None:
+                        return None
+                cons_reg_sequences_d["1_cons"] = prot_sequence[:reg_idx_d["V1_start"]]
+                cons_reg_sequences_d["2_cons"] = prot_sequence[reg_idx_d["V1_end"]:reg_idx_d["V2_start"]]
+                cons_reg_sequences_d["3_cons"] = prot_sequence[reg_idx_d["V2_end"]:]
 
         elif env_regions == "C3C5":
-            cons_reg_sequences_d["C1"] = prot_sequence[:regions_indx_dict["V3_start"]]
-            cons_reg_sequences_d["C2"] = prot_sequence[regions_indx_dict["V3_end"]:regions_indx_dict["V4_start"]]
-            cons_reg_sequences_d["C3"] = prot_sequence[regions_indx_dict["V4_end"]:]
+            for code, reg_idx_d in sorted(regions_indx_dict.items(), key=lambda x: x[0].split("_")[0]):
+                for region, reg_idx in reg_idx_d.items():
+                    # if missing the regex, send to bad output
+                    if reg_idx is None:
+                        return None
+                cons_reg_sequences_d["1_cons"] = prot_sequence[:reg_idx_d["V3_start"]]
+                cons_reg_sequences_d["2_cons"] = prot_sequence[reg_idx_d["V3_end"]:reg_idx_d["V4_start"]]
+                cons_reg_sequences_d["3_cons"] = prot_sequence[reg_idx_d["V4_end"]:]
         else:
             sys.exit("something went wrong")
 
@@ -411,45 +427,54 @@ def get_cons_regions(prot_sequence, regions_indx_dict, env_regions):
 
 def get_var_regions(prot_sequence, regions_indx_dict, env_regions):
     """
-
-    :param prot_sequence:
-    :param regions_indx_dict:
-    :param env_regions:
-    :return:
+    extract variable regions from protein sequence
+    :param prot_sequence: (str) protein sequence
+    :param regions_indx_dict: (dict) key = var region name, value = index in prot_sequence
+    :param env_regions: (str) the Env regions present in the sequence, if any
+    :return: (dict) key = conserved region name, value = (str) slice of prot_sequence
     """
-    cons_reg_sequences_d = collections.defaultdict(str)
+    var_reg_sequences_d = collections.defaultdict(str)
 
-    if env_regions == "C0C1" or env_regions == "C2C3" or env_regions == "gp41" or not env_regions:
-        cons_reg_sequences_d[env_regions] = prot_sequence
-        return cons_reg_sequences_d
+    if env_regions == "C0C1" or env_regions == "C2C3" or env_regions == "GP41" or not env_regions:
+        var_reg_sequences_d[env_regions] = prot_sequence
+        return var_reg_sequences_d
 
     else:
-        if env_regions == "gp120" or env_regions == "gp160":
-            for region, reg_idx in sorted(regions_indx_dict.items(), key=lambda x: x[0].split("_")[0]):
-                if reg_idx is None:
-                    return None
+        if env_regions == "GP120" or env_regions == "GP160":
+            for code, reg_idx_d in sorted(regions_indx_dict.items(), key=lambda x: x[0].split("_")[0]):
+                for region, reg_idx in reg_idx_d.items():
+                    # if missing the regex, send to bad output
+                    if reg_idx is None:
+                        return None
 
-            cons_reg_sequences_d["C1"] = prot_sequence[:regions_indx_dict["V1_start"]]
-            cons_reg_sequences_d["C2"] = prot_sequence[regions_indx_dict["V1_end"]:regions_indx_dict["V2_start"]]
-            cons_reg_sequences_d["C3"] = prot_sequence[regions_indx_dict["V2_end"]:regions_indx_dict["V3_start"]]
-            cons_reg_sequences_d["C4"] = prot_sequence[regions_indx_dict["V3_end"]:regions_indx_dict["V4_start"]]
-            cons_reg_sequences_d["C5"] = prot_sequence[regions_indx_dict["V4_end"]:]
+                var_reg_sequences_d["1_var"] = prot_sequence[reg_idx_d["V1_start"]:reg_idx_d["V1_end"]]
+                var_reg_sequences_d["2_var"] = prot_sequence[reg_idx_d["V2_start"]:reg_idx_d["V2_end"]]
+                var_reg_sequences_d["3_var"] = prot_sequence[reg_idx_d["V3_start"]:reg_idx_d["V3_end"]]
+                var_reg_sequences_d["4_var"] = prot_sequence[reg_idx_d["V4_start"]:reg_idx_d["V4_end"]]
 
         elif env_regions == "C1C2":
-            cons_reg_sequences_d["C1"] = prot_sequence[:regions_indx_dict["V1_start"]]
-            cons_reg_sequences_d["C2"] = prot_sequence[regions_indx_dict["V1_end"]:regions_indx_dict["V2_start"]]
-            cons_reg_sequences_d["C3"] = prot_sequence[regions_indx_dict["V2_end"]:]
+            for code, reg_idx_d in sorted(regions_indx_dict.items(), key=lambda x: x[0].split("_")[0]):
+                for region, reg_idx in reg_idx_d.items():
+                    # if missing the regex, send to bad output
+                    if reg_idx is None:
+                        return None
+
+                var_reg_sequences_d["1_var"] = prot_sequence[reg_idx_d["V1_start"]:reg_idx_d["V1_end"]]
+                var_reg_sequences_d["2_var"] = prot_sequence[reg_idx_d["V2_start"]:reg_idx_d["V2_end"]]
 
         elif env_regions == "C3C5":
-            cons_reg_sequences_d["C1"] = prot_sequence[:regions_indx_dict["V3_start"]]
-            cons_reg_sequences_d["C2"] = prot_sequence[regions_indx_dict["V3_end"]:regions_indx_dict["V4_start"]]
-            cons_reg_sequences_d["C3"] = prot_sequence[regions_indx_dict["V4_end"]:]
+            for code, reg_idx_d in sorted(regions_indx_dict.items(), key=lambda x: x[0].split("_")[0]):
+                for region, reg_idx in reg_idx_d.items():
+                    # if missing the regex, send to bad output
+                    if reg_idx is None:
+                        return None
+
+                var_reg_sequences_d["1_var"] = prot_sequence[reg_idx_d["V3_start"]:reg_idx_d["V3_end"]]
+                var_reg_sequences_d["2_var"] = prot_sequence[reg_idx_d["V4_start"]:reg_idx_d["V4_end"]]
         else:
             sys.exit("something went wrong")
-        for region, reg_idx in sorted(regions_indx_dict.items(), key=lambda x: x[0].split("_")[0]):
-            print(region)
 
-        return cons_reg_sequences_d
+        return var_reg_sequences_d
 
 
 def write_regions_to_file(region_dict, path_for_tmp_file):
@@ -539,61 +564,82 @@ def pad_var_region_to_longest(var_regions_dct):
     return new_var_regions_dct
 
 
-def join_regions(cons_regions, padded_var_regions, full_order):
+def join_regions(cons_regions, padded_var_regions, full_order, env_regions):
     """
     function to join conserved and variable regions to re-create the full sequence
     :param cons_regions: (dict) dictionary of the conserved regions {"C1": {"code": "seq"}}
     :param padded_var_regions: dictionary of the variable  regions {"V1": {"code": "seq"}}
     :param full_order: (list) a list of all the conserved and variable regions in sequential order
+    :param env_regions: (str) the Env regions present in the sequence, if any
     :return: (dict) dictionary of re-created sequences {"code": "seq"}
     """
     joined_d = collections.defaultdict(str)
 
-    # find start/end region
-    cons = []
-    var = []
-
-    for i in full_order:
-        if i in cons_regions:
-            cons.append(i)
-
-    for i in full_order:
-        if i in padded_var_regions:
-            var.append(i)
-
-    start_cons = cons[0]
-    end_cons = cons[-1]
-    start_var = var[0]
-    end_var = var[-1]
-
-    # get start region
-    if full_order.index(start_cons) > full_order.index(start_var):
-        start = full_order.index(start_var)
-    else:
-        start = full_order.index(start_cons)
-
-    # get end region
-    if full_order.index(end_cons) > full_order.index(end_var):
-        end = full_order.index(end_cons)
-    else:
-        end = full_order.index(end_var)
-
-    final_order = full_order[start:end + 1]
-
-    # stitch the regions together in the right order
-    for seq_region in final_order:
-        if seq_region in cons_regions:
-            region_d = cons_regions[seq_region]
+    if env_regions == "C0C1" or env_regions == "C2C3" or env_regions == "GP41" or not env_regions:
+        for seq_region, region_d in cons_regions.items():
             for seq_code, seq in region_d.items():
-                joined_d[seq_code] += seq
-        elif seq_region in padded_var_regions:
-            region_d = padded_var_regions[seq_region]
-            for seq_code, seq in region_d.items():
-                joined_d[seq_code] += seq
+                joined_d[seq_code] = seq
+
+        return joined_d
+
+    else:
+        if env_regions == "GP120" or env_regions == "GP160":
+            for seq_region, region_d in cons_regions.items():
+                for seq_code, seq in region_d.items():
+                    joined_d[seq_code] += seq
+            print("do something")
+
+        elif env_regions == "C1C2":
+            print("do something")
+
+        elif env_regions == "C3C5":
+            print("do something")
+
+        # find start/end region
+        cons = []
+        var = []
+
+        for i in full_order:
+            if i in cons_regions:
+                cons.append(i)
+
+        for i in full_order:
+            if i in padded_var_regions:
+                var.append(i)
+
+        start_cons = cons[0]
+        end_cons = cons[-1]
+        start_var = var[0]
+        end_var = var[-1]
+
+        # get start region
+        if full_order.index(start_cons) > full_order.index(start_var):
+            start = full_order.index(start_var)
         else:
-            sys.exit("region not in conserved or var dictionary\ncan't re-create full-length sequence")
+            start = full_order.index(start_cons)
 
-    return joined_d
+        # get end region
+        if full_order.index(end_cons) > full_order.index(end_var):
+            end = full_order.index(end_cons)
+        else:
+            end = full_order.index(end_var)
+
+        final_order = full_order[start:end + 1]
+
+        # stitch the regions together in the right order
+        for seq_region in final_order:
+            if seq_region in cons_regions:
+                region_d = cons_regions[seq_region]
+                for seq_code, seq in region_d.items():
+                    joined_d[seq_code] += seq
+            elif seq_region in padded_var_regions:
+                region_d = padded_var_regions[seq_region]
+                for seq_code, seq in region_d.items():
+                    joined_d[seq_code] += seq
+            else:
+                sys.exit("region not in conserved or var dictionary\ncan't re-create full-length sequence")
+
+        return joined_d
 
 
 def backtranslate(padded_dna_d, prot_align_d):
@@ -644,7 +690,7 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions):
     ref_seqs = fasta_to_dct(ref_file)
     reference = ref_seqs[gene_region]
 
-    ref_prot_seq = translate_dna(reference.replace("-", ""))
+    # ref_prot_seq = translate_dna(reference.replace("-", ""))
 
     # read in fasta file and reference
     in_seqs_d = fasta_to_dct_rev(infile)
@@ -658,7 +704,7 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions):
         first_seq_code_d[seq] = unique_id
 
     # initialize dictionaries to collect cons and var regions and gap padded sequences
-    var_region_boundaries_dct = collections.defaultdict(dict)
+    var_region_index_dct = collections.defaultdict(dict)
     cons_regions_dct = collections.defaultdict(dict)
     var_regions_dct = collections.defaultdict(dict)
     padded_seq_dict = collections.defaultdict(str)
@@ -668,11 +714,13 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions):
 
     regex_complied_1 = regex.compile(r"(^[-]*)", regex.V1)
     regex_complied_2 = regex.compile(r"([-]+)", regex.V1)
+
     # get the sequences for variable region boundaries for the ref-gene_region
-    var_regions_dict = get_var_regions_dict(ref, gene, script_folder)
+    var_region_regex_dct = get_var_regions_dict(ref, gene, script_folder)
+
     var_reg_regex_compiled_d = collections.OrderedDict()
     # todo compile not working :(
-    for var_region_name, var_seq in var_regions_dict.items():
+    for var_region_name, var_seq in var_region_regex_dct.items():
         regex_complied = regex.compile("({0}){{e<3}}".format(var_seq), regex.V1)
         # print(regex_complied)
         var_reg_regex_compiled_d[var_region_name] = regex_complied
@@ -698,17 +746,23 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions):
                     handle.write(">{0}\n{1}\n".format(name_bad, seq))
                 continue
 
-            # get prot pairwise alignment
-            # prot_align_d = prot_pairwise_align(prot_seq, ref_prot_seq, regex_complied_1)
-
             # get the var region boundaries, if any
-            var_region_boundaries_dct[code] = find_var_region_boundaries(prot_seq, var_regions_dict, env_regions)
+            var_region_index_dct[code] = find_var_region_boundaries(prot_seq, var_region_regex_dct, env_regions)
 
             # extract conserved regions
-            cons_regions_dct[code] = get_cons_regions(prot_seq, var_regions_dct, env_regions, full_order)
+            cons_regions_dct[code] = get_cons_regions(prot_seq, var_region_index_dct, env_regions)
+            # if one or more of the var region boundaries was not found, write to file and skip
+            if cons_regions_dct[code] is None:
+                print("error in getting seq into frame", prot_seq)
+                names_list = first_look_up_d[code]
+                # del first_look_up_d[code]
+                del padded_seq_dict[code]
+                for name_bad in names_list:
+                    handle.write(">{0}\n{1}\n".format(name_bad, seq))
+                continue
 
             # extract variable regions
-            # var_regions_dct[code] = get_var_regions(prot_seq, var_regions_dct, env_regions, full_order)
+            var_regions_dct[code] = get_var_regions(prot_seq, var_region_index_dct, env_regions)
 
     # write the collected conserved regions to file and align
     tmp_cons_file_to_align = write_regions_to_file(cons_regions_dct, outpath)
@@ -727,7 +781,7 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions):
         for seq_code, region_d in new_var_regions_dct.items():
             for region, seq in region_d.items():
                 var_prot_d[region][seq_code] = seq
-
+    input("enter")
     # join the different variable and conserved regions together in the right order
     joined_regions_d = join_regions(align_cons_prot_d, var_prot_d, full_order)
 
@@ -766,7 +820,7 @@ if __name__ == "__main__":
                         help='The name for the gene region (ENV, GAG, POL, PRO, NEF, VIF, VPR, REV, VPU)',
                         required=False)
     parser.add_argument('-reg', '--regions', default=False, action="store",
-                        choices=["C0C1", "C1C2", "C2C3", "C3C5", "gp41", "gp120", "gp160"], type=str,
+                        choices=["C0C1", "C1C2", "C2C3", "C3C5", "GP41", "GP120", "GP160"], type=str,
                         help='the variable regions in your data', required=False)
     parser.add_argument('-v', '--var_align', default=False, action="store_true",
                         help='Align the variable regions as well. May produce messy alignment', required=False)
