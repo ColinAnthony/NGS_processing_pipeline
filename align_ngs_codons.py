@@ -89,6 +89,22 @@ def fasta_to_dct_rev(file_name):
     return dct
 
 
+def get_order(env_regions):
+    if env_regions:
+        if env_regions == "gp120" or env_regions == "gp160":
+            full_order = ["C1", "V1", "C2", "V2", "C3", "V3", "C4", "V4", "C5"]
+        elif env_regions == "C0C1" or env_regions == "C2C3" or env_regions == "gp41":
+            full_order = ["C1"]
+        elif env_regions == "C1C2" or env_regions == "C3C5":
+            full_order = ["C1", "V1", "C2", "V2", "C3"]
+        else:
+            sys.exit("Incorrect Env region")
+    else:
+        full_order = None
+
+    return full_order
+
+
 def pairwise_align_dna(sequence, reference, regex_complied):
     """
     Pairwise align sequence to reference, to find reading frame and frame-shift in/dels
@@ -298,245 +314,6 @@ def translate_dna(sequence):
     return "".join(prot)
 
 
-def prot_pairwise_align(prot_sequence, ref_prot, regex_complied):
-    """
-    function to pairwise align protein sequence to ref
-    :param prot_sequence: (str) a protein query sequence
-    :param ref_prot: (str) a protein translation of the reference
-    :param regex_complied: (regex_obj) a compiled regex pattern
-    :return: (dict) dict of cons regions, (dict) dict of var regions
-    """
-
-    overlap = seqanpy.align_overlap(prot_sequence, ref_prot, band=-1, score_match=4, score_mismatch=-1, score_gapext=-2,
-                                    score_gapopen=-15)
-    overlap = list(overlap)
-
-    seq_align = overlap[1]
-    ref_align = overlap[2]
-    # print(">seq_align\n{}".format(seq_align))
-    # print(">ref_align\n{}".format(ref_align))
-
-    if seq_align[0] == '-':
-        seq_start = regex_complied.search(seq_align).end()
-    else:
-        seq_start = 0
-
-    # get end position in the seq, if not starting at index 0
-    if seq_align[-1] == "X":
-        seq_end = None
-    elif seq_align[-1] == '-':
-        seq_end = (regex_complied.search(seq_align[::-1]).end()) * - 1
-    else:
-        seq_end = - 1
-
-    seq_align_new = seq_align[seq_start:seq_end]
-    ref_align_new = ref_align[seq_start:seq_end]
-
-    start_end_positions = [(seq_start, seq_end), (seq_start, seq_end)]
-
-    alignment_d = {"inseq": prot_sequence,
-                   "query": seq_align_new,
-                   "reference": ref_align_new,
-                   "start_end_positions": start_end_positions,
-                   }
-    # print(">seq_align\n{}".format(seq_align_new[-5:]))
-    # print(">ref_align\n{}".format(ref_align_new))
-
-    return alignment_d
-def set_cons_var_regions(ref_type):
-    """
-    contains the coordinates for the start and end of each conserved and variable region
-    :ref_type: (str) the reference coordinates to use
-    :return:
-    """
-    # todo: change this to regex to find region
-    if ref_type != "HXB2":
-        ref_cons_regions_index_d = {"C1": (0, 130),
-                                    "C2": (156, 177),
-                                    "C3": (185, 383),
-                                    "C4": (395, 440),
-                                    "C5": (447, 844),
-                                    }
-
-        ref_var_regions_index_d = {"V1": (130, 156),
-                                   "V2": (177, 185),
-                                   "V3": (383, 395),
-                                   "V4": (440, 447),
-                                   }
-
-        full_order = ["C1", "V1", "C2", "V2", "C3", "V3", "C4", "V4", "C5"]
-
-    else:
-        ref_cons_regions_index_d = {"C1": (0, 131),
-                                    "C2": (152, 184),
-                                    "C3": (190, 394),
-                                    "C4": (410, 459),
-                                    "C5": (465, 856),
-                                    }
-
-        ref_var_regions_index_d = {"V1": (131, 152),
-                                   "V2": (184, 190),
-                                   "V3": (394, 410),
-                                   "V4": (459, 465),
-                                   }
-
-        full_order = ["C1", "V1", "C2", "V2", "C3", "V3", "C4", "V4", "C5"]
-
-    return ref_cons_regions_index_d, ref_var_regions_index_d, full_order
-def posnumcalc(ref_seq, start):
-    """
-    Calculates the positional numbering relative to hxb2
-    :param ref_seq: (str) hxb2 protein sequence
-    :param start:  (int) start amino acid position for hxb2
-    :return: (list) list of position numbers [1, 2, 3, 4, 4.01, 4.02, 5]
-    """
-    ref_resi_len = len(ref_seq.replace("-", ""))
-    pos_nums = list(range(start, (start + ref_resi_len) + 1))
-
-    return pos_nums
-def get_cons_regions(prot_align_d, end_reg, ref_cons_regions_index_d, ref_numbering):
-    """
-    function to extract conserved regions of a sequence (envelope)
-    :param prot_align_d: (dict) dict of pairwise alignment object
-    :param end_reg: (str) end region key
-    :param ref_cons_regions_index_d: (dict) of cons regions and their indexes in the reference prot seq
-    :param ref_numbering: (list) list of reference sequence position numbers relative to start of coding region
-    :return: (dict) dict of cons regions
-    """
-    ref_start = prot_align_d["start_end_positions"][1][0]
-    seq_align = prot_align_d["query"]
-    ref_align = prot_align_d["reference"]
-
-    # get ref numbering
-    # ref_numbering = posnumcalc(ref_align, ref_start)
-
-    # extract the cons regions to dicts
-    cons_d = collections.defaultdict(str)
-
-    for cons_region, index_tup in ref_cons_regions_index_d.items():
-        start = index_tup[0]
-        end = index_tup[1]
-        if start in ref_numbering and end in ref_numbering:
-            if cons_region == end_reg:
-                cons_region_slice = seq_align[ref_numbering.index(start):]
-                cons_d[cons_region] = cons_region_slice
-            else:
-                cons_region_slice = seq_align[ref_numbering.index(start):ref_numbering.index(end)]
-                cons_d[cons_region] = cons_region_slice.replace("-", "")
-
-        elif start not in ref_numbering and end in ref_numbering:
-            cons_region_slice = seq_align[:ref_numbering.index(end)]
-            cons_d[cons_region] = cons_region_slice.replace("-", "")
-
-        elif start in ref_numbering and end not in ref_numbering:
-            cons_region_slice = seq_align[ref_numbering.index(start):]
-            cons_d[cons_region] = cons_region_slice.replace("-", "")
-
-        else:
-            print("{} region not present".format(cons_region))
-
-    return cons_d
-def get_var_regions(prot_align_d, end_reg, ref_var_regions_index_d, ref_numbering):
-    """
-    function to extract conserved regions of a sequence (envelope)
-    :param prot_align_d: (dict) dict of pairwise alignment object
-    :param end_reg: (str) end region key
-    :param ref_var_regions_index_d: (dict) of variable regions and their indexes in the reference prot seq
-    :param ref_numbering: (list) list of reference sequence position numbers relative to start of coding region
-    :return: (dict) dict of var regions
-    """
-    ref_start = prot_align_d["start_end_positions"][1][0]
-    seq_align = prot_align_d["query"]
-    ref_align = prot_align_d["reference"]
-
-    # get hxb2 numbering
-    # ref_numbering = posnumcalc(ref_align, ref_start)
-
-    # extract the var regions to dicts
-    var_d = collections.defaultdict(str)
-
-    for var_region, index_tup in ref_var_regions_index_d.items():
-        start = index_tup[0]
-        end = index_tup[1]
-        if start in ref_numbering and end in ref_numbering:
-            if var_region == end_reg:
-                var_region_slice = seq_align[ref_numbering.index(start):]
-                var_d[var_region] = var_region_slice
-            else:
-                var_region_slice = seq_align[ref_numbering.index(start):ref_numbering.index(end)]
-                var_d[var_region] = var_region_slice.replace("-", "")
-
-        elif start not in ref_numbering and end in ref_numbering:
-            var_region_slice = seq_align[:ref_numbering.index(end)]
-            var_d[var_region] = var_region_slice.replace("-", "")
-
-        elif start in ref_numbering and end not in ref_numbering:
-            var_region_slice = seq_align[ref_numbering.index(start):]
-            var_d[var_region] = var_region_slice.replace("-", "")
-        else:
-            print("{} region not present".format(var_region))
-
-    return var_d
-def find_start_end_regions(alignment_d, ref_cons_regions_index_d, ref_var_regions_index_d, full_order, bounds_lower):
-    """
-    function to take a pairwise align obj in dict format and find the start and end regions for cons and var boundaries
-    :param alignment_d: (dict) dict of pairwise alignment object
-    :param ref_cons_regions_index_d: (dict) of conserved regions
-    :param ref_var_regions_index_d: (dict) of variable regions
-    :param full_order: (list) a list of all the conserved and variable regions in sequential order
-    :param bounds_lower: (int) start of reference sequence in amino acid numbering
-    :return: (str) start and end region keys
-    """
-    # seq_align = alignment_d["query"]
-    ref_align = alignment_d["reference"]
-    ref_start = alignment_d["start_end_positions"][1][0]
-
-    # get hxb2 numbering
-    if bounds_lower is None:
-        bounds_lower = 0
-    ref_start_idx = ref_start + bounds_lower
-    ref_numbering = posnumcalc(ref_align, ref_start_idx)
-
-    cons_region_list = []
-    var_region_list = []
-
-    for cons_region, index_tup in ref_cons_regions_index_d.items():
-        start = index_tup[0]
-        end = index_tup[1]
-        if start in ref_numbering or end in ref_numbering:
-            cons_region_list.append(cons_region)
-        else:
-            print("{} region not present".format(cons_region))
-
-    for var_region, index_tup in ref_var_regions_index_d.items():
-        start = index_tup[0]
-        end = index_tup[1]
-        if start in ref_numbering or end in ref_numbering:
-            var_region_list.append(var_region)
-        else:
-            print("{} region not present".format(var_region))
-
-    # find start/end region
-    start_cons = sorted(cons_region_list)[0]
-    end_cons = sorted(cons_region_list)[-1]
-    start_var = sorted(var_region_list)[0]
-    end_var = sorted(var_region_list)[-1]
-
-    # get start region
-    if full_order.index(start_cons) > full_order.index(start_var):
-        start = start_var
-    else:
-        start = start_cons
-
-    # get end region
-    if full_order.index(end_cons) > full_order.index(end_var):
-        end = end_cons
-    else:
-        end = end_var
-
-    return start, end, ref_numbering
-
-
 def get_var_regions_dict(ref_type, gene_region, regions_path):
     """
     imports regex search string from reference csv file
@@ -557,33 +334,122 @@ def get_var_regions_dict(ref_type, gene_region, regions_path):
     return var_regions_dict
 
 
-def find_cons_var_regions(prot_sequence, regions_dict):
+def find_var_region_boundaries(prot_sequence, regions_dict, env_regions):
 
     regions_index_d = collections.defaultdict(int)
-    regions_sequences_d = collections.defaultdict(str)
-    for var_reg_name, var_seq in regions_dict.items():
-        region_key = var_reg_name.split("_")[-1]
-        var_reg = var_reg_name.split("_")[0]
-        error = 3
-        pattern = "({0}){{e<{1}}}".format(var_seq, error)
-        match = regex.search(pattern, prot_sequence, regex.BESTMATCH)
-        if match is not None:
-            if region_key == "start":
-                slice_index = match.start()
-            elif region_key == "end":
-                slice_index = match.end()
+    if env_regions == "C0C1" or env_regions == "C2C3" or env_regions == "gp41" or not env_regions:
+        regions_index_d["None"] = None
+        return regions_index_d
+    else:
+        for var_reg_name, var_seq in regions_dict.items():
+            if env_regions == "C1C2" and var_reg_name.split("_")[0] != "V1" or var_reg_name.split("_")[0] != "V2":
+                continue
+            elif env_regions == "C3C5" and var_reg_name.split("_")[0] != "V3" or var_reg_name.split("_")[0] != "V4":
+                continue
             else:
-                sys.exit("error in region name: {}\nshould end in 'start' or 'end'.".format(var_reg_name))
-            regions_index_d[var_reg] = slice_index
+                region_key = var_reg_name.split("_")[-1]
+                error = 3
+                pattern = "({0}){{e<{1}}}".format(var_seq, error)
+                match = regex.search(pattern, prot_sequence, regex.BESTMATCH)
+                if match is not None:
+                    if region_key == "start":
+                        slice_index = match.start()
+                    elif region_key == "end":
+                        slice_index = match.end()
+                    else:
+                        sys.exit("error in region name: {}\nshould end in 'start' or 'end'.".format(var_reg_name))
+                    regions_index_d[var_reg_name] = slice_index
+                else:
+                    print(var_reg_name, "not found")
+                    slice_index = None
+                    regions_index_d[var_reg_name] = slice_index
+
+        return regions_index_d
+
+
+def get_cons_regions(prot_sequence, regions_indx_dict, env_regions):
+    """
+    extract conserved regions from protein sequence
+    :param prot_sequence: (str) protein sequence
+    :param regions_dict: (dict) key = var region name, value = index in prot_sequence
+    :param env_regions: (str) the Env regions present in the sequence, if any
+    :return: (dict) key = conserved region name, value = (str) slice of prot_sequence
+    """
+
+    cons_reg_sequences_d = collections.defaultdict(str)
+
+    if env_regions == "C0C1" or env_regions == "C2C3" or env_regions == "gp41" or not env_regions:
+        cons_reg_sequences_d[env_regions] = prot_sequence
+        return cons_reg_sequences_d
+
+    else:
+        if env_regions == "gp120" or env_regions == "gp160":
+            for region, reg_idx in sorted(regions_indx_dict.items(), key=lambda x: x[0].split("_")[0]):
+                if reg_idx is None:
+                    return None
+
+            cons_reg_sequences_d["C1"] = prot_sequence[:regions_indx_dict["V1_start"]]
+            cons_reg_sequences_d["C2"] = prot_sequence[regions_indx_dict["V1_end"]:regions_indx_dict["V2_start"]]
+            cons_reg_sequences_d["C3"] = prot_sequence[regions_indx_dict["V2_end"]:regions_indx_dict["V3_start"]]
+            cons_reg_sequences_d["C4"] = prot_sequence[regions_indx_dict["V3_end"]:regions_indx_dict["V4_start"]]
+            cons_reg_sequences_d["C5"] = prot_sequence[regions_indx_dict["V4_end"]:]
+
+        elif env_regions == "C1C2":
+            cons_reg_sequences_d["C1"] = prot_sequence[:regions_indx_dict["V1_start"]]
+            cons_reg_sequences_d["C2"] = prot_sequence[regions_indx_dict["V1_end"]:regions_indx_dict["V2_start"]]
+            cons_reg_sequences_d["C3"] = prot_sequence[regions_indx_dict["V2_end"]:]
+
+        elif env_regions == "C3C5":
+            cons_reg_sequences_d["C1"] = prot_sequence[:regions_indx_dict["V3_start"]]
+            cons_reg_sequences_d["C2"] = prot_sequence[regions_indx_dict["V3_end"]:regions_indx_dict["V4_start"]]
+            cons_reg_sequences_d["C3"] = prot_sequence[regions_indx_dict["V4_end"]:]
         else:
-            print(var_reg_name, "not found")
-            slice_index = None
-            regions_index_d[var_reg] = slice_index
+            sys.exit("something went wrong")
 
-    for region, reg_idx in sorted(regions_index_d.items(), key=lambda x: x[0].split("_")[0]):
-        print("do something")
+        return cons_reg_sequences_d
 
-    return regions_index_d
+
+def get_var_regions(prot_sequence, regions_indx_dict, env_regions):
+    """
+
+    :param prot_sequence:
+    :param regions_indx_dict:
+    :param env_regions:
+    :return:
+    """
+    cons_reg_sequences_d = collections.defaultdict(str)
+
+    if env_regions == "C0C1" or env_regions == "C2C3" or env_regions == "gp41" or not env_regions:
+        cons_reg_sequences_d[env_regions] = prot_sequence
+        return cons_reg_sequences_d
+
+    else:
+        if env_regions == "gp120" or env_regions == "gp160":
+            for region, reg_idx in sorted(regions_indx_dict.items(), key=lambda x: x[0].split("_")[0]):
+                if reg_idx is None:
+                    return None
+
+            cons_reg_sequences_d["C1"] = prot_sequence[:regions_indx_dict["V1_start"]]
+            cons_reg_sequences_d["C2"] = prot_sequence[regions_indx_dict["V1_end"]:regions_indx_dict["V2_start"]]
+            cons_reg_sequences_d["C3"] = prot_sequence[regions_indx_dict["V2_end"]:regions_indx_dict["V3_start"]]
+            cons_reg_sequences_d["C4"] = prot_sequence[regions_indx_dict["V3_end"]:regions_indx_dict["V4_start"]]
+            cons_reg_sequences_d["C5"] = prot_sequence[regions_indx_dict["V4_end"]:]
+
+        elif env_regions == "C1C2":
+            cons_reg_sequences_d["C1"] = prot_sequence[:regions_indx_dict["V1_start"]]
+            cons_reg_sequences_d["C2"] = prot_sequence[regions_indx_dict["V1_end"]:regions_indx_dict["V2_start"]]
+            cons_reg_sequences_d["C3"] = prot_sequence[regions_indx_dict["V2_end"]:]
+
+        elif env_regions == "C3C5":
+            cons_reg_sequences_d["C1"] = prot_sequence[:regions_indx_dict["V3_start"]]
+            cons_reg_sequences_d["C2"] = prot_sequence[regions_indx_dict["V3_end"]:regions_indx_dict["V4_start"]]
+            cons_reg_sequences_d["C3"] = prot_sequence[regions_indx_dict["V4_end"]:]
+        else:
+            sys.exit("something went wrong")
+        for region, reg_idx in sorted(regions_indx_dict.items(), key=lambda x: x[0].split("_")[0]):
+            print(region)
+
+        return cons_reg_sequences_d
 
 
 def write_regions_to_file(region_dict, path_for_tmp_file):
@@ -758,7 +624,7 @@ def backtranslate(padded_dna_d, prot_align_d):
     return dna_align_d
 
 
-def main(infile, outpath, name, ref, gene, bounds_lower, bounds_upper, var_align):
+def main(infile, outpath, name, ref, gene, var_align, env_regions):
 
     # get absolute paths
     infile = os.path.abspath(infile)
@@ -775,18 +641,8 @@ def main(infile, outpath, name, ref, gene, bounds_lower, bounds_upper, var_align
     script_folder = os.path.abspath(script_folder)
     ref_file = os.path.join(script_folder, "{}_seqs.fasta".format(ref))
 
-    # get gene sequence
-    if bounds_lower:
-        bl = ((bounds_lower * 3) - 3)
-    else:
-        bl = None
-    if bounds_upper:
-        bu = ((bounds_upper * 3) + 3)
-    else:
-        bu = None
-
     ref_seqs = fasta_to_dct(ref_file)
-    reference = ref_seqs[gene_region][bl:bu]
+    reference = ref_seqs[gene_region]
 
     ref_prot_seq = translate_dna(reference.replace("-", ""))
 
@@ -802,12 +658,14 @@ def main(infile, outpath, name, ref, gene, bounds_lower, bounds_upper, var_align
         first_seq_code_d[seq] = unique_id
 
     # initialize dictionaries to collect cons and var regions and gap padded sequences
+    var_region_boundaries_dct = collections.defaultdict(dict)
     cons_regions_dct = collections.defaultdict(dict)
     var_regions_dct = collections.defaultdict(dict)
     padded_seq_dict = collections.defaultdict(str)
 
     # set the cons and var regions
-    ref_cons_regions_index_d, ref_var_regions_index_d, full_order = set_cons_var_regions(ref)
+    full_order = get_order(env_regions)
+
     regex_complied_1 = regex.compile(r"(^[-]*)", regex.V1)
     regex_complied_2 = regex.compile(r"([-]+)", regex.V1)
     # get the sequences for variable region boundaries for the ref-gene_region
@@ -815,7 +673,7 @@ def main(infile, outpath, name, ref, gene, bounds_lower, bounds_upper, var_align
     var_reg_regex_compiled_d = collections.OrderedDict()
     # todo compile not working :(
     for var_region_name, var_seq in var_regions_dict.items():
-        regex_complied = regex.compile("({0}){{e<3}}".format(var_seq))
+        regex_complied = regex.compile("({0}){{e<3}}".format(var_seq), regex.V1)
         # print(regex_complied)
         var_reg_regex_compiled_d[var_region_name] = regex_complied
 
@@ -843,22 +701,14 @@ def main(infile, outpath, name, ref, gene, bounds_lower, bounds_upper, var_align
             # get prot pairwise alignment
             # prot_align_d = prot_pairwise_align(prot_seq, ref_prot_seq, regex_complied_1)
 
-            # new regex calls
-            cons_regions_dct[code] = find_cons_var_regions(prot_seq, var_regions_dict)
-
-            # get start and end regions
-            # start_region, end_region, ref_numbering = find_start_end_regions(prot_align_d, ref_cons_regions_index_d,
-            #                                                                  ref_var_regions_index_d, full_order,
-            #                                                                  bounds_lower)
+            # get the var region boundaries, if any
+            var_region_boundaries_dct[code] = find_var_region_boundaries(prot_seq, var_regions_dict, env_regions)
 
             # extract conserved regions
-            # cons_regions_dct[code] = get_cons_regions(prot_align_d, end_region, ref_cons_regions_index_d, ref_numbering)
+            cons_regions_dct[code] = get_cons_regions(prot_seq, var_regions_dct, env_regions, full_order)
 
             # extract variable regions
-            # var_regions_dct[code] = get_var_regions(prot_align_d, end_region, ref_var_regions_index_d, ref_numbering)
-
-    # pad the variable regions with '-', to the longest sequence
-    new_var_regions_dct = pad_var_region_to_longest(var_regions_dct)
+            # var_regions_dct[code] = get_var_regions(prot_seq, var_regions_dct, env_regions, full_order)
 
     # write the collected conserved regions to file and align
     tmp_cons_file_to_align = write_regions_to_file(cons_regions_dct, outpath)
@@ -866,9 +716,12 @@ def main(infile, outpath, name, ref, gene, bounds_lower, bounds_upper, var_align
 
     # write the collected variable regions to file and align (optional)
     if var_align:
-        tmp_var_file_to_align = write_regions_to_file(new_var_regions_dct, outpath)
+        tmp_var_file_to_align = write_regions_to_file(var_regions_dct, outpath)
         var_prot_d = call_aligner(tmp_var_file_to_align)
+
+    # pad the variable regions with '-', to the longest sequence
     else:
+        new_var_regions_dct = pad_var_region_to_longest(var_regions_dct)
         # reformat dict for joining of regions
         var_prot_d = collections.defaultdict(dict)
         for seq_code, region_d in new_var_regions_dct.items():
@@ -894,8 +747,8 @@ def main(infile, outpath, name, ref, gene, bounds_lower, bounds_upper, var_align
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Codon aligns NGS HIV-1 ENV sequences using mafft.'
                                                  'Conserved regions are aligned separately and variable length/'
-                                                 'difficult to align regions can be aligned or padded with gaps '
-                                                 'to the longest subsequence',
+                                                 'difficult to align sub-regions can be aligned or padded with gaps '
+                                                 'to the longest sub-sequence',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('-i', '--infile', default=argparse.SUPPRESS, type=str,
@@ -904,21 +757,17 @@ if __name__ == "__main__":
                         help='The path for the aligned output file', required=True)
     parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=str,
                         help='The name for the output file, ie: sample/participant or study name', required=True)
-    parser.add_argument('-r', '--ref', default="CONSENSUS_C", choices=["CONSENSUS_C", "HXB2", "CON_OF_CONS"], type=str,
-                        action='store', help='The choice of reference sequence. Either consensus of subtype C,'
+    parser.add_argument('-r', '--ref', default="CONSENSUS_C", action='store',
+                        choices=["CONSENSUS_C", "HXB2", "CON_OF_CONS"], type=str,
+                        help='The choice of reference sequence. Either consensus of subtype C,'
                                              'HXB2 or consensus of consensus', required=False)
-    parser.add_argument('-g', '--gene', default="ENV", choices=["ENV", "GAG", "POL", "PRO", "NEF", "VIF", "VPR",
-                                                                "REV", "VPU"], type=str,
+    parser.add_argument('-g', '--gene', default="ENV", action="store",
+                        choices=["ENV", "GAG", "POL", "PRO", "NEF", "VIF", "VPR", "REV", "VPU"], type=str,
                         help='The name for the gene region (ENV, GAG, POL, PRO, NEF, VIF, VPR, REV, VPU)',
                         required=False)
-    parser.add_argument('-bl', '--bounds_lower', default=None, type=int,
-                        help='The start amino acid positions of your data, relative to the reference, '
-                             'if this is not a full sequence',
-                        required=False)
-    parser.add_argument('-bu', '--bounds_upper', default=None, type=int,
-                        help='The end amino acid positions of your data, relative to the reference, '
-                             'if this is not a full sequence',
-                        required=False)
+    parser.add_argument('-reg', '--regions', default=False, action="store",
+                        choices=["C0C1", "C1C2", "C2C3", "C3C5", "gp41", "gp120", "gp160"], type=str,
+                        help='the variable regions in your data', required=False)
     parser.add_argument('-v', '--var_align', default=False, action="store_true",
                         help='Align the variable regions as well. May produce messy alignment', required=False)
 
@@ -928,8 +777,11 @@ if __name__ == "__main__":
     name = args.name
     ref = args.ref
     gene = args.gene
-    bounds_upper = args.bounds_upper
-    bounds_lower = args.bounds_lower
     var_align = args.var_align
+    regions = args.regions
 
-    main(infile, outpath, name, ref, gene, bounds_lower, bounds_upper, var_align)
+    if gene == "ENV":
+        if not regions:
+            sys.exit("must use the -reg flag for ENV")
+
+    main(infile, outpath, name, ref, gene, var_align, regions)
