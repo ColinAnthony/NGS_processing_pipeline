@@ -10,10 +10,9 @@ import random
 import string
 import subprocess
 from subprocess import DEVNULL
+import pandas as pd
 import regex
 import seqanpy
-import pandas as pd
-from pprint import pprint
 
 
 __author__ = 'Colin Anthony'
@@ -343,13 +342,19 @@ def get_ref_start_end(ref_type, env_regions, regions_path):
     ref_df = df.loc[df["reference_type"] == ref_type]
     ref_region = ref_df.loc[df["env_region"] == env_regions]
     ref_start = int(ref_region["ref_start"]) * 3
-    ref_end  = int(ref_region["ref_end"]) * 3
+    ref_end = int(ref_region["ref_end"]) * 3
 
     return ref_start, ref_end
 
 
 def find_var_region_boundaries(prot_sequence, regions_dict, env_regions):
-
+    """
+    uses regex to find the start and end coordinates of HIV1 variable regions
+    :param prot_sequence: (str) a protein sequence
+    :param regions_dict: (dict) key = variable region name, value = regex string
+    :param env_regions: (str/None) name of env sub-region if present, else None
+    :return:
+    """
     regions_index_d = collections.defaultdict(int)
     if env_regions == "C0C1" or env_regions == "C2C3" or env_regions == "GP41" or not env_regions:
         regions_index_d["None"] = None
@@ -363,20 +368,22 @@ def find_var_region_boundaries(prot_sequence, regions_dict, env_regions):
 
             else:
                 region_key = var_reg_name.split("_")[-1].lower()
-                error = 3
-                pattern = "{0}{{s<{1}}}".format(var_seq, error)
+                # set error in regex, currently hardcoded to 3
+                # error = 3
+                pattern = "{0}{{s<3}}".format(var_seq)
+
                 match = regex.search(pattern, prot_sequence, regex.BESTMATCH)
-                # if var_reg_name == "V2_start":
-                #     print("v2 start", match)
-                # elif var_reg_name == "V2_end":
-                #     print("V2 end", match)
+
                 # if failed to get regex match for start of V1 for C1C2 amplicon data, try shorter regex search pattern
                 if match is None and var_reg_name == "V1_start" and env_regions == "C1C2":
                     alt_pattern = r'(XL[NKE]C[TS]){s<3}'
                     match = regex.search(alt_pattern, prot_sequence, regex.BESTMATCH)
                 # if failed to get regex match for end of V5 for C315 amplicon data, try shorter regex search pattern
+                if match is None and var_reg_name == "V4_start" and env_regions == "C3C5":
+                    alt_pattern = r'(LI[LV][TVL]RDGG.){e<3}'
+                    match = regex.search(alt_pattern, prot_sequence, regex.BESTMATCH)
                 if match is None and var_reg_name == "V4_end" and env_regions == "C3C5":
-                    alt_pattern = r'(E[TI]FR){s<2}'
+                    alt_pattern = r'(L[TVL]RDGG.*?E[TIV]F[RX]){e<3}'
                     match = regex.search(alt_pattern, prot_sequence, regex.BESTMATCH)
 
                 if match is not None:
@@ -446,7 +453,7 @@ def get_cons_regions(prot_sequence, regions_indx_dict, env_regions):
                 cons_reg_sequences_d["C1"] = prot_sequence[:reg_idx_d["V3_start"]]
                 cons_reg_sequences_d["C2"] = prot_sequence[reg_idx_d["V3_end"]:reg_idx_d["V4_start"]]
                 if reg_idx_d["V4_end"] == len(prot_sequence):
-                    cons_reg_sequences_d["C3"] = prot_sequence[reg_idx_d["V4_end"] - 2 :]
+                    cons_reg_sequences_d["C3"] = prot_sequence[reg_idx_d["V4_end"] - 2:]
                 else:
                     cons_reg_sequences_d["C3"] = prot_sequence[reg_idx_d["V4_end"]:]
 
@@ -638,7 +645,7 @@ def backtranslate(padded_dna_d, prot_align_d):
     dna_align_d = collections.defaultdict(str)
     for code, prot_seq in prot_align_d.items():
         dna_seq = padded_dna_d[code]
-        ref_prot = translate_dna(dna_seq)
+        # ref_prot = translate_dna(dna_seq)
         dna_align = ''
         resi_count = 0
         for resi in prot_seq:
@@ -764,7 +771,6 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions):
             # extract variable regions
             var_regions_dct[code] = get_var_regions(prot_seq, var_region_index_dct, env_regions)
 
-
     # write the collected conserved regions to file and align
     print("Aligning conserved regions sequences")
     tmp_cons_file_to_align = write_regions_to_file(cons_regions_dct, outpath)
@@ -797,12 +803,12 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions):
     dna_aligned = backtranslate(padded_seq_dict, joined_regions_d)
 
     # write back-translated DNA alignment to file
-    # print("Writing DNA alignment to outfile")
-    # with open(outfile, 'w') as handle:
-    #     for code, align_seq in dna_aligned.items():
-    #         names_list = first_look_up_d[code]
-    #         for seq_name in names_list:
-    #             handle.write(">{0}\n{1}\n".format(seq_name, align_seq))
+    print("Writing DNA alignment to outfile")
+    with open(outfile, 'w') as handle:
+        for code, align_seq in dna_aligned.items():
+            names_list = first_look_up_d[code]
+            for seq_name in names_list:
+                handle.write(">{0}\n{1}\n".format(seq_name, align_seq))
 
     print("Codon aligning completed")
 
@@ -822,8 +828,8 @@ if __name__ == "__main__":
                         help='The name for the output file, ie: sample/participant or study name', required=True)
     parser.add_argument('-r', '--ref', default="CONSENSUS_C", action='store',
                         choices=["CONSENSUS_C", "HXB2", "CON_OF_CONS"], type=str,
-                        help='The choice of reference sequence. Either consensus of subtype C,'
-                                             'HXB2 or consensus of consensus', required=False)
+                        help='The choice of reference sequence. Either consensus of subtype C, '
+                             'HXB2 or consensus of consensus', required=False)
     parser.add_argument('-g', '--gene', default="ENV", action="store",
                         choices=["ENV", "GAG", "POL", "PRO", "NEF", "VIF", "VPR", "REV", "VPU"], type=str,
                         help='The name for the gene region (ENV, GAG, POL, PRO, NEF, VIF, VPR, REV, VPU)',
