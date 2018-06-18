@@ -729,10 +729,11 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions, user_ref):
         ref_start, ref_end = get_ref_start_end(ref, env_regions, script_folder)
         reference = reference[ref_start:ref_end]
 
+    # compile the regex strings
     # var_reg_regex_compiled_d = collections.OrderedDict()
     # todo compile not working :(
     # for var_region_name, var_seq in var_region_regex_dct.items():
-    #     regex_complied = regex.compile("({0}){{e<3}}".format(var_seq), regex.V1)
+    #     regex_complied = regex.compile("({0}){{e<3}}".format(var_seq))
     #     # print(regex_complied)
     #     var_reg_regex_compiled_d[var_region_name] = regex_complied
 
@@ -769,11 +770,8 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions, user_ref):
             if missing_regex:
                 print("error", var_region_index_dct[code])
                 print("error finding one or more variable region boundary", prot_seq)
-                # input("enter")
                 names_list = first_look_up_d[code]
-                # del first_look_up_d[code]
                 del padded_seq_dict[code]
-
                 for name_bad in names_list:
                     bad_seq_counter += 1
                     handle.write(">{0}\n{1}\n".format(name_bad, seq))
@@ -800,8 +798,7 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions, user_ref):
     else:
         print("Padding variable region sequences with gaps\n")
         new_var_regions_dct = pad_var_region_to_longest(var_regions_dct)
-        # print("padded", new_var_regions_dct)
-        # input("enter")
+
         # reformat dict for joining of regions
         var_prot_d = collections.defaultdict(dict)
         for seq_code, region_d in new_var_regions_dct.items():
