@@ -114,14 +114,16 @@ def pairwise_align_dna(sequence, reference, regex_complied):
     :return: (str) aligned query sequence, (str) aligned ref sequence, (int) reading frame for query sequence
     """
     # do overlap pairwise alignment to not get truncated query sequence
-    overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-1, score_gapext=-2,
+    overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-1, score_gapext=-3,
                                     score_gapopen=-15)
+    # overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-1, score_gapext=-2,
+    #                                 score_gapopen=-15)
     overlap = list(overlap)
 
     seq_align = overlap[1]
     ref_align = overlap[2]
-    # print(">sqseq1\n{}\n".format(seq_align))
-    # print(">sqref1\n{}\n".format(ref_align))
+    print(">sqseq1\n{}\n".format(seq_align))
+    print(">sqref1\n{}\n".format(ref_align))
 
     # get start position in the seq, if not starting at index 0
     if seq_align[0] == '-':
@@ -410,8 +412,7 @@ def check_for_missing_regex(var_region_index_dct):
     """
     for code, var_idx_d in var_region_index_dct.items():
         for region, idx in var_idx_d.items():
-            if not idx:
-                print(var_region_index_dct)
+            if not idx and idx != 0:
                 return True
 
     return False
@@ -740,7 +741,7 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions):
             # translate query
             prot_seq = translate_dna(padded_sequence)
             # if the seq could not be translated, write to file and skip
-            if prot_seq[:-1].count("*") > 2:
+            if prot_seq[:-1].count("Z") > 2:
                 print("error in getting seq into frame", prot_seq)
                 names_list = first_look_up_d[code]
                 # del first_look_up_d[code]
@@ -759,8 +760,10 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions):
                 print("error finding one or more variable region boundary", prot_seq)
                 # input("enter")
                 names_list = first_look_up_d[code]
+                missing_regex = False
                 # del first_look_up_d[code]
                 del padded_seq_dict[code]
+
                 for name_bad in names_list:
                     handle.write(">{0}\n{1}\n".format(name_bad, seq))
                 continue
