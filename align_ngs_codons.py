@@ -13,6 +13,7 @@ from subprocess import DEVNULL
 import pandas as pd
 import regex
 import seqanpy
+from pprint import pprint
 
 
 __author__ = 'Colin Anthony'
@@ -114,16 +115,14 @@ def pairwise_align_dna(sequence, reference, regex_complied):
     :return: (str) aligned query sequence, (str) aligned ref sequence, (int) reading frame for query sequence
     """
     # do overlap pairwise alignment to not get truncated query sequence
-    # overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-1, score_gapext=-3,
-    #                                 score_gapopen=-15)
-    overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-1, score_gapext=-2,
+    overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-1, score_gapext=-3,
                                     score_gapopen=-15)
     overlap = list(overlap)
 
     seq_align = overlap[1]
     ref_align = overlap[2]
-    print(">sqseq1\n{}\n".format(seq_align))
-    print(">sqref1\n{}\n".format(ref_align))
+    # print(">sqseq1\n{}\n".format(seq_align))
+    # print(">sqref1\n{}\n".format(ref_align))
 
     # get start position in the seq, if not starting at index 0
     if seq_align[0] == '-':
@@ -372,33 +371,35 @@ def find_var_region_boundaries(prot_sequence, regions_dict, env_regions):
                 region_key = var_reg_name.split("_")[-1].lower()
                 # set error in regex, currently hardcoded to 3
                 # error = 3
-                pattern = "{0}{{s<3}}".format(var_seq)
+                pattern = "{0}{{e<2}}".format(var_seq)
 
                 match = regex.search(pattern, prot_sequence, regex.BESTMATCH)
 
                 # if failed to get regex match for start of V1 for C1C2 amplicon data, try shorter regex search pattern
                 if match is None and var_reg_name == "V1_start" and env_regions == "C1C2":
-                    alt_pattern = r'(XL[NKE]C[TS]){s<3}'
+                    alt_pattern = r'(XL[NKIE]C[NRTSI]){e<1}'
                     match = regex.search(alt_pattern, prot_sequence, regex.BESTMATCH)
+
                 # if failed to get regex match for end of V5 for C315 amplicon data, try shorter regex search pattern
                 if match is None and var_reg_name == "V4_start" and env_regions == "C3C5":
                     alt_pattern = r'(LI[LV][TVL]RDGG.){e<3}'
                     match = regex.search(alt_pattern, prot_sequence, regex.BESTMATCH)
                 if match is None and var_reg_name == "V4_end" and env_regions == "C3C5":
-                    alt_pattern = r'(L[TVL]RDGG.*?E[TIV]F[RX]){e<3}'
+                    # alt_pattern = r'(L[TVL]RDGG.*?E[TIV]FR){e<3}'
+                    alt_pattern = r'(E[TIV]FR){e<1}'
                     match = regex.search(alt_pattern, prot_sequence, regex.BESTMATCH)
 
                 if match is not None:
                     if region_key == "start":
-                        slice_index = match.start()
-                    elif region_key == "end":
                         slice_index = match.end()
+                    elif region_key == "end":
+                        slice_index = match.start()
                     else:
                         sys.exit("error in region name: {}\nshould end in 'start' or 'end'.".format(var_reg_name))
                     regions_index_d[var_reg_name] = slice_index
                 else:
                     print(var_reg_name, "not found")
-                    slice_index = False
+                    slice_index = "missing"
                     regions_index_d[var_reg_name] = slice_index
 
         return regions_index_d
@@ -410,12 +411,14 @@ def check_for_missing_regex(var_region_index_dct):
     :param var_region_index_dct: (dict) key = sequence code, value = {key=region, value= index or bool}
     :return: bool
     """
+    value = False
     for code, var_idx_d in var_region_index_dct.items():
         for region, idx in var_idx_d.items():
-            if not idx and idx != 0:
-                return True
+            if idx == "missing":
+                value = True
+                return value
 
-    return False
+    return value
 
 
 def get_cons_regions(prot_sequence, regions_indx_dict, env_regions):
@@ -686,14 +689,18 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions, user_ref):
     print("Gene sub-region (if any) is {}".format(env_regions))
     print("-------------------------------------")
     # get the reference DNA sequence
-    gene_region = ref + "_" + gene
     get_script_path = os.path.realpath(__file__)
     script_folder = os.path.split(get_script_path)[0]
     script_folder = os.path.abspath(script_folder)
-    ref_file = os.path.join(script_folder, "reference_sequences.fasta")
-    ref_seqs = fasta_to_dct(ref_file)
-    reference = ref_seqs[gene_region]
-
+    if not user_ref:
+        gene_region = ref + "_" + gene
+        ref_file = os.path.join(script_folder, "reference_sequences.fasta")
+        ref_seqs = fasta_to_dct(ref_file)
+        reference = ref_seqs[gene_region]
+    else:
+        ref_seqs = fasta_to_dct(user_ref)
+        reference = ref_seqs[list(ref_seqs)[0]]
+        print("custom ref", reference)
     # read in fasta file and reference
     in_seqs_d = fasta_to_dct_rev(infile)
 
@@ -718,17 +725,20 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions, user_ref):
 
     # get the sequences for variable region boundaries for the ref-gene_region
     var_region_regex_dct = get_var_regions_dict(ref, gene, script_folder)
-    ref_start, ref_end = get_ref_start_end(ref, env_regions, script_folder)
-    reference = reference[ref_start:ref_end]
-    var_reg_regex_compiled_d = collections.OrderedDict()
+    if not user_ref:
+        ref_start, ref_end = get_ref_start_end(ref, env_regions, script_folder)
+        reference = reference[ref_start:ref_end]
+
+    # var_reg_regex_compiled_d = collections.OrderedDict()
     # todo compile not working :(
-    for var_region_name, var_seq in var_region_regex_dct.items():
-        regex_complied = regex.compile("({0}){{e<3}}".format(var_seq), regex.V1)
-        # print(regex_complied)
-        var_reg_regex_compiled_d[var_region_name] = regex_complied
+    # for var_region_name, var_seq in var_region_regex_dct.items():
+    #     regex_complied = regex.compile("({0}){{e<3}}".format(var_seq), regex.V1)
+    #     # print(regex_complied)
+    #     var_reg_regex_compiled_d[var_region_name] = regex_complied
 
     # open file for sequences that could not be properly translated (hence codon aligned)
-    print("Processing sequences")
+    print("Processing sequences\n")
+    bad_seq_counter = 0
     with open(badfile, 'w') as handle:
         for seq, code in first_seq_code_d.items():
             var_region_index_dct = collections.defaultdict(dict)
@@ -747,6 +757,7 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions, user_ref):
                 # del first_look_up_d[code]
                 del padded_seq_dict[code]
                 for name_bad in names_list:
+                    bad_seq_counter += 1
                     handle.write(">{0}\n{1}\n".format(name_bad, seq))
                 continue
 
@@ -760,11 +771,11 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions, user_ref):
                 print("error finding one or more variable region boundary", prot_seq)
                 # input("enter")
                 names_list = first_look_up_d[code]
-                missing_regex = False
                 # del first_look_up_d[code]
                 del padded_seq_dict[code]
 
                 for name_bad in names_list:
+                    bad_seq_counter += 1
                     handle.write(">{0}\n{1}\n".format(name_bad, seq))
                 continue
 
@@ -775,19 +786,19 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions, user_ref):
             var_regions_dct[code] = get_var_regions(prot_seq, var_region_index_dct, env_regions)
 
     # write the collected conserved regions to file and align
-    print("Aligning conserved regions sequences")
+    print("Aligning conserved regions sequences\n")
     tmp_cons_file_to_align = write_regions_to_file(cons_regions_dct, outpath)
     align_cons_prot_d = call_aligner(tmp_cons_file_to_align)
 
     # write the collected variable regions to file and align (optional)
     if var_align:
-        print("Aligning variable region sequences")
+        print("Aligning variable region sequences\n")
         tmp_var_file_to_align = write_regions_to_file(var_regions_dct, outpath)
         var_prot_d = call_aligner(tmp_var_file_to_align)
 
     # pad the variable regions with '-', to the longest sequence
     else:
-        print("Padding variable region sequences with gaps")
+        print("Padding variable region sequences with gaps\n")
         new_var_regions_dct = pad_var_region_to_longest(var_regions_dct)
         # print("padded", new_var_regions_dct)
         # input("enter")
@@ -798,21 +809,22 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions, user_ref):
                 var_prot_d[region][seq_code] = seq
 
     # join the different variable and conserved regions together in the right order
-    print("Joining conserved and variable regions")
+    print("Joining conserved and variable regions\n")
     joined_regions_d = join_regions(align_cons_prot_d, var_prot_d, full_order, env_regions)
 
     # back-translate the protein alignment to a dna alignment
-    print("Backtranslating from protein to DNA alignment")
+    print("Backtranslating from protein to DNA alignment\n")
     dna_aligned = backtranslate(padded_seq_dict, joined_regions_d)
 
     # write back-translated DNA alignment to file
-    print("Writing DNA alignment to outfile")
+    print("Writing DNA alignment to outfile\n")
     with open(outfile, 'w') as handle:
         for code, align_seq in dna_aligned.items():
             names_list = first_look_up_d[code]
             for seq_name in names_list:
                 handle.write(">{0}\n{1}\n".format(seq_name, align_seq))
 
+    print("Total sequences not aligned: ", bad_seq_counter)
     print("Codon aligning completed")
 
 
@@ -843,7 +855,8 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--var_align', default=False, action="store_true",
                         help='Align the variable regions as well. May produce messy alignment', required=False)
     parser.add_argument('-u', '--user_ref', default=False, type=str,
-                        help='the path and file name for the custom DNA reference sequence', required=False)
+                        help='the path and file name for the custom DNA reference sequence, '
+                             'must start in reading frame 1', required=False)
 
     args = parser.parse_args()
     infile = args.infile
