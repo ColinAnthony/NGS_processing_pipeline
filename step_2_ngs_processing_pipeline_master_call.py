@@ -497,7 +497,7 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
     # Step 5: set things up to align sequences
     if run_step == 5:
         # get the HXB2 sequence for the gene region
-        hxb2_file = os.path.join(script_folder, "reference_sequences_seqs.fasta")
+        hxb2_file = os.path.join(script_folder, "reference_sequences.fasta")
         hxb2 = fasta_to_dct(hxb2_file)
         hxb2_gene = "HXB2_" + gene_region.split("_")[0]
 
