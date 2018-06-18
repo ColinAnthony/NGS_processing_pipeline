@@ -690,7 +690,7 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions):
     get_script_path = os.path.realpath(__file__)
     script_folder = os.path.split(get_script_path)[0]
     script_folder = os.path.abspath(script_folder)
-    ref_file = os.path.join(script_folder, "reference_sequences_seqs.fasta")
+    ref_file = os.path.join(script_folder, "reference_sequences.fasta")
     ref_seqs = fasta_to_dct(ref_file)
     reference = ref_seqs[gene_region]
 
