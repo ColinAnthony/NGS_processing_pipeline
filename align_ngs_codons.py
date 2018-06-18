@@ -667,7 +667,7 @@ def backtranslate(padded_dna_d, prot_align_d):
     return dna_align_d
 
 
-def main(infile, outpath, name, ref, gene, var_align, env_regions):
+def main(infile, outpath, name, ref, gene, var_align, env_regions, user_ref):
 
     # get absolute paths
     infile = os.path.abspath(infile)
@@ -830,8 +830,8 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=str,
                         help='The name for the output file, ie: sample/participant or study name', required=True)
     parser.add_argument('-r', '--ref', default="CONSENSUS_C", action='store',
-                        choices=["CONSENSUS_C", "HXB2", "CON_OF_CONS"], type=str,
-                        help='The choice of reference sequence. Either consensus of subtype C, '
+                        choices=["CONSENSUS_C", "CONSENSUS_A1", "CONSENSUS_B", "HXB2", "CON_OF_CONS"], type=str,
+                        help='The choice of reference sequence. Either consensus of subtype, '
                              'HXB2 or consensus of consensus', required=False)
     parser.add_argument('-g', '--gene', default="ENV", action="store",
                         choices=["ENV", "GAG", "POL", "PRO", "NEF", "VIF", "VPR", "REV", "VPU"], type=str,
@@ -842,6 +842,8 @@ if __name__ == "__main__":
                         help='the variable regions in your data', required=False)
     parser.add_argument('-v', '--var_align', default=False, action="store_true",
                         help='Align the variable regions as well. May produce messy alignment', required=False)
+    parser.add_argument('-u', '--user_ref', default=False, type=str,
+                        help='the path and file name for the custom DNA reference sequence', required=False)
 
     args = parser.parse_args()
     infile = args.infile
@@ -851,9 +853,10 @@ if __name__ == "__main__":
     gene = args.gene
     var_align = args.var_align
     regions = args.regions
+    user_ref = args.user_ref
 
     if gene == "ENV":
         if not regions:
             sys.exit("must use the -reg flag for ENV")
 
-    main(infile, outpath, name, ref, gene, var_align, regions)
+    main(infile, outpath, name, ref, gene, var_align, regions, user_ref)
