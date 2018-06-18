@@ -114,10 +114,10 @@ def pairwise_align_dna(sequence, reference, regex_complied):
     :return: (str) aligned query sequence, (str) aligned ref sequence, (int) reading frame for query sequence
     """
     # do overlap pairwise alignment to not get truncated query sequence
-    overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-1, score_gapext=-3,
-                                    score_gapopen=-15)
-    # overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-1, score_gapext=-2,
+    # overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-1, score_gapext=-3,
     #                                 score_gapopen=-15)
+    overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-1, score_gapext=-2,
+                                    score_gapopen=-15)
     overlap = list(overlap)
 
     seq_align = overlap[1]
@@ -690,7 +690,7 @@ def main(infile, outpath, name, ref, gene, var_align, env_regions):
     get_script_path = os.path.realpath(__file__)
     script_folder = os.path.split(get_script_path)[0]
     script_folder = os.path.abspath(script_folder)
-    ref_file = os.path.join(script_folder, "{}_seqs.fasta".format(ref))
+    ref_file = os.path.join(script_folder, "reference_sequences_seqs.fasta")
     ref_seqs = fasta_to_dct(ref_file)
     reference = ref_seqs[gene_region]
 
