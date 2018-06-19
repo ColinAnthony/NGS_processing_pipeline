@@ -129,8 +129,8 @@ def pairwise_align_dna(sequence, reference, regex_complied, gene):
 
     seq_align = overlap[1]
     ref_align = overlap[2]
-    print(">sqseq1\n{}\n".format(seq_align))
-    print(">sqref1\n{}\n".format(ref_align))
+    # print(">sqseq1\n{}\n".format(seq_align))
+    # print(">sqref1\n{}\n".format(ref_align))
 
     # get start position in the seq, if not starting at index 0
     if seq_align[0] == '-':
@@ -146,7 +146,10 @@ def pairwise_align_dna(sequence, reference, regex_complied, gene):
         seq_end = None
 
     # ref start will be 0 for align_overlap
-    ref_start = 0
+    if ref_align[0] == '-':
+        ref_start = regex_complied.search(ref_align).end()
+    else:
+        ref_start = 0
 
     # calculate reading frame (reference must start in frame 0)
     frame = (seq_start - ref_start) % 3
@@ -156,7 +159,7 @@ def pairwise_align_dna(sequence, reference, regex_complied, gene):
     ref_align = ref_align[seq_start:seq_end]
     # print(">sqseq2\n{}\n".format(seq_align))
     # print(">sqref2\n{}\n".format(ref_align))
-    # input("enter")
+
     return seq_align, ref_align, frame
 
 
@@ -189,7 +192,6 @@ def gap_padding(seq_align, ref_align, frame, regex_complied):
             new_gap = "-" * 2
         else:
             new_gap = ""
-
         gap_len_in_seq = gap_len
         indel_gap_fix_master.append((gap_start, gap_len_in_seq, new_gap))
 
@@ -198,29 +200,28 @@ def gap_padding(seq_align, ref_align, frame, regex_complied):
 
     for gap_obj in all_gap_positions_ref:
         gap_start = gap_obj.start()
-        # ins_pos = gap_start % 3
-        # todo if ins start at x % 3 = 1 gap goes before = 2 gap goes after???
-        # if ins_pos == 1:
-        #     ins_pos = gap_start - 2
-        #     print("something")
-        # elif ins_pos == 2:
-        #     ins_pos = gap_start + 2
-        #     print("something else")
-        # else:
-        #     ins_pos = gap_start
+        if gap_start != 0:
+            ins_pos = gap_start % 3
 
-        gap = gap_obj.captures()[0]
-        gap_len = len(gap)
-        gap_shift = gap_len % 3
-        if gap_shift == 1:
-            new_gap = "-" * 2
-        elif gap_shift == 2:
-            new_gap = "-" * 1
-        else:
-            new_gap = ""
-        if new_gap != "":
-            gap_len_in_seq = 0
-            indel_gap_fix_master.append((gap_start, gap_len_in_seq, new_gap))
+            if ins_pos == 1:
+                ins_pos = gap_start + 3
+            elif ins_pos == 2:
+                ins_pos = gap_start + 2
+            else:
+                # ins_pos must == 0
+                ins_pos = gap_start + 1
+            gap = gap_obj.captures()[0]
+            gap_len = len(gap)
+            gap_shift = gap_len % 3
+            if gap_shift == 1:
+                new_gap = "-" * 2
+            elif gap_shift == 2:
+                new_gap = "-" * 1
+            else:
+                new_gap = ""
+            if new_gap != "":
+                gap_len_in_seq = 0
+                indel_gap_fix_master.append((ins_pos, gap_len_in_seq, new_gap))
 
     # sort the list of all gaps to insert by gap start pos
     indel_gap_fix_master = sorted(indel_gap_fix_master)
@@ -783,18 +784,22 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
             # adjust for reading frame
             if frame != 0:
                 lead_gap = "-" * frame
-                seq = lead_gap + seq
+                seq_adjust = lead_gap + seq
+            else:
+                seq_adjust = seq
+
             # try and translate the sequence
-            prot_seq = translate_dna(seq)
+            prot_seq = translate_dna(seq_adjust)
 
             # if translation fails, try and adjust for indels
-            if prot_seq[:-1].count("Z") > 2:
+            if prot_seq[:-1].count("Z") > 0:
                 # correct for reading frame and indels
                 padded_sequence = gap_padding(seq_align, ref_align, frame, regex_complied_2)
                 padded_seq_dict[code] = padded_sequence
 
                 # translate query
                 prot_seq = translate_dna(padded_sequence)
+                print(prot_seq)
                 # if the seq could not be translated, write to file and skip
                 if prot_seq[:-1].count("Z") > 1:
                     print("error in getting seq into frame", prot_seq)
@@ -807,7 +812,7 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
 
                     continue
             else:
-                padded_seq_dict[code] = seq
+                padded_seq_dict[code] = seq_adjust
 
             # get the var region boundaries, if any
             var_region_index_dct[code] = find_var_region_boundaries(prot_seq, var_region_regex_dct, sub_region,
@@ -830,7 +835,7 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
 
             # extract variable regions
             var_regions_dct[code] = get_var_regions(prot_seq, var_region_index_dct, sub_region)
-
+    pprint(cons_regions_dct)
     # write the collected conserved regions to file and align
     print("Aligning conserved regions sequences\n")
     tmp_cons_file_to_align = write_regions_to_file(cons_regions_dct, outpath)
