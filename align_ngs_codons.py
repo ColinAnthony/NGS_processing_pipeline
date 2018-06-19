@@ -122,6 +122,7 @@ def pairwise_align_dna(sequence, reference, regex_complied, gene):
         overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-1, score_gapext=-3,
                                         score_gapopen=-14)
     else:
+        # for other regions
         overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-2, score_gapext=-3,
                                         score_gapopen=-14)
     overlap = list(overlap)
