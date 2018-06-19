@@ -799,7 +799,7 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
 
                 # translate query
                 prot_seq = translate_dna(padded_sequence)
-                print(prot_seq)
+
                 # if the seq could not be translated, write to file and skip
                 if prot_seq[:-1].count("Z") > 1:
                     print("error in getting seq into frame", prot_seq)
@@ -821,7 +821,6 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
             # if one or more of the var region boundaries was not found, write to file and skip
             missing_regex = check_for_missing_regex(var_region_index_dct)
             if missing_regex:
-                print("error", var_region_index_dct[code])
                 print("error finding one or more variable region boundary", prot_seq)
                 names_list = first_look_up_d[code]
                 # del padded_seq_dict[code]
@@ -835,7 +834,7 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
 
             # extract variable regions
             var_regions_dct[code] = get_var_regions(prot_seq, var_region_index_dct, sub_region)
-    pprint(cons_regions_dct)
+
     # write the collected conserved regions to file and align
     print("Aligning conserved regions sequences\n")
     tmp_cons_file_to_align = write_regions_to_file(cons_regions_dct, outpath)
