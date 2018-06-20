@@ -94,7 +94,7 @@ def get_order(sub_regions):
     if sub_regions:
         if sub_regions == "GP120" or sub_regions == "GP160":
             full_order = ["C1", "V1", "C2", "V2", "C3", "V3", "C4", "V4", "C5"]
-        elif sub_regions == "C0C1" or sub_regions == "C2C3" or sub_regions == "gp41":
+        elif sub_regions == "C0C1" or sub_regions == "C2C3" or sub_regions == "GP41":
             full_order = ["C1"]
         elif sub_regions == "C1C2" or sub_regions == "C3C5":
             full_order = ["C1", "V1", "C2", "V2", "C3"]
@@ -415,6 +415,9 @@ def find_var_region_boundaries(prot_sequence, regions_dict, sub_regions, errors_
                 if match is None and var_reg_name == "V4_start" and sub_regions == "C3C5":
                     alt_pattern = r'(LI[LV][TVL]RDGG.){e<3}'
                     match = regex.search(alt_pattern, prot_sequence, regex.BESTMATCH)
+                    if match is None and var_reg_name == "V4_start" and sub_regions == "C3C5":
+                        alt_pattern = r'(L[IL][LV][TVL]RD.){e<3}'
+                        match = regex.search(alt_pattern, prot_sequence, regex.BESTMATCH)
                 # if failed to get regex match for end of V4 for C3C5 amplicon data, try shorter regex search pattern
                 if match is None and var_reg_name == "V4_end" and sub_regions == "C3C5":
                     alt_pattern = r'(E[TIV]FR){e<1}'
@@ -747,38 +750,39 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
 
     # get internal reference
     longest_seq = ''
-    seq_length = 0
+    seq_length = 200
     for i, (seq, names_list) in enumerate(in_seqs_d.items()):
         unique_id = str(i).zfill(4)
         first_look_up_d[unique_id] = names_list
         first_seq_code_d[seq] = unique_id
         seq_len = len(seq)
-        if  600 > seq_len > seq_length:
+        seq_abundance = len(names_list)
+        if  seq_len > seq_length and seq_abundance > 3:
             seq_length = seq_len
             longest_seq = seq
+    if not user_ref:
+        # get reading frame of most abundant internal reference
+        internal_ref_frame_1 = longest_seq
+        internal_ref_frame_2 = "N" + longest_seq
+        internal_ref_frame_3 = "NN" + longest_seq
+        frame_1_tr = translate_dna(internal_ref_frame_1)
+        frame_2_tr = translate_dna(internal_ref_frame_2)
+        frame_3_tr = translate_dna(internal_ref_frame_3)
+        frame_1_stops = frame_1_tr[:-1].count("Z")
+        frame_2_stops = frame_2_tr[:-1].count("Z")
+        frame_3_stops = frame_3_tr[:-1].count("Z")
+        if frame_1_stops < 1:
+            internal_reference = internal_ref_frame_1
+        elif frame_2_stops < 1:
+            internal_reference = internal_ref_frame_2
+        elif frame_3_stops < 1:
+            internal_reference = internal_ref_frame_3
+        else:
+            internal_reference = None
 
-    # get reading frame of most abundant internal reference
-    internal_ref_frame_1 = longest_seq
-    internal_ref_frame_2 = "N" + longest_seq
-    internal_ref_frame_3 = "NN" + longest_seq
-    frame_1_tr = translate_dna(internal_ref_frame_1)
-    frame_2_tr = translate_dna(internal_ref_frame_2)
-    frame_3_tr = translate_dna(internal_ref_frame_3)
-    frame_1_stops = frame_1_tr[:-1].count("Z")
-    frame_2_stops = frame_2_tr[:-1].count("Z")
-    frame_3_stops = frame_3_tr[:-1].count("Z")
-    if frame_1_stops < 1:
-        internal_reference = internal_ref_frame_1
-    elif frame_2_stops < 1:
-        internal_reference = internal_ref_frame_2
-    elif frame_3_stops < 1:
-        internal_reference = internal_ref_frame_3
-    else:
-        internal_reference = None
-
-    if internal_reference is not None:
-        reference = internal_reference
-        user_ref = True
+        if internal_reference is not None:
+            reference = internal_reference
+            user_ref = True
 
     # initialize dictionaries to collect cons and var regions and gap padded sequences
     cons_regions_dct = collections.defaultdict(dict)
@@ -839,7 +843,7 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
 
                 # if the seq could not be translated, write to file and skip
                 if prot_seq[:-1].count("Z") > 1:
-                    print("error in getting seq into frame", prot_seq)
+                    print("error getting seq into frame", prot_seq)
                     names_list = first_look_up_d[code]
                     # del padded_seq_dict[code]
                     for name_bad in names_list:
