@@ -400,19 +400,23 @@ def find_var_region_boundaries(prot_sequence, regions_dict, sub_regions, errors_
                 if match is None and var_reg_name == "V1_start" and sub_regions == "C1C2":
                     alt_pattern = r'(XL[NKIE]C[NRTSI]){e<1}'
                     match = regex.search(alt_pattern, prot_sequence, regex.BESTMATCH)
+                # if failed to get regex match for end of V2 for C1C2 amplicon data, try shorter regex search pattern
                 if match is None and var_reg_name == "V2_end" and sub_regions == "C1C2":
                     alt_pattern = r'(Y[RKIV]L[IT][NRS]CN){e<2}'
                     match = regex.search(alt_pattern, prot_sequence, regex.BESTMATCH)
                     if match is None and var_reg_name == "V2_end" and sub_regions == "C1C2":
                         alt_pattern = r'(Y[RKIV]L[IT]X){e<1}'
                         match = regex.search(alt_pattern, prot_sequence, regex.BESTMATCH)
-
-                # if failed to get regex match for end of V5 for C315 amplicon data, try shorter regex search pattern
+                # if failed to get regex match for start of V3 for C3C5 amplicon data, try shorter regex search pattern
+                if match is None and var_reg_name == "V3_start" and sub_regions == "C3C5":
+                    alt_pattern = r'(FYC[ND]T[ST].LF[NTSKD]){e<3}'
+                    match = regex.search(alt_pattern, prot_sequence, regex.BESTMATCH)
+                # if failed to get regex match for start of V4 for C3C5 amplicon data, try shorter regex search pattern
                 if match is None and var_reg_name == "V4_start" and sub_regions == "C3C5":
                     alt_pattern = r'(LI[LV][TVL]RDGG.){e<3}'
                     match = regex.search(alt_pattern, prot_sequence, regex.BESTMATCH)
+                # if failed to get regex match for end of V4 for C3C5 amplicon data, try shorter regex search pattern
                 if match is None and var_reg_name == "V4_end" and sub_regions == "C3C5":
-                    # alt_pattern = r'(L[TVL]RDGG.*?E[TIV]FR){e<3}'
                     alt_pattern = r'(E[TIV]FR){e<1}'
                     match = regex.search(alt_pattern, prot_sequence, regex.BESTMATCH)
 
@@ -425,9 +429,9 @@ def find_var_region_boundaries(prot_sequence, regions_dict, sub_regions, errors_
                         sys.exit("error in region name: {}\nshould end in 'start' or 'end'.".format(var_reg_name))
                     regions_index_d[var_reg_name] = slice_index
                 else:
-                    print(var_reg_name, "not found")
                     slice_index = "missing"
                     regions_index_d[var_reg_name] = slice_index
+                    print(var_reg_name, "not found")
 
         return regions_index_d
 
@@ -581,7 +585,7 @@ def write_regions_to_file(region_dict, path_for_tmp_file):
     return file_names
 
 
-def call_aligner(file_names):
+def call_aligner(file_names, var):
     """
     Takes a dict of protein sequences, writes them to a temp file and aligns them with mafft.
     Aligned file is read back in and returned as a dictionary
@@ -593,7 +597,10 @@ def call_aligner(file_names):
     for file in file_names:
         region = os.path.split(file)[-1].split("_")[2].replace(".fasta", "")
         outfile = file.replace(".fasta", "_aligned.fasta")
-        cmd = "mafft {0} > {1}".format(file, outfile)
+        if var:
+            cmd = "mafft --op 1 --ep 0.1 {0} > {1}".format(file, outfile)
+        else:
+            cmd = "mafft {0} > {1}".format(file, outfile)
         subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
         aligned_region_d = fasta_to_dct_keep_gap(outfile)
         os.unlink(file)
@@ -737,10 +744,41 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
     # generate seq_code to seq name list lookup dictionary
     first_look_up_d = collections.defaultdict(list)
     first_seq_code_d = collections.defaultdict(str)
+
+    # get internal reference
+    longest_seq = ''
+    seq_length = 0
     for i, (seq, names_list) in enumerate(in_seqs_d.items()):
         unique_id = str(i).zfill(4)
         first_look_up_d[unique_id] = names_list
         first_seq_code_d[seq] = unique_id
+        seq_len = len(seq)
+        if  600 > seq_len > seq_length:
+            seq_length = seq_len
+            longest_seq = seq
+
+    # get reading frame of most abundant internal reference
+    internal_ref_frame_1 = longest_seq
+    internal_ref_frame_2 = "N" + longest_seq
+    internal_ref_frame_3 = "NN" + longest_seq
+    frame_1_tr = translate_dna(internal_ref_frame_1)
+    frame_2_tr = translate_dna(internal_ref_frame_2)
+    frame_3_tr = translate_dna(internal_ref_frame_3)
+    frame_1_stops = frame_1_tr[:-1].count("Z")
+    frame_2_stops = frame_2_tr[:-1].count("Z")
+    frame_3_stops = frame_3_tr[:-1].count("Z")
+    if frame_1_stops < 1:
+        internal_reference = internal_ref_frame_1
+    elif frame_2_stops < 1:
+        internal_reference = internal_ref_frame_2
+    elif frame_3_stops < 1:
+        internal_reference = internal_ref_frame_3
+    else:
+        internal_reference = None
+
+    if internal_reference is not None:
+        reference = internal_reference
+        user_ref = True
 
     # initialize dictionaries to collect cons and var regions and gap padded sequences
     cons_regions_dct = collections.defaultdict(dict)
@@ -795,7 +833,6 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
             if prot_seq[:-1].count("Z") > 0:
                 # correct for reading frame and indels
                 padded_sequence = gap_padding(seq_align, ref_align, frame, regex_complied_2)
-                padded_seq_dict[code] = padded_sequence
 
                 # translate query
                 prot_seq = translate_dna(padded_sequence)
@@ -804,23 +841,24 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
                 if prot_seq[:-1].count("Z") > 1:
                     print("error in getting seq into frame", prot_seq)
                     names_list = first_look_up_d[code]
-                    # del first_look_up_d[code]
-                    del padded_seq_dict[code]
+                    # del padded_seq_dict[code]
                     for name_bad in names_list:
                         bad_seq_counter += 1
                         handle.write(">{0}\n{1}\n".format(name_bad, seq))
 
                     continue
+                else:
+                    padded_seq_dict[code] = padded_sequence
             else:
                 padded_seq_dict[code] = seq_adjust
 
             # get the var region boundaries, if any
             var_region_index_dct[code] = find_var_region_boundaries(prot_seq, var_region_regex_dct, sub_region,
                                                                     errors_allow)
-
             # if one or more of the var region boundaries was not found, write to file and skip
             missing_regex = check_for_missing_regex(var_region_index_dct)
             if missing_regex:
+                print(var_region_index_dct[code])
                 print("error finding one or more variable region boundary", prot_seq)
                 names_list = first_look_up_d[code]
                 # del padded_seq_dict[code]
@@ -838,13 +876,15 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
     # write the collected conserved regions to file and align
     print("Aligning conserved regions sequences\n")
     tmp_cons_file_to_align = write_regions_to_file(cons_regions_dct, outpath)
-    align_cons_prot_d = call_aligner(tmp_cons_file_to_align)
+    var = False
+    align_cons_prot_d = call_aligner(tmp_cons_file_to_align, var)
 
     # write the collected variable regions to file and align (optional)
     if var_align:
         print("Aligning variable region sequences\n")
         tmp_var_file_to_align = write_regions_to_file(var_regions_dct, outpath)
-        var_prot_d = call_aligner(tmp_var_file_to_align)
+        var = True
+        var_prot_d = call_aligner(tmp_var_file_to_align, var)
 
     # pad the variable regions with '-', to the longest sequence
     else:
