@@ -689,7 +689,6 @@ def backtranslate(padded_dna_d, prot_align_d):
     dna_align_d = collections.defaultdict(str)
     for code, prot_seq in prot_align_d.items():
         dna_seq = padded_dna_d[code]
-        # ref_prot = translate_dna(dna_seq)
         dna_align = ''
         resi_count = 0
         for resi in prot_seq:
@@ -702,10 +701,12 @@ def backtranslate(padded_dna_d, prot_align_d):
 
         if dna_align.replace("-", "") != dna_seq.replace("-", ""):
             print("input and output sequences are not identical")
-            # print(">{}\n{}\n".format(code + "_align_prot", prot_seq))
+            print(">{}\n{}\n".format(code + "_align_prot", prot_seq))
             print(">{}\n{}\n".format(code + "_DNA_input", dna_seq))
             print(">{0}_out\n{1}\n".format(code + "_DNA_backtranslated", dna_align))
+            print(">prot_align_{}".format(code))
             print("-------------")
+            # input("enter")
 
     return dna_align_d
 
@@ -906,7 +907,7 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
     joined_regions_d = join_regions(align_cons_prot_d, var_prot_d, full_order, sub_region)
 
     # back-translate the protein alignment to a dna alignment
-    print("Backtranslating from protein to DNA alignment\n")
+    print("Back-translating from protein to DNA alignment\n")
     dna_aligned = backtranslate(padded_seq_dict, joined_regions_d)
 
     # write back-translated DNA alignment to file
