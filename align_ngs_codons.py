@@ -593,6 +593,7 @@ def call_aligner(file_names, var):
     Takes a dict of protein sequences, writes them to a temp file and aligns them with mafft.
     Aligned file is read back in and returned as a dictionary
     :param file_names: (list) list of the files to align
+    :param var: (bool) True if the dict is for the variable regions, False if not
     :return: (dict) dictionary of aligned protein sequences: key = sequence, value = ID code
     """
     region_aligned_d = collections.defaultdict(dict)
@@ -601,9 +602,9 @@ def call_aligner(file_names, var):
         region = os.path.split(file)[-1].split("_")[2].replace(".fasta", "")
         outfile = file.replace(".fasta", "_aligned.fasta")
         if var:
-            cmd = "mafft --op 1 --ep 0.1 {0} > {1}".format(file, outfile)
+            cmd = "mafft --amino --op 1 --ep 0.1 {0} > {1}".format(file, outfile)
         else:
-            cmd = "mafft {0} > {1}".format(file, outfile)
+            cmd = "mafft --amino {0} > {1}".format(file, outfile)
         subprocess.call(cmd, shell=True, stdout=DEVNULL, stderr=DEVNULL)
         aligned_region_d = fasta_to_dct_keep_gap(outfile)
         os.unlink(file)
@@ -700,13 +701,13 @@ def backtranslate(padded_dna_d, prot_align_d):
         dna_align_d[code] = dna_align
 
         if dna_align.replace("-", "") != dna_seq.replace("-", ""):
-            print("input and output sequences are not identical")
+            print("Input and output sequences are not identical\nSequence removed from output")
             print(">{}\n{}\n".format(code + "_align_prot", prot_seq))
             print(">{}\n{}\n".format(code + "_DNA_input", dna_seq))
-            print(">{0}_out\n{1}\n".format(code + "_DNA_backtranslated", dna_align))
+            print(">{0}_out\n{1}\n".format(code + "_DNA_back-translated", dna_align))
             print(">prot_align_{}".format(code))
             print("-------------")
-            # input("enter")
+            del dna_align_d[code]
 
     return dna_align_d
 
@@ -758,9 +759,10 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
         first_seq_code_d[seq] = unique_id
         seq_len = len(seq)
         seq_abundance = len(names_list)
-        if  seq_len > seq_length and seq_abundance > 3:
+        if seq_len > seq_length and seq_abundance > 3:
             seq_length = seq_len
             longest_seq = seq
+
     if not user_ref:
         # get reading frame of most abundant internal reference
         internal_ref_frame_1 = longest_seq
@@ -846,7 +848,6 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
                 if prot_seq[:-1].count("Z") > 1:
                     print("error getting seq into frame", prot_seq)
                     names_list = first_look_up_d[code]
-                    # del padded_seq_dict[code]
                     for name_bad in names_list:
                         bad_seq_counter += 1
                         handle.write(">{0}\n{1}\n".format(name_bad, seq))
@@ -863,10 +864,10 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
             # if one or more of the var region boundaries was not found, write to file and skip
             missing_regex = check_for_missing_regex(var_region_index_dct)
             if missing_regex:
-                print(var_region_index_dct[code])
+                pprint(var_region_index_dct[code])
                 print("error finding one or more variable region boundary", prot_seq)
                 names_list = first_look_up_d[code]
-                # del padded_seq_dict[code]
+                del padded_seq_dict[code]
                 for name_bad in names_list:
                     bad_seq_counter += 1
                     handle.write(">{0}\n{1}\n".format(name_bad, seq))
