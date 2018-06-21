@@ -403,15 +403,18 @@ if __name__ == '__main__':
 	print(data['input_data']['out_folder'])
 	print(data['input_data']['patient_list'])
 
+
 	# Make sure we are working in the right dir
 	out_dir = data['input_data']['out_folder']
 	if out_dir[-1] != '/':
 		out_dir = out_dir + '/'
 
+
 	patient_list = data['input_data']['patient_list']
 	if len(patient_list) > 1:
 		print("The patient list provided is either too long or not a list.")
 		quit()
+
 
 	# The actual running part.
 	test_primer_dict = make_primer_dict(data['input_data']['primer_csv'])
