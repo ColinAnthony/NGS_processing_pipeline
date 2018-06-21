@@ -392,7 +392,7 @@ def primer_blast_search(db_identifier, sequence, out_dir):
         return "None"
 
 
-def main(config_file, output_dir):
+def main(config_file, output_dir, main_pipeline, haplotype):
     print("Parsing the config file:")
 
     with open(config_file) as json_data_file:
@@ -427,8 +427,8 @@ def main(config_file, output_dir):
 
     create_file_structure = True
     demultiplex_fastq = True
-    run_main_pipe = True
-    make_haplotypes = True
+    run_main_pipe = main_pipeline
+    make_haplotypes = haplotype
 
     if create_file_structure:
         print("Creating file structure")
@@ -511,17 +511,20 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='''A de-multiplexer tool Input for primers is csv separated by a comma. 
         Headings include: gene_name,fwd_sequence,fwd_PID_len,rev_sequence,rev_pid,overlapping
-
         overlapping = True if the the fwd and rev reads overlap, else overlapping = False
-
-        ''',
-
-        epilog="""Version 0.1""")
+        ''',  epilog="""Version 0.1""")
 
     parser.add_argument('-c', '--config_file', type=str, help='Configuration file for the run in JSON format')
     parser.add_argument('-o', '--output_dir', type=str, help='Location to write the output fastq files')
+    parser.add_argument('-m', '--main_pipeline', type=bool, default=True, action='store_false',
+                        help='Run the main pipeline as well')
+    parser.add_argument('-h', '--haplotype', type=bool, default=False, action='store_true',
+                        help='Run the main pipeline as well')
     args = parser.parse_args()
+
     config_file = args.config_file
     output_dir = args.output_dir
+    main_pipeline = args.main_pipeline
+    haplotype = args.haplotype
 
-    main(config_file, output_dir)
+    main(config_file, output_dir, main_pipeline, haplotype)
