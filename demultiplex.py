@@ -146,7 +146,7 @@ def export_line_to_fastq(fileTag, headerLine, seqLine, plusLine, scoreLine, infa
     :return:
     """
     out_file_name = infast_name.replace('multiplex', fileTag)
-    out_file_path = out_dir + patient_list[0] + '/' + fileTag + '/0raw/'
+    out_file_path = out_dir + patient_list[0] + '/' + fileTag + '/0new_data/'
 
     # file_obj = open(out_file_path + out_file_name, "a+")
     # file_obj.write(headerLine)
@@ -457,7 +457,7 @@ def main(config_file, output_dir):
 
         for gene_region, gene_dict in test_primer_dict.items():
             overlap = gene_dict['overlap']
-            if overlap == "False":
+            if overlap == "No":
                 nonoverlap = True
             else:
                 nonoverlap = False
@@ -518,8 +518,8 @@ if __name__ == '__main__':
 
         epilog="""Version 0.1""")
 
-    parser.add_argument('--config_file', type=str, help='Configuration file for the run in JSON format')
-    parser.add_argument('--output_dir', type=str, help='Location to write the output fastq files')
+    parser.add_argument('-c', '--config_file', type=str, help='Configuration file for the run in JSON format')
+    parser.add_argument('-o', '--output_dir', type=str, help='Location to write the output fastq files')
     args = parser.parse_args()
     config_file = args.config_file
     output_dir = args.output_dir
