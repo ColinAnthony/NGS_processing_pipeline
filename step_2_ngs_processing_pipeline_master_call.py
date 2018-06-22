@@ -191,9 +191,8 @@ def call_align(script_folder, to_align, aln_path, fname, ref, gene, sub_region, 
     else:
         usr_ref = "-u {}".format(user_ref)
 
-    cmd5 = 'python3 {0}  -i {1} -o {2} -n {3} -r {4} -g {5} {6} {7}'.format(align_function, to_align, aln_path, fname,
+    cmd5 = 'python3 {0}  -i {1} -o {2} -n {3} -r {4} -g {5} -v {6} {7}'.format(align_function, to_align, aln_path, fname,
                                                                             ref, gene, reg, usr_ref)
-
     subprocess.call(cmd5, shell=True)
 
 
@@ -472,6 +471,7 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
 
             cleaned_files_search = os.path.join(contam_removed_path, '*_good.fasta')
             cleaned_files = glob(cleaned_files_search)
+
             if not cleaned_files:
                 print("No cleaned fasta files were found\n"
                       "Check that the fasta files still have sequences in them after the removal of bad sequences")
@@ -499,30 +499,49 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
         # move concatenated file to 4aligned
         print("moving concatenated file to 4aligned folder")
         aln_path = os.path.join(path, '4aligned')
-        move_file = os.path.join(aln_path, "*_all.fasta")
         if nonoverlap:
-            copyfile(all_cleaned_outname_fwd, move_file)
+            move_file_fwd = os.path.join(aln_path, clean_name_fwd)
+            copyfile(all_cleaned_outname_fwd, move_file_fwd)
             os.unlink(all_cleaned_outname_fwd)
-            copyfile(all_cleaned_outname_rev, move_file)
+            move_file_rev = os.path.join(aln_path, clean_name_rev)
+            copyfile(all_cleaned_outname_rev, move_file_rev)
             os.unlink(all_cleaned_outname_rev)
         else:
+            move_file = os.path.join(aln_path, clean_name)
             copyfile(all_cleaned_outname, move_file)
             os.unlink(all_cleaned_outname)
 
         # call alignment script
         print("Aligning the sequences")
-        to_align = move_file
-        inpath, fname = os.path.split(to_align)
-        fname = fname.replace(".fasta", "_aligned.fasta")
-        ref = "CONSENSUS_C"
+        if nonoverlap:
+            for move_file in [move_file_fwd, move_file_rev]:
+                to_align = move_file
+                inpath, fname = os.path.split(to_align)
+                fname = fname.replace(".fasta", "")
+                ref = "CONSENSUS_C"
 
-        # infile, outpath, name, ref, gene, var_align, sub_region, user_ref)
-        call_align(script_folder, to_align, aln_path, fname, ref, gene_region, sub_region, user_ref)
+                # infile, outpath, name, ref, gene, var_align, sub_region, user_ref)
+                call_align(script_folder, to_align, aln_path, fname, ref, gene_region, sub_region, user_ref)
 
-        # translate alignment
-        transl_name = fname.replace("_aligned.fasta", "_aligned_translated.fasta")
-        cmd = "seqmagick convert --sort length-asc --upper --translate dna2protein --line-wrap 0 {0} {1}".format(fname, transl_name)
-        subprocess.call(cmd, shell=True)
+                # translate alignment
+                transl_name = fname.replace("_aligned.fasta", "_aligned_translated.fasta")
+                cmd = "seqmagick convert --sort length-asc --upper --translate dna2protein --line-wrap 0 {0} {1}".format(fname, transl_name)
+                subprocess.call(cmd, shell=True)
+        else:
+            to_align = move_file
+            inpath, fname = os.path.split(to_align)
+            fname = fname.replace(".fasta", "")
+            ref = "CONSENSUS_C"
+
+            # infile, outpath, name, ref, gene, var_align, sub_region, user_ref)
+            call_align(script_folder, to_align, aln_path, fname, ref, gene_region, sub_region, user_ref)
+
+            # translate alignment
+            fname = to_align.replace(".fasta", "_aligned.fasta")
+            transl_name = fname.replace("_aligned.fasta", "_aligned_translated.fasta")
+            cmd = "seqmagick convert --sort length-asc --upper --translate dna2protein --line-wrap 0 {0} {1}".format(
+                fname, transl_name)
+            subprocess.call(cmd, shell=True)
 
         run_step += 1
 

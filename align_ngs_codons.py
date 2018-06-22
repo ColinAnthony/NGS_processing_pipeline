@@ -772,8 +772,13 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
             longest_seq = seq
 
     # add hxb2 to the alignment
-    first_look_up_d["HXB2"] = [ref_hxb]
-    first_seq_code_d[reference] = "HXB2"
+    first_look_up_d[hxb2_name] = [hxb2_name]
+    if sub_region:
+        hxb2_start, hxb2_end = get_ref_start_end("HXB2", sub_region, script_folder)
+        ref_hxb = ref_hxb[hxb2_start:hxb2_end]
+        first_seq_code_d[ref_hxb] = hxb2_name
+    else:
+        first_seq_code_d[ref_hxb] = hxb2_name
 
     if not user_ref:
         # get reading frame of most abundant internal reference
