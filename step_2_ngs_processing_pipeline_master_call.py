@@ -51,6 +51,11 @@ def fasta_to_dct(file_name):
 
 
 def rename_sequences(raw_files_search):
+    """
+    rename raw files to cleaner name ending in R1.fastq or R2.fastq
+    :param raw_files_search: list of files to rename
+    :return:
+    """
 
     print("renaming raw files")
     for inf_R1 in raw_files_search:
@@ -93,6 +98,18 @@ def rename_sequences(raw_files_search):
 
 
 def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_primer, nonoverlap, counter, logfile):
+    """
+    function to pass args to the script that calls the motifbinner2
+    :param raw_files: (list) of all the read 1 files
+    :param motifbinner: (str) call motifbinner script name
+    :param cons_outpath: (str) desired outpath
+    :param fwd_primer: (str) of fwd primer
+    :param cDNA_primer: (str) of rev/cDNA primer
+    :param nonoverlap: (bool) False for overlapping read 1 and 2, True of read 1 and 2 don't overlap
+    :param counter: (int) count of number of times the script has been called (so that we only write to log once)
+    :param logfile: (str) path and name of the log file
+    :return:
+    """
 
     if type(raw_files) is not list:
         raise TypeError('Expected list of raw files, got: ', raw_files)
@@ -126,6 +143,11 @@ def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_prim
 
 
 def delete_gaps(fasta_infiles):
+    """
+    removes gap characters from binned consensus sequence fasta file
+    :param fasta_infiles: list of consensus sequence fasta file
+    :return: None
+    """
 
     for fasta_file in fasta_infiles:
         temp_out = fasta_file.replace(".fasta", ".fasta.bak")
@@ -141,9 +163,18 @@ def delete_gaps(fasta_infiles):
         os.remove(temp_out)
 
 
-def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, length, logfile):
+def call_fasta_cleanup(consensus_fasta, remove_bad_seqs, clean_path, length, logfile):
+    """
+    function to pass args to remove bad sequences script
+    :param consensus_fasta: (str) list of binned consensus sequence fasta files
+    :param remove_bad_seqs: (str) name of script to run
+    :param clean_path: (str) desired outpath
+    :param length: (int) min length of sequence allowed
+    :param logfile: the path and name of the log file
+    :return:
+    """
 
-    for fasta_file in contam_removed_fasta:
+    for fasta_file in consensus_fasta:
         cmd4 = 'python3 {0} -i {1} -o {2} -l {3} -lf {4}'.format(remove_bad_seqs,
                                                                         fasta_file,
                                                                         clean_path,
@@ -157,6 +188,15 @@ def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, length
 
 
 def call_contam_check(consensuses, contam_removal_script, contam_removed_path, gene_region, logfile):
+    """
+    function to pass args to contam check script
+    :param consensuses: list of cleaned fasta files
+    :param contam_removal_script: path to script
+    :param contam_removed_path: output path location
+    :param gene_region: the gene region
+    :param logfile: the path and name of the log file
+    :return: None
+    """
 
     for consensus_file in consensuses:
         cmd3 = 'python3 {0} -i {1} -o {2} -g {3} -l {4}'.format(contam_removal_script,
