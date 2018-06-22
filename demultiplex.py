@@ -433,8 +433,8 @@ def main(config_file, output_dir, main_pipeline, haplotype):
 
     os.chdir(output_dir)
 
-    create_file_structure = False
-    demultiplex_fastq = False
+    create_file_structure = True
+    demultiplex_fastq = True
     run_main_pipe = main_pipeline
     make_haplotypes = haplotype
 
@@ -464,49 +464,50 @@ def main(config_file, output_dir, main_pipeline, haplotype):
         import step_2_ngs_processing_pipeline_master_call
 
         for gene_region, gene_dict in test_primer_dict.items():
-            gene_region = gene_region.split("_")[0]
-            overlap = gene_dict['overlap']
-            if overlap == "No":
-                nonoverlap = True
-            else:
-                nonoverlap = False
+            if gene_region != "None" or gene_region is not None:
+                gene_region = gene_region.split("_")[0]
+                overlap = gene_dict['overlap']
+                if overlap == "No":
+                    nonoverlap = True
+                else:
+                    nonoverlap = False
 
-            # Adding the required parameters
-            path = output_dir + patient_list[0] + '/' + gene_region
-            sub_region = gene_dict['sub_region']
-            if not sub_region:
-                sub_region = False
-            else:
-                sub_region = sub_region
-            user_ref = False
+                # Adding the required parameters
+                path = output_dir + patient_list[0] + '/' + gene_region
+                sub_region = gene_dict['sub_region']
+                if not sub_region:
+                    sub_region = False
+                else:
+                    sub_region = sub_region
+                user_ref = False
 
-            # Calling step 2
-            try:
-                step_2_ngs_processing_pipeline_master_call.main(path,
-                                                                data['pipelineSettings']['out_prefix'],
-                                                                gene_region,
-                                                                sub_region,
-                                                                test_primer_dict[gene_region]['fwd_full'],
-                                                                test_primer_dict[gene_region]['rev_full'],
-                                                                nonoverlap,
-                                                                data['pipelineSettings']['min_read_length'],
-                                                                data['pipelineSettings']['run_step'],
-                                                                False,
-                                                                user_ref,
-                                                                )
-            except:
-                pass
+                # Calling step 2
+                try:
+                    step_2_ngs_processing_pipeline_master_call.main(path,
+                                                                    data['pipelineSettings']['out_prefix'],
+                                                                    gene_region,
+                                                                    sub_region,
+                                                                    test_primer_dict[gene_region]['fwd_full'],
+                                                                    test_primer_dict[gene_region]['rev_full'],
+                                                                    nonoverlap,
+                                                                    data['pipelineSettings']['min_read_length'],
+                                                                    data['pipelineSettings']['run_step'],
+                                                                    False,
+                                                                    user_ref,
+                                                                    )
+                except:
+                    pass
 
-    if make_haplotypes:
-        print("Making haplotypes from alignment")
+        if make_haplotypes:
+            print("Making haplotypes from alignment")
 
-        import step_3_make_haplotpes_from_alignment
+            import step_3_make_haplotpes_from_alignment
 
-        step_3_make_haplotpes_from_alignment.main(
-            data['haplotype_settings']['infile'],
-            data['haplotype_settings']['field'],
-            data['haplotype_settings']['script_folder']
-        )
+            step_3_make_haplotpes_from_alignment.main(
+                data['haplotype_settings']['infile'],
+                data['haplotype_settings']['field'],
+                data['haplotype_settings']['script_folder']
+            )
 
     # Paths for use in testing
     '''
