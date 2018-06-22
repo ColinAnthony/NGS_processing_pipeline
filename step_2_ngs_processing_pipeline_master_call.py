@@ -567,6 +567,7 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
                 transl_name = fname.replace("_aligned.fasta", "_aligned_translated.fasta")
                 cmd = "seqmagick convert --sort length-asc --upper --translate dna2protein --line-wrap 0 {0} {1}".format(fname, transl_name)
                 subprocess.call(cmd, shell=True)
+
         else:
             to_align = move_file
             inpath, fname = os.path.split(to_align)
