@@ -516,9 +516,9 @@ if __name__ == '__main__':
 
     parser.add_argument('-c', '--config_file', type=str, help='Configuration file for the run in JSON format')
     parser.add_argument('-o', '--output_dir', type=str, help='Location to write the output fastq files')
-    parser.add_argument('-m', '--main_pipeline', type=bool, default=True, action='store_false',
-                        help='Run the main pipeline as well')
-    parser.add_argument('-h', '--haplotype', type=bool, default=False, action='store_true',
+    parser.add_argument('-m', '--main_pipeline', default=True, action='store_false',
+                        help='Do not run the main pipeline')
+    parser.add_argument('-hap', '--haplotype', default=False, action='store_true',
                         help='Run the main pipeline as well')
     args = parser.parse_args()
 
