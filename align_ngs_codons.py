@@ -739,9 +739,16 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
         ref_file = os.path.join(script_folder, "reference_sequences.fasta")
         ref_seqs = fasta_to_dct(ref_file)
         reference = ref_seqs[gene_region]
+        hxb2_name = "HXB2_{}".format(gene)
+        ref_hxb = ref_seqs[hxb2_name]
     else:
         ref_seqs = fasta_to_dct(user_ref)
         reference = ref_seqs[list(ref_seqs)[0]]
+
+        ref_file = os.path.join(script_folder, "reference_sequences.fasta")
+        ref_seqs = fasta_to_dct(ref_file)
+        hxb2_name = "HXB2_{}".format(gene)
+        ref_hxb = ref_seqs[hxb2_name]
         print("custom ref", reference)
     # read in fasta file and reference
     in_seqs_d = fasta_to_dct_rev(infile)
@@ -762,6 +769,10 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
         if seq_len > seq_length and seq_abundance > 3:
             seq_length = seq_len
             longest_seq = seq
+
+    # add hxb2 to the alignment
+    first_look_up_d["HXB2"] = [ref_hxb]
+    first_seq_code_d[reference] = "HXB2"
 
     if not user_ref:
         # get reading frame of most abundant internal reference

@@ -443,11 +443,6 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
 
     # Step 5: set things up to align sequences
     if run_step == 5:
-        # get the HXB2 sequence for the gene region
-        hxb2_file = os.path.join(script_folder, "HXB2_seqs.fasta")
-        hxb2 = fasta_to_dct(hxb2_file)
-        hxb2_gene = "HXB2_" + gene_region.split("_")[0]
-        hxb2_seq = hxb2[hxb2_gene]
 
         # cat all cleaned files into one file + the relevant HXB2 sequence
         print("merging all cleaned and contam removed fasta files into one file")
@@ -484,21 +479,18 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
 
         if nonoverlap:
             with open(all_cleaned_outname_fwd, 'w') as outfile:
-                outfile.write(">{0}\n{1}\n".format(hxb2_gene, hxb2_seq))
                 for fasta_file in cleaned_files_fwd:
                     with open(fasta_file) as infile:
                         for line in infile:
                             outfile.write(line + "\n")
 
             with open(all_cleaned_outname_rev, 'w') as outfile:
-                outfile.write(">{0}\n{1}\n".format(hxb2_gene, hxb2_seq))
                 for fasta_file in cleaned_files_ref:
                     with open(fasta_file) as infile:
                         for line in infile:
                             outfile.write(line + "\n")
         else:
             with open(all_cleaned_outname, 'w') as outfile:
-                outfile.write(">{0}\n{1}\n".format(hxb2_gene, hxb2_seq))
                 for fasta_file in cleaned_files:
                     with open(fasta_file) as infile:
                         for line in infile:
@@ -559,7 +551,7 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--path', default=argparse.SUPPRESS, type=str,
                         help='The path to the gene region subfolder (GAG_1/ or ENV_C1C2/ or POL_1/...)', required=True)
     parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=str,
-                        help='the prefix name of your outfile', required=True)
+                        help='the prefix name of your outfile. Usually the participant name', required=True)
     parser.add_argument('-g', '--gene_region', default="ENV", type=str,
                         choices=["ENV", "GAG", "POL", "PRO", "NEF", "VIF", "VPR", "REV", "VPU"],
                         help='the genomic region being sequenced, '

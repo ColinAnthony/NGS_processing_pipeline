@@ -496,7 +496,8 @@ def main(config_file, output_dir, main_pipeline, haplotype):
                                                                     False,
                                                                     user_ref,
                                                                     )
-                except:
+                except Exception as e:
+                    print(e)
                     pass
 
         if make_haplotypes:
