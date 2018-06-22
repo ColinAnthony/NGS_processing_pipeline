@@ -51,11 +51,6 @@ def fasta_to_dct(file_name):
 
 
 def rename_sequences(raw_files_search):
-    """
-
-    :param raw_files_search:
-    :return:
-    """
 
     print("renaming raw files")
     for inf_R1 in raw_files_search:
@@ -97,20 +92,7 @@ def rename_sequences(raw_files_search):
             os.rename(inf_R2, outf_R2_rename_with_path)
 
 
-def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_primer, nonoverlap, counter, cores, logfile):
-    """
-
-    :param raw_files:
-    :param motifbinner:
-    :param cons_outpath:
-    :param fwd_primer:
-    :param cDNA_primer:
-    :param nonoverlap:
-    :param counter:
-    :param cores:
-    :param logfile:
-    :return:
-    """
+def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_primer, nonoverlap, counter, logfile):
 
     if type(raw_files) is not list:
         raise TypeError('Expected list of raw files, got: ', raw_files)
@@ -119,23 +101,22 @@ def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_prim
         overlap_flag = "-v"
     else:
         overlap_flag = ""
-    ncpu = "-ncpu {}".format(cores)
+
     for file in raw_files:
         read1 = file
         read2 = file.replace("R1.fastq", "R2.fastq")
         name_prefix = os.path.split(file)[-1].replace("_R1.fastq", "")
 
-        cmd1 = 'python3 {0} -r1 {1} -r2 {2} -o {3} -f {4} -r {5} -n {6} -c {7} -l {8} {9} {10}'.format(motifbinner,
-                                                                                                        read1,
-                                                                                                        read2,
-                                                                                                        cons_outpath,
-                                                                                                        fwd_primer,
-                                                                                                        cDNA_primer,
-                                                                                                        name_prefix,
-                                                                                                        counter,
-                                                                                                        logfile,
-                                                                                                        ncpu,
-                                                                                                        overlap_flag)
+        cmd1 = 'python3 {0} -r1 {1} -r2 {2} -o {3} -f {4} -r {5} -n {6} -c {7} -l {8} {9} '.format(motifbinner,
+                                                                                              read1,
+                                                                                              read2,
+                                                                                              cons_outpath,
+                                                                                              fwd_primer,
+                                                                                              cDNA_primer,
+                                                                                              name_prefix,
+                                                                                              counter,
+                                                                                              logfile,
+                                                                                              overlap_flag)
 
         try:
             subprocess.call(cmd1, shell=True)
@@ -145,11 +126,6 @@ def call_motifbinner(raw_files, motifbinner, cons_outpath, fwd_primer, cDNA_prim
 
 
 def delete_gaps(fasta_infiles):
-    """
-    function to read in each fasta file in a list of fasta files, write out de-gapped fasta, replacing original file
-    :param fasta_infiles: (list) list of fasta files
-    :return: None
-    """
 
     for fasta_file in fasta_infiles:
         temp_out = fasta_file.replace(".fasta", ".fasta.bak")
@@ -157,7 +133,7 @@ def delete_gaps(fasta_infiles):
         cons_d = fasta_to_dct(fasta_file)
         with open(temp_out, 'w') as handle:
             for seq_name, seq in cons_d.items():
-                seq = seq.upper().replace("-", "")
+
                 handle.write('>{0}\n{1}\n'.format(seq_name, seq))
 
         os.remove(fasta_file)
@@ -165,34 +141,14 @@ def delete_gaps(fasta_infiles):
         os.remove(temp_out)
 
 
-def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, frame, length, logfile, stops):
-    """
-
-    :param contam_removed_fasta:
-    :param remove_bad_seqs:
-    :param clean_path:
-    :param frame:
-    :param length:
-    :param logfile:
-    :param stops:
-    :return:
-    """
+def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, length, logfile):
 
     for fasta_file in contam_removed_fasta:
-        if stops:
-            cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -s -l {4} -lf {5}'.format(remove_bad_seqs,
-                                                                                   fasta_file,
-                                                                                   clean_path,
-                                                                                   frame,
-                                                                                   length,
-                                                                                   logfile)
-        else:
-            cmd4 = 'python3 {0} -i {1} -o {2} -f {3} -l {4} -lf {5}'.format(remove_bad_seqs,
-                                                                            fasta_file,
-                                                                            clean_path,
-                                                                            frame,
-                                                                            length,
-                                                                            logfile)
+        cmd4 = 'python3 {0} -i {1} -o {2} -l {3} -lf {4}'.format(remove_bad_seqs,
+                                                                        fasta_file,
+                                                                        clean_path,
+                                                                        length,
+                                                                        logfile)
         if os.path.exists(logfile):
             with open(logfile, 'a') as handle:
                 handle.write("\nremove_bad_sequences commands:\n{}\n".format(cmd4))
@@ -201,15 +157,6 @@ def call_fasta_cleanup(contam_removed_fasta, remove_bad_seqs, clean_path, frame,
 
 
 def call_contam_check(consensuses, contam_removal_script, contam_removed_path, gene_region, logfile):
-    """
-
-    :param consensuses:
-    :param contam_removal_script:
-    :param contam_removed_path:
-    :param gene_region:
-    :param logfile:
-    :return:
-    """
 
     for consensus_file in consensuses:
         cmd3 = 'python3 {0} -i {1} -o {2} -g {3} -l {4}'.format(contam_removal_script,
@@ -221,31 +168,37 @@ def call_contam_check(consensuses, contam_removal_script, contam_removed_path, g
         subprocess.call(cmd3, shell=True)
 
 
-def call_align(envelope, script_folder, to_align, aln_path, fname):
+def call_align(script_folder, to_align, aln_path, fname, ref, gene, sub_region, user_ref):
     """
 
-    :param envelope:
     :param script_folder:
     :param to_align:
     :param aln_path:
     :param fname:
+    :param ref:
+    :param gene_region:
+    :param sub_region:
+    :param user_ref:
     :return:
     """
-
-    if envelope is not None:
-        loops = " ".join(envelope)
-        align_all = os.path.join(script_folder, 'align_all_env_samples.py')
-
-        cmd5 = 'python3 {0}  -i {1} -o {2} -n {3} -l {4}'.format(align_all, to_align, aln_path, fname, loops)
+    align_function = os.path.join(script_folder, 'align_ngs_codons.py')
+    if sub_region:
+        reg = "-reg {}".format(sub_region)
     else:
-        align_all = os.path.join(script_folder, 'align_all_samples.py')
-        cmd5 = 'python3 {0}  -i {1} -o {2} -n {3}'.format(align_all, to_align, aln_path, fname)
+        reg = ""
+    if not user_ref:
+        usr_ref = ""
+    else:
+        usr_ref = "-u {}".format(user_ref)
+
+    cmd5 = 'python3 {0}  -i {1} -o {2} -n {3} -r {4} -g {5} {6} {7}'.format(align_function, to_align, aln_path, fname,
+                                                                            ref, gene, reg, usr_ref)
 
     subprocess.call(cmd5, shell=True)
 
 
-def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, stops, length, envelope, run_step,
-         run_only, cores):
+def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverlap, length, run_step,
+         run_only, user_ref):
 
     get_script_path = os.path.realpath(__file__)
     script_folder = os.path.split(get_script_path)[0]
@@ -318,7 +271,7 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
         cons_outpath = os.path.join(path, '1consensus_temp', 'binned')
         counter = 0
         try:
-            call_motifbinner(rename_in, motifbinner, cons_outpath, fwd_primer, cDNA_primer, nonoverlap, counter, cores,
+            call_motifbinner(rename_in, motifbinner, cons_outpath, fwd_primer, cDNA_primer, nonoverlap, counter,
                              logfile)
             run_step += 1
         except Exception as e:
@@ -372,19 +325,6 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
         consensus_infiles = glob(consensus_search)
         delete_gaps(consensus_infiles)
 
-        if nonoverlap:
-            print("move folder", consensus_path)
-            search_fwd_rev = os.path.join(move_folder, "*rev.fasta")
-            print("reverse complementing *rev.fasta")
-            for file in glob(search_fwd_rev):
-                out = file + "_temp.fasta"
-                print(out)
-                print(file)
-                cmd_rev_comp = 'seqmagick convert --reverse-complement {0} {1}'.format(file, out)
-                subprocess.call(cmd_rev_comp, shell=True)
-                os.unlink(file)
-                os.rename(out, file)
-
         if run_only:
             # copy back to permanent folder, remove temp folder
             run_step = 10
@@ -399,6 +339,18 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
                 move_location = os.path.join(move_folder, file_name)
                 copyfile(file, move_location)
 
+        if nonoverlap:
+            print("move folder", move_folder)
+            search_fwd_rev = os.path.join(move_folder, "*rev.fasta")
+            for file in glob(search_fwd_rev):
+                out = file + "_temp.fasta"
+                print(out)
+                print(file)
+                cmd_rev_comp = 'seqmagick convert --reverse-complement {0} {1}'.format(file, out)
+                subprocess.call(cmd_rev_comp, shell=True)
+                os.unlink(file)
+                os.rename(out, file)
+            input("enter")
         print("Removing 'bad' sequences")
         remove_bad_seqs = os.path.join(script_folder, 'remove_bad_sequences.py')
         consensus_search = os.path.join(move_folder, '*.fasta')
@@ -411,7 +363,7 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
                   "to the 1consensus folder")
             sys.exit()
 
-        call_fasta_cleanup(consensus_infiles, remove_bad_seqs, clean_path, frame, length, logfile, stops)
+        call_fasta_cleanup(consensus_infiles, remove_bad_seqs, clean_path, length, logfile)
         run_step += 1
 
         if run_only:
@@ -437,17 +389,12 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
                        "ENV": "ENV", "GP120": "ENV", "GP41": "ENV", "NEF": "NEF",
                        "VIF": "VIF", "VPR": "VPR", "REV": "REV", "VPU": "VPU"}
 
-        gene = gene_region.upper().split("_")[0]
+        gene = gene_region.split("_")[0]
         region_to_check = hxb2_region[gene]
-        if region_to_check == "POL":
-            if gene_region.upper().split("_")[1] == "5":
-                region_to_check = "VIF"
-
         if not clean_files:
             print("Could not find cleaned fasta files\n"
                   "It is possible there were no sequences remaining after removal of sequences with degenerate bases\n"
-                  "If you specified -s (remove sequences with stop codons, did you specify the correct reading frame?\n"
-                  "Do your sequences extend past the end of the reading frame")
+                  )
 
         call_contam_check(clean_files, contam_removal_script, contam_removed_path, region_to_check, logfile)
 
@@ -497,15 +444,9 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
     # Step 5: set things up to align sequences
     if run_step == 5:
         # get the HXB2 sequence for the gene region
-        hxb2_file = os.path.join(script_folder, "reference_sequences.fasta")
+        hxb2_file = os.path.join(script_folder, "HXB2_seqs.fasta")
         hxb2 = fasta_to_dct(hxb2_file)
         hxb2_gene = "HXB2_" + gene_region.split("_")[0]
-
-        # special case to make it work with Mel's multiplex data
-        if hxb2_gene == "HXB2_POL":
-            if gene_region.upper().split("_")[1] == "5":
-                hxb2_gene = "HXB2_VIF"
-
         hxb2_seq = hxb2[hxb2_gene]
 
         # cat all cleaned files into one file + the relevant HXB2 sequence
@@ -566,41 +507,30 @@ def main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, st
         # move concatenated file to 4aligned
         print("moving concatenated file to 4aligned folder")
         aln_path = os.path.join(path, '4aligned')
-
+        move_file = os.path.join(aln_path, "*_all.fasta")
         if nonoverlap:
-            to_align_name1 = os.path.split(all_cleaned_outname_fwd)[-1]
-            move_file1 = os.path.join(aln_path, to_align_name1)
-            copyfile(all_cleaned_outname_fwd, move_file1)
+            copyfile(all_cleaned_outname_fwd, move_file)
             os.unlink(all_cleaned_outname_fwd)
-
-            to_align_name2 = os.path.split(all_cleaned_outname_rev)[-1]
-            move_file2 = os.path.join(aln_path, to_align_name2)
-            copyfile(all_cleaned_outname_rev, move_file2)
+            copyfile(all_cleaned_outname_rev, move_file)
             os.unlink(all_cleaned_outname_rev)
         else:
-            to_align_name = os.path.split(all_cleaned_outname)[-1]
-            move_file = os.path.join(aln_path, to_align_name)
             copyfile(all_cleaned_outname, move_file)
             os.unlink(all_cleaned_outname)
 
         # call alignment script
         print("Aligning the sequences")
-        search_to_align = os.path.join(aln_path, "*_all.fasta")
-        to_align_files = glob(search_to_align)
-        for to_align in to_align_files:
-            inpath, in_file = os.path.split(to_align)
-            out_name = in_file.replace(".fasta", "_aligned.fasta")
-            call_align(envelope, script_folder, to_align, aln_path, out_name)
+        to_align = move_file
+        inpath, fname = os.path.split(to_align)
+        fname = fname.replace(".fasta", "_aligned.fasta")
+        ref = "CONSENSUS_C"
+
+        # infile, outpath, name, ref, gene, var_align, sub_region, user_ref)
+        call_align(script_folder, to_align, aln_path, fname, ref, gene_region, sub_region, user_ref)
 
         # translate alignment
-        search_aligned = os.path.join(aln_path, "*_aligned.fasta")
-        to_trans_files = glob(search_aligned)
-        for to_trans in to_trans_files:
-            transl_file = to_trans.replace("_aligned.fasta", "_aligned_translated.fasta")
-            cmd = "seqmagick convert --sort length-asc --upper --translate dna2protein --line-wrap 0 {0} {1}"\
-                .format(to_trans, transl_file)
-
-            subprocess.call(cmd, shell=True)
+        transl_name = fname.replace("_aligned.fasta", "_aligned_translated.fasta")
+        cmd = "seqmagick convert --sort length-asc --upper --translate dna2protein --line-wrap 0 {0} {1}".format(fname, transl_name)
+        subprocess.call(cmd, shell=True)
 
         run_step += 1
 
@@ -630,26 +560,24 @@ if __name__ == "__main__":
                         help='The path to the gene region subfolder (GAG_1/ or ENV_C1C2/ or POL_1/...)', required=True)
     parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=str,
                         help='the prefix name of your outfile', required=True)
-    parser.add_argument('-g', '--gene_region', default=argparse.SUPPRESS, type=str,
+    parser.add_argument('-g', '--gene_region', default="ENV", type=str,
+                        choices=["ENV", "GAG", "POL", "PRO", "NEF", "VIF", "VPR", "REV", "VPU"],
                         help='the genomic region being sequenced, '
-                             'valid options: GAG_1/GAG_2/ENV_C1C2/POL_1/NEF_1 etc..', required=True)
+                             'valid options: etc..', required=True)
+    parser.add_argument('-reg', '--regions', default=False, action="store",
+                        choices=["C0C1", "C1C2", "C2C3", "C3C5", "GP41", "GP120", "GP160", "P17", "P24"], type=str,
+                        help='the variable regions in your data', required=False)
     parser.add_argument('-f', '--fwd_primer', default=argparse.SUPPRESS, type=str,
                         help='The fwd primer for these samples (eg: NNNNGGAAATATGGAAAGGAAGGAC)', required=False)
     parser.add_argument('-r', '--cDNA_primer', default=argparse.SUPPRESS, type=str,
                         help='The cDNA primer for these samples (eg: NNNNNNNNNNNTCTTCTAATACTGTATCATCTG)', required=False)
-    parser.add_argument('-fr', '--frame', type=int,
-                        help='The reading frame (1, 2 or 3)', required=False)
-    parser.add_argument('-s', '--stops', default=False, action='store_true',
-                        help='Remove sequences with stop codons?)', required=False)
     parser.add_argument('-l', '--length', type=int,
                         help='The minimum read length)', required=False)
-    parser.add_argument('-e', '--envelope', type=str, default=None, nargs="+",
-                        help='If your sequences are of HIV envelope, which V-loops are in the sequence?'
-                             '(eg: V1 V2) (options include: V1, V2 , V3, V4, V5)', required=False)
     parser.add_argument('-v', '--nonoverlap', default=False, action='store_true',
                         help="Use if reads don't overlap)", required=False)
-    parser.add_argument('-ncpu', '--cores', default=3, type=int,
-                        help='the number of CPU cores to use', required=False)
+    parser.add_argument('-u', '--user_ref', default=False, type=str,
+                        help='the path and file name for the custom DNA reference sequence for codon aligning\n'
+                             'must start in reading frame 1', required=False)
     parser.add_argument('-rs', '--run_step', type=int, default=1,
                         help='rerun the pipeline from a given step:\n'
                              '1 = step 1: rename raw files;\n'
@@ -665,16 +593,17 @@ if __name__ == "__main__":
     path = args.path
     name = args.name
     gene_region = args.gene_region
+    regions = args.regions
     fwd_primer = args.fwd_primer
     cDNA_primer = args.cDNA_primer
     nonoverlap = args.nonoverlap
-    cores = args.cores
-    frame = args.frame
-    stops = args.stops
     length = args.length
-    envelope = args.envelope
     run_step = args.run_step
     run_only = args.run_only
+    user_ref = args.user_ref
+    if gene_region == "ENV":
+        if not regions:
+            sys.exit("must use the -reg flag for ENV")
 
-    main(path, name, gene_region, fwd_primer, cDNA_primer, nonoverlap, frame, stops, length, envelope, run_step,
-         run_only, cores)
+    main(path, name, gene_region, regions, fwd_primer, cDNA_primer, nonoverlap, length, run_step,
+         run_only, user_ref)
