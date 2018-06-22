@@ -497,6 +497,7 @@ def main(config_file, output_dir, main_pipeline, haplotype):
                                                                     user_ref,
                                                                     )
                 except Exception as e:
+                    # Todo is this try except actually necessary
                     print(e)
                     pass
 
