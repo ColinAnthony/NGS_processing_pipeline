@@ -445,6 +445,7 @@ def main(config_file, output_dir, main_pipeline, haplotype):
 
         for gene_region in test_primer_dict.keys():
             step_1_create_folders.main('./', gene_region, patient_list)
+
         # Add extra one for reads where no genes matched
         step_1_create_folders.main('./', 'None', patient_list)
 
