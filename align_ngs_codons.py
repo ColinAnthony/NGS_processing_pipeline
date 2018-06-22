@@ -750,6 +750,7 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
         hxb2_name = "HXB2_{}".format(gene)
         ref_hxb = ref_seqs[hxb2_name]
         print("custom ref", reference)
+
     # read in fasta file and reference
     in_seqs_d = fasta_to_dct_rev(infile)
 
