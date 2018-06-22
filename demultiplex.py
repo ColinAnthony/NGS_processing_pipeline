@@ -11,6 +11,7 @@ import os
 import ntpath
 import json
 
+
 __author__ = 'Jon Ambler'
 
 
@@ -126,6 +127,8 @@ def make_primer_dict(primer_file):
                 'sub_region': sub_region,
                 'fwd': row[2][int(row[3]):].replace(' ', ''),
                 'rev': row[4][int(row[5]):].replace(' ', ''),
+                'fwd_full': row[2].replace(' ', ''),
+                'rev_full': row[4].replace(' ', ''),
                 'overlap': row[6],
                 'fwd_preseq': int(row[3]),
                 'rev_preseq': int(row[5]),
@@ -483,8 +486,8 @@ def main(config_file, output_dir, main_pipeline, haplotype):
                                                                 data['pipelineSettings']['out_prefix'],
                                                                 gene_region,
                                                                 sub_region,
-                                                                test_primer_dict[gene_region]['fwd'],
-                                                                test_primer_dict[gene_region]['rev'],
+                                                                test_primer_dict[gene_region]['fwd_full'],
+                                                                test_primer_dict[gene_region]['rev_full'],
                                                                 nonoverlap,
                                                                 data['pipelineSettings']['min_read_length'],
                                                                 data['pipelineSettings']['run_step'],

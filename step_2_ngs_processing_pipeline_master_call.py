@@ -170,16 +170,16 @@ def call_contam_check(consensuses, contam_removal_script, contam_removed_path, g
 
 def call_align(script_folder, to_align, aln_path, fname, ref, gene, sub_region, user_ref):
     """
-
-    :param script_folder:
-    :param to_align:
-    :param aln_path:
-    :param fname:
-    :param ref:
-    :param gene_region:
-    :param sub_region:
-    :param user_ref:
-    :return:
+    function to call the alignment script
+    :param script_folder: (str) path to the folder containing the repo scripts
+    :param to_align: (str) file to align
+    :param aln_path: (str) the output path
+    :param fname: (str) the prefix for the output file name
+    :param ref: (str) the reference type
+    :param gene_region: (str) the HIV gene region
+    :param sub_region: (str) the HIV gene sub-region
+    :param user_ref: (str) path to the user reference fasta file
+    :return: None
     """
     align_function = os.path.join(script_folder, 'align_ngs_codons.py')
     if sub_region:

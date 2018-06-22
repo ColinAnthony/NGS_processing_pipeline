@@ -16,7 +16,7 @@ def get_primer_lens_score(primer):
 
     count_Ns = 0
     non_Ns = 0
-    bases = ['A', 'C', 'G', 'T']
+    bases = ['A', 'C', 'G', 'T', 'R', 'Y', 'M', 'K', 'S', 'W', 'H', 'B', 'V', 'D']
 
     for base in str(primer):
         if base == 'N':
@@ -24,13 +24,13 @@ def get_primer_lens_score(primer):
         elif base in bases:
             non_Ns += 1
         else:
-            non_Ns += 1
+            sys.exit("Non standard character in primer sequence\nMust be one of: {} or 'N'".format(bases))
 
     if count_Ns == 0:
         sys.exit("could not find primer ID in primer")
     total = len(primer)
 
-    if non_Ns < 0:
+    if non_Ns < 1:
         print("Error in primer {}".format(primer))
     primer_lens = '1,' + str(count_Ns - 1) + "," + str(non_Ns)
     primer_score = str(count_Ns + int((non_Ns * 0.8)))
