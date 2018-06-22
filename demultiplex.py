@@ -118,14 +118,19 @@ def make_primer_dict(primer_file):
         # Skip header
         next(primer_file_obj, None)
         for row in primer_file_obj:
+            sub_region = row[1].replace(' ', '')
+            if sub_region == "None" or sub_region == None:
+                sub_region = False
+
             res_dict[row[0]] = {
-                'fwd': row[1][int(row[2]):].replace(' ', ''),
-                'rev': row[3][int(row[4]):].replace(' ', ''),
-                'overlap': row[5],
-                'fwd_preseq': int(row[2]),
-                'rev_preseq': int(row[4]),
-                'fwd_wild': make_seq_wild(row[1][int(row[2]):].replace(' ', '')),
-                'rev_wild': make_seq_wild(row[3][int(row[4]):].replace(' ', '')),
+                'sub_region': sub_region,
+                'fwd': row[2][int(row[3]):].replace(' ', ''),
+                'rev': row[4][int(row[5]):].replace(' ', ''),
+                'overlap': row[6],
+                'fwd_preseq': int(row[3]),
+                'rev_preseq': int(row[5]),
+                'fwd_wild': make_seq_wild(row[2][int(row[3]):].replace(' ', '')),
+                'rev_wild': make_seq_wild(row[4][int(row[5]):].replace(' ', '')),
                 'exact_matches_found': 0,
                 'regex_matches_found': 0,
                 'kmer_matches_found': 0,
@@ -425,8 +430,8 @@ def main(config_file, output_dir, main_pipeline, haplotype):
 
     os.chdir(output_dir)
 
-    create_file_structure = True
-    demultiplex_fastq = True
+    create_file_structure = False
+    demultiplex_fastq = False
     run_main_pipe = main_pipeline
     make_haplotypes = haplotype
 
@@ -456,6 +461,7 @@ def main(config_file, output_dir, main_pipeline, haplotype):
         import step_2_ngs_processing_pipeline_master_call
 
         for gene_region, gene_dict in test_primer_dict.items():
+            gene_region = gene_region.split("_")[0]
             overlap = gene_dict['overlap']
             if overlap == "No":
                 nonoverlap = True
@@ -463,26 +469,30 @@ def main(config_file, output_dir, main_pipeline, haplotype):
                 nonoverlap = False
 
             # Adding the required parameters
-            if data['pipelineSettings']['stops'] == "yes":
-                stops = True
-            else:
-                stops = False
-
-            vloop = None
             path = output_dir + patient_list[0] + '/' + gene_region
+            sub_region = gene_dict['sub_region']
+            if not sub_region:
+                sub_region = False
+            else:
+                sub_region = sub_region
+            user_ref = False
 
             # Calling step 2
-            step_2_ngs_processing_pipeline_master_call.main(path,
-                                                            data['pipelineSettings']['out_prefix'],
-                                                            gene_region, test_primer_dict[gene_region]['fwd'],
-                                                            test_primer_dict[gene_region]['rev'],
-                                                            nonoverlap, data['pipelineSettings']['frame'],
-                                                            stops,
-                                                            data['pipelineSettings']['min_read_length'],
-                                                            vloop,
-                                                            data['pipelineSettings']['run_step'],
-                                                            False
-                                                            )
+            try:
+                step_2_ngs_processing_pipeline_master_call.main(path,
+                                                                data['pipelineSettings']['out_prefix'],
+                                                                gene_region,
+                                                                sub_region,
+                                                                test_primer_dict[gene_region]['fwd'],
+                                                                test_primer_dict[gene_region]['rev'],
+                                                                nonoverlap,
+                                                                data['pipelineSettings']['min_read_length'],
+                                                                data['pipelineSettings']['run_step'],
+                                                                False,
+                                                                user_ref,
+                                                                )
+            except:
+                pass
 
     if make_haplotypes:
         print("Making haplotypes from alignment")
