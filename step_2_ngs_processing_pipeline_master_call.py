@@ -56,7 +56,6 @@ def rename_sequences(raw_files_search):
     :param raw_files_search: list of files to rename
     :return:
     """
-
     print("renaming raw files")
     for inf_R1 in raw_files_search:
         print(inf_R1) # /data/hvtn503/breakthrough/GAG_2/0raw_temp/159400956_1110_013wpi_GAG_2_NN_S104_L001_R1_001.fastq
