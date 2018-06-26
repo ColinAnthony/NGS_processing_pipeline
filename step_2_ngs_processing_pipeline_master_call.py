@@ -58,18 +58,15 @@ def rename_sequences(raw_files_search):
     """
     print("renaming raw files")
     for inf_R1 in raw_files_search:
-        print(inf_R1) # /data/hvtn503/breakthrough/GAG_2/0raw_temp/159400956_1110_013wpi_GAG_2_NN_S104_L001_R1_001.fastq
         inf_R2 = inf_R1.replace("R1_001.fastq", "R2_001.fastq")
         path = os.path.split(inf_R1)[0]
-        inf_R1_name = os.path.split(inf_R1)[-1]  # 159400956_1110_013wpi_GAG_2_NN_S104_L001_R1_001.fastq
+        inf_R1_name = os.path.split(inf_R1)[-1]
         inf_R2_name = os.path.split(inf_R2)[-1]
 
-        outf_R1 = inf_R1_name.replace("-", "_")  # 159400956_1110_013wpi_GAG_2_NN_S104_L001_R1_001.fastq
+        outf_R1 = inf_R1_name.replace("-", "_")
         outf_R2 = inf_R2_name.replace("-", "_")
         outf_R1_rename = re.sub("S[0-9]+_L[0-9][0-9][0-9]_R1_[0-9][0-9][0-9].fastq", "R1.fastq", outf_R1)
         outf_R1_rename_with_path = os.path.join(path, outf_R1_rename)
-        # /data/hvtn503/breakthrough/GAG_2/0raw_temp/159400956_1110_013wpi_GAG_2_NN_S104_L001_R1_001.fastq
-
 
         if outf_R1_rename == outf_R1:
             # check if they have already been renamed
