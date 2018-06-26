@@ -400,7 +400,7 @@ def primer_blast_search(db_identifier, sequence, out_dir):
         return "None"
 
 
-def main(config_file, output_dir, main_pipeline, haplotype):
+def main(config_file, output_dir, demultiplex, main_pipeline, haplotype):
     print("Parsing the config file:")
 
     with open(config_file) as json_data_file:
@@ -433,8 +433,8 @@ def main(config_file, output_dir, main_pipeline, haplotype):
 
     os.chdir(output_dir)
 
-    create_file_structure = False
-    demultiplex_fastq = False
+    create_file_structure = True
+    demultiplex_fastq = demultiplex
     run_main_pipe = main_pipeline
     make_haplotypes = haplotype
 
@@ -470,7 +470,7 @@ def main(config_file, output_dir, main_pipeline, haplotype):
             # don't run if the gene_region is None: sequences that couldn't be assigned to a gene region
             if gene_region is not None or gene_region != "None":
                 overlap = gene_dict['overlap']
-                if overlap == "No":
+                if overlap == "no":
                     nonoverlap = True
                 else:
                     nonoverlap = False
@@ -535,15 +535,18 @@ if __name__ == '__main__':
 
     parser.add_argument('-c', '--config_file', type=str, help='Configuration file for the run in JSON format')
     parser.add_argument('-o', '--output_dir', type=str, help='Location to write the output fastq files')
+    parser.add_argument('-d', '--demultiplex', default=True, action='store_false',
+                        help='Do not run the demultiplexing step')
     parser.add_argument('-m', '--main_pipeline', default=True, action='store_false',
                         help='Do not run the main pipeline')
-    parser.add_argument('-hap', '--haplotype', default=False, action='store_true',
-                        help='Run the main pipeline as well')
+    parser.add_argument('-hap', '--haplotype', default=True, action='store_false',
+                        help='Do not run the haplotyping pipeline')
     args = parser.parse_args()
 
     config_file = args.config_file
     output_dir = args.output_dir
     main_pipeline = args.main_pipeline
     haplotype = args.haplotype
+    demultiplex = args.demultiplex
 
-    main(config_file, output_dir, main_pipeline, haplotype)
+    main(config_file, output_dir, demultiplex, main_pipeline, haplotype)
