@@ -843,37 +843,24 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
             var_region_index_dct = collections.defaultdict(dict)
             # get pairwise alignment for query to reference
             seq_align, ref_align, frame = pairwise_align_dna(seq, reference, regex_complied_1, gene)
-            # adjust for reading frame
-            if frame != 0:
-                lead_gap = "-" * frame
-                seq_adjust = lead_gap + seq
+
+            # pad indels with gaps
+            padded_sequence = gap_padding(seq_align, ref_align, frame, regex_complied_2)
+
+            # translate query
+            prot_seq = translate_dna(padded_sequence)
+
+            # if the seq could not be translated, write to file and skip
+            if prot_seq[:-1].count("Z") > 1:
+                print("error getting seq into frame", prot_seq)
+                names_list = first_look_up_d[code]
+                for name_bad in names_list:
+                    bad_seq_counter += 1
+                    handle.write(">{0}\n{1}\n".format(name_bad, seq))
+
+                continue
             else:
-                seq_adjust = seq
-
-            # try and translate the sequence
-            prot_seq = translate_dna(seq_adjust)
-
-            # if translation fails, try and adjust for indels
-            if prot_seq[:-1].count("Z") > 0:
-                # correct for reading frame and indels
-                padded_sequence = gap_padding(seq_align, ref_align, frame, regex_complied_2)
-
-                # translate query
-                prot_seq = translate_dna(padded_sequence)
-
-                # if the seq could not be translated, write to file and skip
-                if prot_seq[:-1].count("Z") > 1:
-                    print("error getting seq into frame", prot_seq)
-                    names_list = first_look_up_d[code]
-                    for name_bad in names_list:
-                        bad_seq_counter += 1
-                        handle.write(">{0}\n{1}\n".format(name_bad, seq))
-
-                    continue
-                else:
-                    padded_seq_dict[code] = padded_sequence
-            else:
-                padded_seq_dict[code] = seq_adjust
+                padded_seq_dict[code] = padded_sequence
 
             # get the var region boundaries, if any
             var_region_index_dct[code] = find_var_region_boundaries(prot_seq, var_region_regex_dct, sub_region,
