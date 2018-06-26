@@ -243,7 +243,7 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
     script_folder = os.path.abspath(script_folder)
 
     path = os.path.abspath(path)
-
+    gene = gene_region.split("_")[0]
     # define logfile filename
     logfile = os.path.join(path, (gene_region + "_logfile.txt"))
     if not os.path.isfile(logfile):
@@ -427,7 +427,6 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
                        "ENV": "ENV", "GP120": "ENV", "GP41": "ENV", "NEF": "NEF",
                        "VIF": "VIF", "VPR": "VPR", "REV": "REV", "VPU": "VPU"}
 
-        gene = gene_region.split("_")[0]
         region_to_check = hxb2_region[gene]
         if not clean_files:
             print("Could not find cleaned fasta files\n"
@@ -574,7 +573,7 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
             ref = "CONSENSUS_C"
 
             # infile, outpath, name, ref, gene, var_align, sub_region, user_ref)
-            call_align(script_folder, to_align, aln_path, fname, ref, gene_region, sub_region, user_ref)
+            call_align(script_folder, to_align, aln_path, fname, ref, gene, sub_region, user_ref)
 
             # translate alignment
             fname = to_align.replace(".fasta", "_aligned.fasta")
@@ -612,7 +611,8 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=str,
                         help='the prefix name of your outfile. Usually the participant name', required=True)
     parser.add_argument('-g', '--gene_region', default="ENV", type=str,
-                        choices=["ENV", "GAG", "POL", "PRO", "NEF", "VIF", "VPR", "REV", "VPU"],
+                        choices=["ENV", "ENV_1", "ENV_2", "ENV_3", "ENV_4", "ENV_5", "GAG", "GAG_1", "GAG_2", "POL",
+                                 "POL_1", "POL_2", "POL_3", "POL_4", "POL_5", "PRO", "NEF_1", "VIF_1", "VPR", "REV", "VPU"],
                         help='the genomic region being sequenced, '
                              'valid options: etc..', required=True)
     parser.add_argument('-reg', '--regions', default=False, action="store",

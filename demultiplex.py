@@ -433,8 +433,8 @@ def main(config_file, output_dir, main_pipeline, haplotype):
 
     os.chdir(output_dir)
 
-    create_file_structure = True
-    demultiplex_fastq = True
+    create_file_structure = False
+    demultiplex_fastq = False
     run_main_pipe = main_pipeline
     make_haplotypes = haplotype
 
@@ -465,8 +465,10 @@ def main(config_file, output_dir, main_pipeline, haplotype):
         import step_2_ngs_processing_pipeline_master_call
 
         for gene_region, gene_dict in test_primer_dict.items():
-            if gene_region != "None" or gene_region is not None:
-                gene_region = gene_region.split("_")[0]
+            print("Running pipeline for:", gene_region)
+
+            # don't run if the gene_region is None: sequences that couldn't be assigned to a gene region
+            if gene_region is not None or gene_region != "None":
                 overlap = gene_dict['overlap']
                 if overlap == "No":
                     nonoverlap = True
