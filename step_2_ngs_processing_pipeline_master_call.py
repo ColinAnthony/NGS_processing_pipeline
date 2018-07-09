@@ -233,8 +233,8 @@ def call_align(script_folder, to_align, aln_path, fname, ref, gene, sub_region, 
     subprocess.call(cmd5, shell=True)
 
 
-def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverlap, frame, stops, length, envelope, run_step,
-         run_only, cores):
+def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverlap, length, run_step,
+         run_only, user_ref, cores):
 
     get_script_path = os.path.realpath(__file__)
     script_folder = os.path.split(get_script_path)[0]
@@ -561,7 +561,6 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
                 fname = fname.replace(".fasta", "")
                 ref = "CONSENSUS_C"
 
-                # infile, outpath, name, ref, gene, var_align, sub_region, user_ref)
                 call_align(script_folder, to_align, aln_path, fname, ref, gene_region, sub_region, user_ref)
 
                 # translate alignment
@@ -575,7 +574,6 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
             fname = fname.replace(".fasta", "")
             ref = "CONSENSUS_C"
 
-            # infile, outpath, name, ref, gene, var_align, sub_region, user_ref)
             call_align(script_folder, to_align, aln_path, fname, ref, gene, sub_region, user_ref)
 
             # translate alignment
@@ -654,8 +652,6 @@ if __name__ == "__main__":
     cDNA_primer = args.cDNA_primer
     nonoverlap = args.nonoverlap
     cores = args.cores
-    frame = args.frame
-    stops = args.stops
     length = args.length
     run_step = args.run_step
     run_only = args.run_only
@@ -664,5 +660,5 @@ if __name__ == "__main__":
         if not regions:
             sys.exit("must use the -reg flag for ENV")
 
-    main(path, name, gene_region, regions, fwd_primer, cDNA_primer, nonoverlap, frame, stops, length, envelope, run_step,
-         run_only, cores)
+    main(path, name, gene_region, regions, fwd_primer, cDNA_primer, nonoverlap, length, run_step, run_only,
+         user_ref, cores)
