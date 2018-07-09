@@ -22,12 +22,15 @@ Data from PrimerID workflow
     5) pandas
     6) numpy
     7) Biopython?  
-  
+    if calling the pipeline using demultiplex.py,
+        you will need to specify the config.json settings file and
+        a primer description csv file
+        Templates for these are located in the repo as template_demultiplex_config.json and
+        template_master_primer_file.csv
 
 ### To run:
 
 ```python3 demultiplex.py --config_file <config.json> --output_dir <output directory>```
-
 
 
 ### Using the config file:
