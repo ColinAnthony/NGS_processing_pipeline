@@ -14,6 +14,7 @@ import logging
 # Non-standard
 import regex
 
+
 __author__ = "Colin, Jon, Dave"
 __copyright__ = "Something"
 __credits__ = ["Colin", "Jon", "Dave"]
