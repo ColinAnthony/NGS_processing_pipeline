@@ -440,7 +440,7 @@ def split_by_primers_matchpair(fastq_R1_file, fastq_R2_file, primer_dict, orient
                             primer_dict[geneRegion]['kmer_matches_found'] += 1
 
             # Finally, if there is still no match, use the blastDB
-            if detected_primer == 'None' and make_sure is True:
+            if detected_primer == 'None' and make_sure:
 
                 detected_primer = primer_blast_search('primers', current_sequence[:shortest_primer_length], out_dir)
                 if detected_primer != 'None':
