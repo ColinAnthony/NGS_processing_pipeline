@@ -744,6 +744,10 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
     else:
         ref_seqs = fasta_to_dct(user_ref)
         reference = ref_seqs[list(ref_seqs)[0]]
+    out_name = name + "_aligned.fasta"
+    bad_name = name + "_NOT_aligned.fasta"
+    outfile = os.path.join(outpath, out_name)
+    badfile = os.path.join(outpath, bad_name)
 
         ref_file = os.path.join(script_folder, "reference_sequences.fasta")
         ref_seqs = fasta_to_dct(ref_file)
