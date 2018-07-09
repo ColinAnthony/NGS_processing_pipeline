@@ -734,26 +734,24 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
     get_script_path = os.path.realpath(__file__)
     script_folder = os.path.split(get_script_path)[0]
     script_folder = os.path.abspath(script_folder)
+
+    ref_file = os.path.join(script_folder, "reference_sequences.fasta")
+    ref_seqs = fasta_to_dct(ref_file)
+    hxb2_name = "HXB2_{}".format(gene)
+    ref_hxb = ref_seqs[hxb2_name]
     if not user_ref:
         gene_region = ref + "_" + gene
-        ref_file = os.path.join(script_folder, "reference_sequences.fasta")
-        ref_seqs = fasta_to_dct(ref_file)
         reference = ref_seqs[gene_region]
-        hxb2_name = "HXB2_{}".format(gene)
-        ref_hxb = ref_seqs[hxb2_name]
+        print("custom ref", reference)
+
     else:
         ref_seqs = fasta_to_dct(user_ref)
         reference = ref_seqs[list(ref_seqs)[0]]
+
     out_name = name + "_aligned.fasta"
     bad_name = name + "_NOT_aligned.fasta"
     outfile = os.path.join(outpath, out_name)
     badfile = os.path.join(outpath, bad_name)
-
-        ref_file = os.path.join(script_folder, "reference_sequences.fasta")
-        ref_seqs = fasta_to_dct(ref_file)
-        hxb2_name = "HXB2_{}".format(gene)
-        ref_hxb = ref_seqs[hxb2_name]
-        print("custom ref", reference)
 
     # read in fasta file and reference
     in_seqs_d = fasta_to_dct_rev(infile)
