@@ -712,14 +712,15 @@ if __name__ == '__main__':
         overlapping = True if the the fwd and rev reads overlap, else overlapping = False
         ''', epilog="""Version 0.1""")
 
-    parser.add_argument('-c', '--config_file', type=str, help='Configuration file for the run in JSON format')
-    parser.add_argument('-o', '--output_dir', type=str, help='Location to write the output fastq files')
+    parser.add_argument('-c', '--config_file', type=str, help='Configuration file for the run in JSON format',
+                        required=True)
+    parser.add_argument('-o', '--output_dir', type=str, help='Location to write the output fastq files', required=True)
     parser.add_argument('-d', '--no_demultiplex', default=True, action='store_false',
-                        help='Do not run the demultiplexing step')
+                        help='Do not run the demultiplexing step', required=False)
     parser.add_argument('-m', '--no_main_pipeline', default=True, action='store_false',
-                        help='Do not run the main pipeline')
+                        help='Do not run the main pipeline', required=False)
     parser.add_argument('-hap', '--no_haplotype', default=True, action='store_false',
-                        help='Do not run the haplotyping pipeline')
+                        help='Do not run the haplotyping pipeline', required=False)
     args = parser.parse_args()
 
     config_file = args.config_file
