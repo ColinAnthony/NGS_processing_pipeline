@@ -2,7 +2,6 @@
 from __future__ import print_function
 from __future__ import division
 import csv
-import fnmatch
 from subprocess import call
 from subprocess import Popen
 from subprocess import PIPE
