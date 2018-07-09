@@ -228,7 +228,7 @@ def add_kmer_keys(primerDict):
     return primerDict
 
 
-def split_by_primers(fastq_file, primer_dict, orientation, infast_name, out_dir, patient_list, make_sure=True):
+def split_by_primers(fastq_file, primer_dict, orientation, infast_name, out_dir, patient_list, make_sure=False):
     """
     Take an input fastq file and split it into individual fastq files, with the split based on the presence of
     a primer sequence specified in a dictionary.
