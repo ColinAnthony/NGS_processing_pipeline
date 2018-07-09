@@ -57,6 +57,7 @@ def rename_sequences(raw_files_search):
     :return:
     """
     print("renaming raw files")
+
     for inf_R1 in raw_files_search:
         inf_R2 = inf_R1.replace("R1_001.fastq", "R2_001.fastq")
         path = os.path.split(inf_R1)[0]
@@ -74,8 +75,8 @@ def rename_sequences(raw_files_search):
                 print("file was already in correct format?")
                 return
             else:
-                print("Unable to rename R1 file {0}\ncheck the file renaming regex".format(inf_R1))
-                sys.exit()
+                print()
+                raise ValueError("Unable to rename R1 file {0}\ncheck the file renaming regex".format(inf_R1))
         else:
             os.rename(inf_R1, outf_R1_rename_with_path)
         print(outf_R1_rename)
@@ -87,8 +88,7 @@ def rename_sequences(raw_files_search):
                 print("file was already in correct format?")
                 return
             else:
-                print("Unable to rename R2 file {0}\ncheck the file renaming regex".format(inf_R2))
-                sys.exit()
+                raise ValueError("Unable to rename R1 file {0}\ncheck the file renaming regex".format(inf_R2))
         else:
             os.rename(inf_R2, outf_R2_rename_with_path)
 
@@ -194,7 +194,6 @@ def call_contam_check(consensuses, contam_removal_script, contam_removed_path, g
     :param logfile: the path and name of the log file
     :return: None
     """
-
     for consensus_file in consensuses:
         cmd3 = 'python3 {0} -i {1} -o {2} -g {3} -l {4}'.format(contam_removal_script,
                                                                 consensus_file,
@@ -241,7 +240,7 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
     script_folder = os.path.abspath(script_folder)
 
     path = os.path.abspath(path)
-    gene = gene_region.split("_")[0]
+
     # define logfile filename
     logfile = os.path.join(path, (gene_region + "_logfile.txt"))
     if not os.path.isfile(logfile):
@@ -282,9 +281,14 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
         if not raw_files:
             print("No raw files were found\n"
                   "Check that files end with R1.fastq and R2.fastq")
-            sys.exit()
+            run_step = "break"
+        try:
+            rename_sequences(raw_files)
+        except ValueError as e:
+            print(e)
+            run_step = "break"
+            # todo: log error
 
-        rename_sequences(raw_files)
         run_step += 1
 
         if run_only:
@@ -311,9 +315,9 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
                              logfile)
             run_step += 1
         except Exception as e:
-            print(e)
-            print("now quitting..")
-            sys.exit()
+            print("MotifBinner2 crashed, this could be because the wrong primer was set, "
+                  "or possibly, because there were insufficient sequences in the sample", e)
+            run_step = "break"
 
         # check if the consensus files exist
         nested_consensuses_path = os.path.join(path,
@@ -325,58 +329,57 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
                   "Do your fastq sequences end in R1.fastq/R2.fastq?\n"
                   "Check that the primer sequences are correct\n"
                   "Check the binning report in the 1consensus/binned/ folder")
-            sys.exit()
+            run_step = "break"
 
-        # copy data from nested binned folders into 1consensus folder
-        print("Coping fastq files from nested folders to '1consensus_temp' folder")
-        consensus_path = os.path.join(path, '1consensus_temp')
-        for cons_file in nested_consesnsuses:
-            old_path, old_name = os.path.split(cons_file)
-            new_name1 = old_name.replace("_buildConsensus", "")
-            new_name = new_name1.replace("_kept", "")
-            new_file = os.path.join(consensus_path, new_name)
-            copyfile(cons_file, new_file)
+        if run_step != "break":
+            # copy data from nested binned folders into 1consensus folder
+            print("Coping fastq files from nested folders to '1consensus_temp' folder")
+            consensus_path = os.path.join(path, '1consensus_temp')
+            for cons_file in nested_consesnsuses:
+                old_path, old_name = os.path.split(cons_file)
+                new_name1 = old_name.replace("_buildConsensus", "")
+                new_name = new_name1.replace("_kept", "")
+                new_file = os.path.join(consensus_path, new_name)
+                copyfile(cons_file, new_file)
 
-        # convert copied fastq to fasta
-        print("Converting fastq to fasta")
-        cons_search_path = os.path.join(consensus_path, '*.fastq')
-        consensuses = glob(cons_search_path)
-        for fastq in consensuses:
-            fasta = fastq.replace("fastq", "fasta")
-            cmd2 = 'seqmagick convert {0} {1}'.format(fastq,
-                                                      fasta)
+            # convert copied fastq to fasta
+            print("Converting fastq to fasta")
+            cons_search_path = os.path.join(consensus_path, '*.fastq')
+            consensuses = glob(cons_search_path)
+            for fastq in consensuses:
+                fasta = fastq.replace("fastq", "fasta")
+                cmd2 = 'seqmagick convert {0} {1}'.format(fastq,
+                                                          fasta)
 
-            subprocess.call(cmd2, shell=True)
+                subprocess.call(cmd2, shell=True)
 
-        # remove the copied fastq files
-        print("Removing the copied fastq files")
-        remove_fastq = cons_search_path
-        for old_fastq_copy in glob(remove_fastq):
-            os.remove(old_fastq_copy)
+            # remove the copied fastq files
+            print("Removing the copied fastq files")
+            remove_fastq = cons_search_path
+            for old_fastq_copy in glob(remove_fastq):
+                os.remove(old_fastq_copy)
 
-        # delete any gaps characters in the fasta sequences
-        print("deleting gaps in consensus sequences")
-        consensus_path = os.path.join(path, '1consensus_temp')
-        consensus_search = os.path.join(consensus_path, '*.fasta')
-        consensus_infiles = glob(consensus_search)
-        delete_gaps(consensus_infiles)
+            # delete any gaps characters in the fasta sequences
+            print("deleting gaps in consensus sequences")
+            consensus_path = os.path.join(path, '1consensus_temp')
+            consensus_search = os.path.join(consensus_path, '*.fasta')
+            consensus_infiles = glob(consensus_search)
+            delete_gaps(consensus_infiles)
 
-        if nonoverlap:
-            print("move folder", consensus_path)
-            search_fwd_rev = os.path.join(move_folder, "*rev.fasta")
-            print("reverse complementing *rev.fasta")
-            for file in glob(search_fwd_rev):
-                out = file + "_temp.fasta"
-                print(out)
-                print(file)
-                cmd_rev_comp = 'seqmagick convert --reverse-complement {0} {1}'.format(file, out)
-                subprocess.call(cmd_rev_comp, shell=True)
-                os.unlink(file)
-                os.rename(out, file)
+            if nonoverlap:
+                print("move folder", consensus_path)
+                search_fwd_rev = os.path.join(move_folder, "*rev.fasta")
+                print("reverse complementing *rev.fasta")
+                for file in glob(search_fwd_rev):
+                    out = file + "_temp.fasta"
+                    cmd_rev_comp = 'seqmagick convert --reverse-complement {0} {1}'.format(file, out)
+                    subprocess.call(cmd_rev_comp, shell=True)
+                    os.unlink(file)
+                    os.rename(out, file)
 
-        if run_only:
-            # copy back to permanent folder, remove temp folder
-            run_step = 10
+            if run_only:
+                # copy back to permanent folder, remove temp folder
+                run_step = 10
 
     # Step 3: call remove bad sequences
     if run_step == 3:
@@ -393,15 +396,14 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
         consensus_search = os.path.join(move_folder, '*.fasta')
         consensus_infiles = glob(consensus_search)
         clean_path = os.path.join(path, '2cleaned_temp')
-        print(consensus_search)
         if not consensus_infiles:
             print("Could not find consensus fasta files\n"
                   "It is possible something went wrong when copying the consensus sequences from the nested folders "
                   "to the 1consensus folder")
-            sys.exit()
-
-        call_fasta_cleanup(consensus_infiles, remove_bad_seqs, clean_path, length, logfile)
-        run_step += 1
+            run_step = "break"
+        if run_step != "break":
+            call_fasta_cleanup(consensus_infiles, remove_bad_seqs, clean_path, length, logfile)
+            run_step += 1
 
         if run_only:
             # copy back to permanent folder, remove temp folder
@@ -422,21 +424,23 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
         clean_search = os.path.join(move_folder, "*clean.fasta")
         contam_removed_path = os.path.join(path, '3contam_removal_temp')
         clean_files = glob(clean_search)
-        hxb2_region = {"GAG": "GAG", "POL": "POL", "PRO": "POL", "RT": "POL", "RNASE": "POL", "INT": "POL",
-                       "ENV": "ENV", "GP120": "ENV", "GP41": "ENV", "NEF": "NEF",
+        hxb2_region = {"GAG": "GAG", "POL": "POL", "PRO": "POL", "RT": "POL", "RT1": "POL", "RT2": "POL",
+                       "RNASE": "POL", "INT": "POL", "ENV": "ENV", "GP120": "ENV", "GP41": "ENV", "NEF": "NEF",
                        "VIF": "VIF", "VPR": "VPR", "REV": "REV", "VPU": "VPU"}
 
+        gene = gene_region.upper().split("_")[0]
         region_to_check = hxb2_region[gene]
-        if region_to_check == "POL":
-            if gene_region.upper().split("_")[1] == "5":
+        if region_to_check == "INT":
+            if gene_region.upper().split("_")[1] == "VIF":
                 region_to_check = "VIF"
 
         if not clean_files:
             print("Could not find cleaned fasta files\n"
                   "It is possible there were no sequences remaining after removal of sequences with degenerate bases\n"
                   )
-
-        call_contam_check(clean_files, contam_removal_script, contam_removed_path, region_to_check, logfile)
+            run_step = "break"
+        if run_step != "break":
+            call_contam_check(clean_files, contam_removal_script, contam_removed_path, region_to_check, logfile)
 
         # copy back to permanent folder, remove temp folder
         run_step = 10
@@ -458,28 +462,10 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
             rmtree(temp_folder)
 
         # clear the new_data folder
-        condition = True
-        if run_only:
-            print('removing temp files')
-            while condition:
-                response = input("remove files from 0new_data folder? (yes or no)")
-                if response.lower() == "yes" or response.lower() == "y":
-                    condition = False
-                    new_files_to_remove = os.path.join(new_data, "*")
-                    for file in glob(new_files_to_remove):
-                        os.unlink(file)
-                elif response.lower() == "no" or response.lower() == "n":
-                    condition = False
-                    print("not deleting files")
-                else:
-                    print("response not valid, please enter either: 'yes', or 'y' to delete or 'no', or 'n' to keep")
-            sys.exit()
-
-        else:
-            new_files_to_remove = os.path.join(new_data, "*")
-            for file in glob(new_files_to_remove):
-                os.unlink(file)
-            run_step = 5
+        new_files_to_remove = os.path.join(new_data, "*")
+        for file in glob(new_files_to_remove):
+            os.unlink(file)
+        run_step = 5
 
     # Step 5: set things up to align sequences
     if run_step == 5:
@@ -501,11 +487,13 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
             cleaned_files_ref = glob(cleaned_files_search_rev)
 
             if not cleaned_files_fwd:
-                sys.exit("No cleaned fwd-fasta files were found\n"
+                print("No cleaned fwd-fasta files were found\n"
                       "Check that the fasta files still have sequences in them after the removal of bad sequences")
+                run_step = "break"
             if not cleaned_files_ref:
-                sys.exit("No cleaned rev-fasta files were found\n"
+                print("No cleaned rev-fasta files were found\n"
                       "Check that the fasta files still have sequences in them after the removal of bad sequences")
+                run_step = "break"
         else:
             clean_name = name + "_" + gene_region + "_all.fasta"
             all_cleaned_outname = os.path.join(all_clean_path, clean_name)
@@ -516,77 +504,81 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
             if not cleaned_files:
                 print("No cleaned fasta files were found\n"
                       "Check that the fasta files still have sequences in them after the removal of bad sequences")
-                sys.exit()
+                run_step = "break"
 
-        if nonoverlap:
-            with open(all_cleaned_outname_fwd, 'w') as outfile:
-                for fasta_file in cleaned_files_fwd:
-                    with open(fasta_file) as infile:
-                        for line in infile:
-                            outfile.write(line + "\n")
+        if run_step != "break":
+            if nonoverlap:
+                with open(all_cleaned_outname_fwd, 'w') as outfile:
+                    for fasta_file in cleaned_files_fwd:
+                        with open(fasta_file) as infile:
+                            for line in infile:
+                                outfile.write(line + "\n")
 
-            with open(all_cleaned_outname_rev, 'w') as outfile:
-                for fasta_file in cleaned_files_ref:
-                    with open(fasta_file) as infile:
-                        for line in infile:
-                            outfile.write(line + "\n")
-        else:
-            with open(all_cleaned_outname, 'w') as outfile:
-                for fasta_file in cleaned_files:
-                    with open(fasta_file) as infile:
-                        for line in infile:
-                            outfile.write(line + "\n")
+                with open(all_cleaned_outname_rev, 'w') as outfile:
+                    for fasta_file in cleaned_files_ref:
+                        with open(fasta_file) as infile:
+                            for line in infile:
+                                outfile.write(line + "\n")
+            else:
+                with open(all_cleaned_outname, 'w') as outfile:
+                    for fasta_file in cleaned_files:
+                        with open(fasta_file) as infile:
+                            for line in infile:
+                                outfile.write(line + "\n")
 
-        # move concatenated file to 4aligned
-        print("moving concatenated file to 4aligned folder")
-        aln_path = os.path.join(path, '4aligned')
-        if nonoverlap:
-            move_file_fwd = os.path.join(aln_path, clean_name_fwd)
-            copyfile(all_cleaned_outname_fwd, move_file_fwd)
-            os.unlink(all_cleaned_outname_fwd)
-            move_file_rev = os.path.join(aln_path, clean_name_rev)
-            copyfile(all_cleaned_outname_rev, move_file_rev)
-            os.unlink(all_cleaned_outname_rev)
-        else:
-            move_file = os.path.join(aln_path, clean_name)
-            copyfile(all_cleaned_outname, move_file)
-            os.unlink(all_cleaned_outname)
+            # move concatenated file to 4aligned
+            print("moving concatenated file to 4aligned folder")
+            aln_path = os.path.join(path, '4aligned')
+            if nonoverlap:
+                move_file_fwd = os.path.join(aln_path, clean_name_fwd)
+                copyfile(all_cleaned_outname_fwd, move_file_fwd)
+                os.unlink(all_cleaned_outname_fwd)
+                move_file_rev = os.path.join(aln_path, clean_name_rev)
+                copyfile(all_cleaned_outname_rev, move_file_rev)
+                os.unlink(all_cleaned_outname_rev)
+            else:
+                move_file = os.path.join(aln_path, clean_name)
+                copyfile(all_cleaned_outname, move_file)
+                os.unlink(all_cleaned_outname)
 
-        # call alignment script
-        print("Aligning the sequences")
-        if nonoverlap:
-            for move_file in [move_file_fwd, move_file_rev]:
+            # call alignment script
+            print("Aligning the sequences")
+            if nonoverlap:
+                for move_file in [move_file_fwd, move_file_rev]:
+                    to_align = move_file
+                    inpath, fname = os.path.split(to_align)
+                    fname = fname.replace(".fasta", "")
+                    ref = "CONSENSUS_C"
+
+                    try:
+                        call_align(script_folder, to_align, aln_path, fname, ref, gene_region, sub_region, user_ref)
+                    except Exception as e:
+                        print(e)
+                        run_step = "break"
+                    # translate alignment
+                    transl_name = fname.replace("_aligned.fasta", "_aligned_translated.fasta")
+                    cmd = "seqmagick convert --sort length-asc --upper --translate dna2protein --line-wrap 0 {0} {1}".format(fname, transl_name)
+                    subprocess.call(cmd, shell=True)
+
+            else:
                 to_align = move_file
                 inpath, fname = os.path.split(to_align)
                 fname = fname.replace(".fasta", "")
                 ref = "CONSENSUS_C"
 
-                call_align(script_folder, to_align, aln_path, fname, ref, gene_region, sub_region, user_ref)
+                call_align(script_folder, to_align, aln_path, fname, ref, gene, sub_region, user_ref)
 
                 # translate alignment
+                fname = to_align.replace(".fasta", "_aligned.fasta")
                 transl_name = fname.replace("_aligned.fasta", "_aligned_translated.fasta")
-                cmd = "seqmagick convert --sort length-asc --upper --translate dna2protein --line-wrap 0 {0} {1}".format(fname, transl_name)
+                cmd = "seqmagick convert --sort length-asc --upper --translate dna2protein --line-wrap 0 {0} {1}".format(
+                    fname, transl_name)
                 subprocess.call(cmd, shell=True)
 
-        else:
-            to_align = move_file
-            inpath, fname = os.path.split(to_align)
-            fname = fname.replace(".fasta", "")
-            ref = "CONSENSUS_C"
+            run_step += 1
 
-            call_align(script_folder, to_align, aln_path, fname, ref, gene, sub_region, user_ref)
-
-            # translate alignment
-            fname = to_align.replace(".fasta", "_aligned.fasta")
-            transl_name = fname.replace("_aligned.fasta", "_aligned_translated.fasta")
-            cmd = "seqmagick convert --sort length-asc --upper --translate dna2protein --line-wrap 0 {0} {1}".format(
-                fname, transl_name)
-            subprocess.call(cmd, shell=True)
-
-        run_step += 1
-
-        if run_only:
-            sys.exit()
+            if run_only:
+                run_step = "break"
 
     # call funcion to calculate sequencing stats
     if run_step == 6:
@@ -598,6 +590,9 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
         subprocess.call(cmd6, shell=True)
 
     print("The sample processing has been completed")
+
+    if run_step == "break":
+        print("Pipeline failed on this sample")
 
 
 if __name__ == "__main__":
