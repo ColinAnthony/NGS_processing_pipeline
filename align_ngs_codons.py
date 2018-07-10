@@ -951,8 +951,8 @@ if __name__ == "__main__":
                         help='The name for the gene region (ENV, GAG, POL, PRO, NEF, VIF, VPR, REV, VPU)',
                         required=False)
     parser.add_argument('-reg', '--regions', default=False, action="store",
-                        choices=["C0C1", "C1C2", "C2C3", "C3C5", "GP41", "GP120", "GP160", "P17", "P24"], type=str,
-                        help='the variable regions in your data', required=False)
+                        choices=["C0C1", "C1C2", "C2C3", "C3C5", "C4C5", "GP41", "GP120", "GP160", "P17", "P24"],
+                        type=str, help='the variable regions in your data', required=False)
     parser.add_argument('-v', '--var_align', default=False, action="store_true",
                         help='Align the variable regions as well. May produce messy alignment', required=False)
     parser.add_argument('-u', '--user_ref', default=False, type=str,
@@ -972,5 +972,7 @@ if __name__ == "__main__":
     if gene == "ENV":
         if not regions:
             sys.exit("must use the -reg flag for ENV")
+    if regions == "C4C5":
+        regions == "C3C5"
 
     main(infile, outpath, name, ref, gene, var_align, regions, user_ref)

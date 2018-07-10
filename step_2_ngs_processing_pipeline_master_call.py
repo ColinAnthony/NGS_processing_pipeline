@@ -612,7 +612,7 @@ if __name__ == "__main__":
                         help='the genomic region being sequenced, '
                              'valid options: etc..', required=True)
     parser.add_argument('-reg', '--regions', default=False, action="store",
-                        choices=["C0C1", "C1C2", "C2C3", "C3C5", "GP41", "GP120", "GP160", "P17", "P24"], type=str,
+                        choices=["C0C1", "C1C2", "C2C3", "C3C5", "C4C5", "GP41", "GP120", "GP160", "P17", "P24"], type=str,
                         help='the variable regions in your data', required=False)
     parser.add_argument('-f', '--fwd_primer', default=argparse.SUPPRESS, type=str,
                         help='The fwd primer for these samples (eg: NNNNGGAAATATGGAAAGGAAGGAC)', required=False)
@@ -654,6 +654,8 @@ if __name__ == "__main__":
     if gene_region == "ENV":
         if not regions:
             sys.exit("must use the -reg flag for ENV")
+    if regions == "C4C5":
+        regions == "C3C5"
 
     main(path, name, gene_region, regions, fwd_primer, cDNA_primer, nonoverlap, length, run_step, run_only,
          user_ref, cores)
