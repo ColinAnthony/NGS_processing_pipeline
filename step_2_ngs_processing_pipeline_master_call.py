@@ -425,8 +425,8 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
         contam_removed_path = os.path.join(path, '3contam_removal_temp')
         clean_files = glob(clean_search)
         hxb2_region = {"GAG": "GAG", "POL": "POL", "PRO": "POL", "RT": "POL", "RT1": "POL", "RT2": "POL",
-                       "RNASE": "POL", "INT": "POL", "ENV": "ENV", "GP120": "ENV", "GP41": "ENV", "NEF": "NEF",
-                       "VIF": "VIF", "VPR": "VPR", "REV": "REV", "VPU": "VPU"}
+                       "RNASE": "POL", "INT": "POL", "ENV": "ENV", "GP160": "ENV", "GP120": "ENV", "GP41": "ENV",
+                       "NEF": "NEF", "VIF": "VIF", "VPR": "VPR", "REV": "REV", "VPU": "VPU"}
 
         gene = gene_region.upper().split("_")[0]
         region_to_check = hxb2_region[gene]
@@ -607,8 +607,8 @@ if __name__ == "__main__":
     parser.add_argument('-n', '--name', default=argparse.SUPPRESS, type=str,
                         help='the prefix name of your outfile. Usually the participant name', required=True)
     parser.add_argument('-g', '--gene_region', default="ENV", type=str,
-                        choices=["ENV", "ENV_1", "ENV_2", "ENV_3", "ENV_4", "ENV_5", "GAG", "GAG_1", "GAG_2", "POL",
-                                 "POL_1", "POL_2", "POL_3", "POL_4", "POL_5", "PRO", "NEF_1", "VIF_1", "VPR", "REV", "VPU"],
+                        choices=["ENV", "ENV_1", "ENV_2", "ENV_3", "ENV_4", "ENV_5", "GAG", "GAG_P17", "GAG_P24", "POL",
+                                 "POL_PRO", "POL_RT", "POL_INT", "POL_RNASEH", "PRO", "NEF_1", "VIF_1", "VPR", "REV", "VPU"],
                         help='the genomic region being sequenced, '
                              'valid options: etc..', required=True)
     parser.add_argument('-reg', '--regions', default=False, action="store",

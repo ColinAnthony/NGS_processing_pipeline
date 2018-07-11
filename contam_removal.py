@@ -196,8 +196,8 @@ if __name__ == "__main__":
     parser.add_argument('-l', '--logfile', default=argparse.SUPPRESS, type=str,
                         help='The path and name of the log file', required=True)
     parser.add_argument('-g', '--gene_region', default=argparse.SUPPRESS, type=str,
-                        help='the genomic region being sequenced, '
-                             'valid options: GAG_1/GAG_2/ENV_C1C2/POL_1/NEF_1 etc..', required=True)
+                        choices=["ENV", "GAG", "POL", "NEF", "VIF", "VPR", "VPU", "REV", "VPU"],
+                        help='the genomic region being sequenced', required=True)
 
     args = parser.parse_args()
     consensus = args.consensus
