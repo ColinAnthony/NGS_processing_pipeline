@@ -742,7 +742,6 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
     if not user_ref:
         gene_region = ref + "_" + gene
         reference = ref_seqs[gene_region]
-        print("custom ref", reference)
 
     else:
         ref_seqs = fasta_to_dct(user_ref)
