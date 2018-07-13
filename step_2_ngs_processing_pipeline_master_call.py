@@ -241,6 +241,8 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
 
     path = os.path.abspath(path)
 
+    gene = gene_region.upper().split("_")[0]
+
     # define logfile filename
     logfile = os.path.join(path, (gene_region + "_logfile.txt"))
     if not os.path.isfile(logfile):
@@ -249,6 +251,7 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
             handle.write("Log File,{0}_{1}\n".format(name, gene_region))
 
     folders_to_make = ['0raw_temp', '1consensus_temp', '2cleaned_temp', '3contam_removal_temp']
+
     print("running pipeline from step:", run_step)
     initual_run_step = run_step
     if run_step <= 4:
@@ -428,7 +431,6 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
                        "RNASE": "POL", "INT": "POL", "ENV": "ENV", "GP160": "ENV", "GP120": "ENV", "GP41": "ENV",
                        "NEF": "NEF", "VIF": "VIF", "VPR": "VPR", "REV": "REV", "VPU": "VPU"}
 
-        gene = gene_region.upper().split("_")[0]
         region_to_check = hxb2_region[gene]
         if region_to_check == "INT":
             if gene_region.upper().split("_")[1] == "VIF":
