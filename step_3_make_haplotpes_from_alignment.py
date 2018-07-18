@@ -11,7 +11,10 @@ from glob import glob
 __author__ = 'Colin Anthony'
 
 
-def main(infile, field, script_folder):
+def main(infile, field):
+    get_script_path = os.path.realpath(__file__)
+    script_folder = os.path.split(get_script_path)[0]
+    script_folder = os.path.abspath(script_folder)
 
     # split into sample files
     infile = os.path.abspath(infile)
@@ -45,12 +48,9 @@ if __name__ == "__main__":
     parser.add_argument('-f', '--field', type=int, default=4, required=False,
                         help="The field that differentiates your samples/time points (use the last field if multiple."
                              "(ie: 4 for 'CAP177_2000_004wpi_V3C4_GGGACTCTAGTG_28, or 2 for SVB008_SP_GGTAGTCTAGTG_231")
-    parser.add_argument('-sf', '--script_folder', default=argparse.SUPPRESS, type=str,
-                        help='the path to the folder containing the pipeline scripts', required=True)
 
     args = parser.parse_args()
     infile = args.infile
     field = args.field
-    script_folder = args.script_folder
 
-    main(infile, field, script_folder)
+    main(infile, field)
