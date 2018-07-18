@@ -65,18 +65,14 @@ def hapl_collapse(fastafile, seq_name, outfile):
     # list of sequences, sorted by count, max to min
     sorted_sequences_by_count = sorted(dct, key=dct.get, reverse=True)
 
-    # clear any existing file previously created
-    with open(outfile, "w") as handle:
-        handle.write("")
-
     # initialize a counter to add an incremental number to each sequence
-    for counter, sequence in enumerate(sorted_sequences_by_count):
-        frq = round(dct[sequence] / float(total), 3)
-        num = str(counter).zfill(3)
-        n = seq_name + "_" + str(num) + "_" + str(frq)
+    with open(outfile, "w") as handle:
+        for counter, sequence in enumerate(sorted_sequences_by_count):
+            frq = round(dct[sequence] / float(total), 3)
+            num = str(counter).zfill(3)
+            n = seq_name + "_" + str(num) + "_" + str(frq)
 
-        # write the haplotyped sequence to file
-        with open(outfile, "a") as handle:
+            # write the haplotyped sequence to file
             handle.write('>{0}\n{1}\n'.format(n, sequence))
 
 
