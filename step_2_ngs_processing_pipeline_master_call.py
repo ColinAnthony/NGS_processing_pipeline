@@ -547,6 +547,11 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
             print("Aligning the sequences")
             if nonoverlap:
                 for move_file in [move_file_fwd, move_file_rev]:
+                    if sub_region == "C1C3" and "fwd" in move_file:
+                        sub_region = "C1C2"
+                    elif sub_region == "C1C3" and "rev" in move_file:
+                        sub_region = "C2C3"
+
                     to_align = move_file
                     inpath, fname = os.path.split(to_align)
                     fname = fname.replace(".fasta", "")
@@ -614,7 +619,7 @@ if __name__ == "__main__":
                         help='the genomic region being sequenced, '
                              'valid options: etc..', required=True)
     parser.add_argument('-reg', '--regions', default=False, action="store",
-                        choices=["C0C1", "C1C2", "C2C3", "C3C5", "C4C5", "GP41", "GP120", "GP160", "P17", "P24"], type=str,
+                        choices=["C0C1", "C1C2", "C2C3", "C1C3", "C3C5", "C4C5", "GP41", "GP120", "GP160", "P17", "P24"], type=str,
                         help='the variable regions in your data', required=False)
     parser.add_argument('-f', '--fwd_primer', default=argparse.SUPPRESS, type=str,
                         help='The fwd primer for these samples (eg: NNNNGGAAATATGGAAAGGAAGGAC)', required=False)
