@@ -98,24 +98,22 @@ def degen_remove(d):
     bad_d = collections.defaultdict(str)
     for name, seq in d.items():
         found = False
-        start_N_replace = True
-        seq = list(seq.upper())
-        for i, nucl in enumerate(seq):
-            # only replace consecutive "N's" with "", over the first 3 bp of the read
-            if i < 4 and nucl == 'N' and start_N_replace:
-                seq[i] = ''
-                if seq[i + 1] == 'N':
-                    start_N_replace = True
-                else:
-                    start_N_replace = False
-        seq = "".join(seq)
+
+        # only replace consecutive "N's" with "", over the first and last 4 bp of the read
+        if "N" in seq[-4:]:
+            replace_n_end = seq[-4:].replace("N", "")
+            seq = seq[:-4] + replace_n_end
+
+        if "N" in seq[:4]:
+            replace_n_start = seq[:4].replace("N", "")
+            seq = replace_n_start + seq[4:]
 
         for base in badseq:
-            if base in seq and found is False:
+            if base in seq and not found:
                 bad_d[name] = seq
                 degen += 1
                 found = True
-        if found is False:
+        if not found:
             n_d[name] = seq
 
     return n_d, bad_d, degen
