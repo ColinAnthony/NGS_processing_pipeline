@@ -284,12 +284,12 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
         if not raw_files:
             print("No raw files were found\n"
                   "Check that files end with R1.fastq and R2.fastq")
-            run_step = "break"
+            run_step = 100
         try:
             rename_sequences(raw_files)
         except ValueError as e:
             print(e)
-            run_step = "break"
+            run_step = 100
             # todo: log error
 
         run_step += 1
@@ -320,7 +320,7 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
         except Exception as e:
             print("MotifBinner2 crashed, this could be because the wrong primer was set, "
                   "or possibly, because there were insufficient sequences in the sample", e)
-            run_step = "break"
+            run_step = 100
 
         # check if the consensus files exist
         nested_consensuses_path = os.path.join(path,
@@ -332,9 +332,9 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
                   "Do your fastq sequences end in R1.fastq/R2.fastq?\n"
                   "Check that the primer sequences are correct\n"
                   "Check the binning report in the 1consensus/binned/ folder")
-            run_step = "break"
+            run_step = 100
 
-        if run_step != "break":
+        if run_step != 100:
             # copy data from nested binned folders into 1consensus folder
             print("Coping fastq files from nested folders to '1consensus_temp' folder")
             consensus_path = os.path.join(path, '1consensus_temp')
@@ -403,8 +403,8 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
             print("Could not find consensus fasta files\n"
                   "It is possible something went wrong when copying the consensus sequences from the nested folders "
                   "to the 1consensus folder")
-            run_step = "break"
-        if run_step != "break":
+            run_step = 100
+        if run_step != 100:
             call_fasta_cleanup(consensus_infiles, remove_bad_seqs, clean_path, length, logfile)
             run_step += 1
 
@@ -440,8 +440,8 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
             print("Could not find cleaned fasta files\n"
                   "It is possible there were no sequences remaining after removal of sequences with degenerate bases\n"
                   )
-            run_step = "break"
-        if run_step != "break":
+            run_step = 100
+        if run_step != 100:
             call_contam_check(clean_files, contam_removal_script, contam_removed_path, region_to_check, logfile)
 
         # copy back to permanent folder, remove temp folder
@@ -491,11 +491,11 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
             if not cleaned_files_fwd:
                 print("No cleaned fwd-fasta files were found\n"
                       "Check that the fasta files still have sequences in them after the removal of bad sequences")
-                run_step = "break"
+                run_step = 100
             if not cleaned_files_ref:
                 print("No cleaned rev-fasta files were found\n"
                       "Check that the fasta files still have sequences in them after the removal of bad sequences")
-                run_step = "break"
+                run_step = 100
         else:
             clean_name = name + "_" + gene_region + "_all.fasta"
             all_cleaned_outname = os.path.join(all_clean_path, clean_name)
@@ -506,9 +506,9 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
             if not cleaned_files:
                 print("No cleaned fasta files were found\n"
                       "Check that the fasta files still have sequences in them after the removal of bad sequences")
-                run_step = "break"
+                run_step = 100
 
-        if run_step != "break":
+        if run_step != 100:
             if nonoverlap:
                 with open(all_cleaned_outname_fwd, 'w') as outfile:
                     for fasta_file in cleaned_files_fwd:
@@ -561,7 +561,7 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
                         call_align(script_folder, to_align, aln_path, fname, ref, gene_region, sub_region, user_ref)
                     except Exception as e:
                         print(e)
-                        run_step = "break"
+                        run_step = 100
                     # translate alignment
                     transl_name = fname.replace("_aligned.fasta", "_aligned_translated.fasta")
                     cmd = "seqmagick convert --sort length-asc --upper --translate dna2protein --line-wrap 0 {0} {1}".format(fname, transl_name)
@@ -585,7 +585,7 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
             run_step += 1
 
             if run_only:
-                run_step = "break"
+                run_step = 100
 
     # call funcion to calculate sequencing stats
     if run_step == 6:
@@ -598,7 +598,7 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
 
     print("The sample processing has been completed")
 
-    if run_step == "break":
+    if run_step == 100:
         print("Pipeline failed on this sample")
 
 
