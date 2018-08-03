@@ -625,7 +625,7 @@ if __name__ == "__main__":
                         help='The fwd primer for these samples (eg: NNNNGGAAATATGGAAAGGAAGGAC)', required=False)
     parser.add_argument('-r', '--cDNA_primer', default=argparse.SUPPRESS, type=str,
                         help='The cDNA primer for these samples (eg: NNNNNNNNNNNTCTTCTAATACTGTATCATCTG)', required=False)
-    parser.add_argument('-l', '--length', type=int,
+    parser.add_argument('-l', '--length', type=int, default=200,
                         help='The minimum read length)', required=False)
     parser.add_argument('-v', '--nonoverlap', default=False, action='store_true',
                         help="Use if reads don't overlap)", required=False)
@@ -662,7 +662,7 @@ if __name__ == "__main__":
         if not regions:
             sys.exit("must use the -reg flag for ENV")
     if regions == "C4C5":
-        regions == "C3C5"
+        regions = "C3C5"
 
     main(path, name, gene_region, regions, fwd_primer, cDNA_primer, nonoverlap, length, run_step, run_only,
          user_ref, cores)
