@@ -615,7 +615,7 @@ if __name__ == "__main__":
                         help='the prefix name of your outfile. Usually the participant name', required=True)
     parser.add_argument('-g', '--gene_region', default="ENV", type=str,
                         choices=["ENV", "ENV_1", "ENV_2", "ENV_3", "ENV_4", "ENV_5", "GAG", "GAG_P17", "GAG_P24", "POL",
-                                 "POL_PRO", "POL_RT", "POL_INT", "POL_RNASEH", "PRO", "NEF_1", "VIF_1", "VPR", "REV", "VPU"],
+                                 "POL_PRO", "POL_RT", "POL_INT", "POL_INT_VIF", "POL_RNASEH", "PRO", "NEF_1", "VIF_1", "VPR", "REV", "VPU"],
                         help='the genomic region being sequenced, '
                              'valid options: etc..', required=True)
     parser.add_argument('-reg', '--regions', default=False, action="store",
