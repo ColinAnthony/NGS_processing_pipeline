@@ -10,6 +10,7 @@ import os
 import ntpath
 import json
 import logging
+import time
 
 # Non-standard
 import regex
@@ -572,8 +573,8 @@ def main(config_file, output_dir, demultiplex, main_pipeline, haplotype):
     :param haplotype:
     :return:
     """
-
-    logging.basicConfig(filename='Pipeline.log', level=logging.DEBUG)
+    timestr = time.strftime("%Y%m%d-%H%M%S")
+    logging.basicConfig(filename='Pipeline' + timestr + '.log', level=logging.DEBUG)
 
     print("Parsing the config file:")
 
