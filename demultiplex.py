@@ -703,7 +703,6 @@ def main(config_file, output_dir, demultiplex, main_pipeline, haplotype):
             step_3_make_haplotpes_from_alignment.main(
                 data['haplotype_settings']['infile'],
                 data['haplotype_settings']['field'],
-                data['haplotype_settings']['script_folder']
             )
 
 
