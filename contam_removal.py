@@ -68,8 +68,8 @@ def blastn_seqs(infile, gene_region, outpath):
             if check_for_overlap.upper().split("_")[1] == "5":
                 target_gene = ["INT", "VIF"]
         except IndexError as e:
-            print(e, "\nno overlapping gene regions detected")
-            pass
+            print(e, "\nMultiple POL genes not specified, using POL")
+            target_gene = ["POL",]
 
     # blast settings
     # format_fasta = ">{0}\n{1}".format(s_name, q_sequence)

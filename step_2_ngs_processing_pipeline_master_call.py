@@ -575,13 +575,6 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
 
                 call_align(script_folder, to_align, aln_path, fname, ref, gene, sub_region, user_ref)
 
-                # translate alignment
-                fname = to_align.replace(".fasta", "_aligned.fasta")
-                transl_name = fname.replace("_aligned.fasta", "_aligned_translated.fasta")
-                cmd = "seqmagick convert --sort length-asc --upper --translate dna2protein --line-wrap 0 {0} {1}".format(
-                    fname, transl_name)
-                subprocess.call(cmd, shell=True)
-
             run_step += 1
 
             if run_only:
@@ -647,12 +640,16 @@ if __name__ == "__main__":
                         help='run only the specified run_step)', required="--run_step" in sys.argv)
 
     args = parser.parse_args()
+    if args.run_step > 2 or args.run_only > 2:
+        fwd_primer = "N"
+        cDNA_primer = "N"
+    else:
+        fwd_primer = args.fwd_primer
+        cDNA_primer = args.cDNA_primer
     path = args.path
     name = args.name
     gene_region = args.gene_region
     regions = args.regions
-    fwd_primer = args.fwd_primer
-    cDNA_primer = args.cDNA_primer
     nonoverlap = args.nonoverlap
     cores = args.cores
     length = args.length
