@@ -117,10 +117,8 @@ def blastn_seqs(infile, gene_region, outpath):
                     first_region = title_name.upper().split("_")[-1]
 
                 if region in target_gene:
-                    found = True
                     good_records[query_seq_name] = "_hiv_" + region.lower()
                     break
-            # todo: should this be indented?
             if not found:
                 bad_records[query_seq_name] = "_hiv_" + first_region.lower()
 
