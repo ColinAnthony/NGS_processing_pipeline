@@ -69,7 +69,7 @@ def blastn_seqs(infile, gene_region, outpath):
                 target_gene = ["INT", "VIF"]
         except IndexError as e:
             print(e, "\nMultiple POL genes not specified, using POL")
-            target_gene = ["POL",]
+            target_gene = ["POL"]
 
     # blast settings
     # format_fasta = ">{0}\n{1}".format(s_name, q_sequence)
