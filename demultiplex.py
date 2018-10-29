@@ -15,12 +15,12 @@ import logging
 import regex
 
 
-__author__ = "Colin, Jon, Dave"
+__author__ = "Colin Anthony, Jon Ambler, David Matten"
 __copyright__ = "Something"
-__credits__ = ["Colin", "Jon", "Dave"]
+__credits__ = ["Colin Anthony", "Jon Ambler", "David Matten"]
 __license__ = "TBD"
 __version__ = "0.1"
-__maintainer__ = "Colin?"
+__maintainer__ = "Colin Anthony"
 __email__ = ""
 __status__ = "Testing"
 
