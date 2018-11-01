@@ -187,7 +187,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('-i', '--consensus', default=argparse.SUPPRESS, type=str,
+    parser.add_argument('-in', '--consensus', default=argparse.SUPPRESS, type=str,
                         help='The read1 (R1) fastq file', required=True)
     parser.add_argument('-o', '--outpath', default=argparse.SUPPRESS, type=str,
                         help='The path to where the output file will be copied', required=True)

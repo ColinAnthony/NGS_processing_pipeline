@@ -25,7 +25,7 @@ def main(infile, field):
         print("could not find the 5haplotype folder\n check your file naming structure conforms to the required format")
         sys.exit()
     split_by_unique = os.path.join(script_folder, 'split_fasta_into_subfiles.py')
-    cmd6 = 'python3 {0} -i {1} -o {2} -f {3}'.format(split_by_unique, infile, haplo_outpath, field)
+    cmd6 = 'python3 {0} -in {1} -o {2} -f {3}'.format(split_by_unique, infile, haplo_outpath, field)
 
     subprocess.call(cmd6, shell=True)
 
@@ -33,7 +33,7 @@ def main(infile, field):
     split_fasta_files = os.path.join(haplo_outpath, "*_sep.fasta")
     haplotyper = os.path.join(script_folder, 'haplotyper_freq.py')
     for split_fasta in glob(split_fasta_files):
-        cmd7 = 'python3 {0} -i {1} -o {2}'.format(haplotyper, split_fasta, haplo_outpath)
+        cmd7 = 'python3 {0} -in {1} -o {2}'.format(haplotyper, split_fasta, haplo_outpath)
         subprocess.call(cmd7, shell=True)
 
 
@@ -43,7 +43,7 @@ if __name__ == "__main__":
                                                  'in each file, adding a frequency to the name',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('-i', '--infile', type=str,
+    parser.add_argument('-in', '--infile', type=str,
                         help='The path and name of the aligned fasta file', required=True)
     parser.add_argument('-f', '--field', type=int, default=4, required=False,
                         help="The field that differentiates your samples/time points (use the last field if multiple."

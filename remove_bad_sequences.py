@@ -248,7 +248,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='removes sequences with stop codons and '
                                                  'degenerate bases (will remove most indel errors',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-i', '--infile', type=str,
+    parser.add_argument('-in', '--infile', type=str,
                         help='The input .fastq file', required=True)
     parser.add_argument('-o', '--outpath', type=str,
                         help='The path to where the output files will be created', required=True)

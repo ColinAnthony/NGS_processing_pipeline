@@ -935,7 +935,7 @@ if __name__ == "__main__":
                                                  'to the longest sub-sequence',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('-i', '--infile', default=argparse.SUPPRESS, type=str,
+    parser.add_argument('-in', '--infile', default=argparse.SUPPRESS, type=str,
                         help='The input file', required=True)
     parser.add_argument('-o', '--outpath', default=argparse.SUPPRESS, type=str,
                         help='The path for the aligned output file', required=True)

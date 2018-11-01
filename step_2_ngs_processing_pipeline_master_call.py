@@ -172,7 +172,7 @@ def call_fasta_cleanup(consensus_fasta, remove_bad_seqs, clean_path, length, log
     """
 
     for fasta_file in consensus_fasta:
-        cmd4 = 'python3 {0} -i {1} -o {2} -l {3} -lf {4}'.format(remove_bad_seqs,
+        cmd4 = 'python3 {0} -in {1} -o {2} -l {3} -lf {4}'.format(remove_bad_seqs,
                                                                         fasta_file,
                                                                         clean_path,
                                                                         length,
@@ -195,7 +195,7 @@ def call_contam_check(consensuses, contam_removal_script, contam_removed_path, g
     :return: None
     """
     for consensus_file in consensuses:
-        cmd3 = 'python3 {0} -i {1} -o {2} -g {3} -l {4}'.format(contam_removal_script,
+        cmd3 = 'python3 {0} -in {1} -o {2} -g {3} -l {4}'.format(contam_removal_script,
                                                                 consensus_file,
                                                                 contam_removed_path,
                                                                 gene_region,
@@ -227,7 +227,7 @@ def call_align(script_folder, to_align, aln_path, fname, ref, gene, sub_region, 
     else:
         usr_ref = "-u {}".format(user_ref)
 
-    cmd5 = 'python3 {0}  -i {1} -o {2} -n {3} -r {4} -g {5} -v {6} {7}'.format(align_function, to_align, aln_path, fname,
+    cmd5 = 'python3 {0}  -in {1} -o {2} -n {3} -r {4} -g {5} -v {6} {7}'.format(align_function, to_align, aln_path, fname,
                                                                             ref, gene, reg, usr_ref)
     subprocess.call(cmd5, shell=True)
 
@@ -586,7 +586,7 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
         call_stats_calc = os.path.join(script_folder, 'ngs_stats_calculator.py')
         stats_outfname = (name + "_" + gene_region + '_sequencing_stats.csv')
         stats_outpath = os.path.join(path, stats_outfname)
-        cmd6 = 'python3 {0} -i {1} -o {2}'.format(call_stats_calc, path, stats_outpath)
+        cmd6 = 'python3 {0} -in {1} -o {2}'.format(call_stats_calc, path, stats_outpath)
         subprocess.call(cmd6, shell=True)
 
     print("The sample processing has been completed")

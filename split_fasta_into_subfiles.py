@@ -71,7 +71,7 @@ def main(infile, outpath, field):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Plots loop stats from csv file (produced by loop_stats.py)',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-i', '--infile', type=str, required=True,
+    parser.add_argument('-in', '--infile', type=str, required=True,
                         help='The input fasta file')
     parser.add_argument('-o', '--outpath', default=argparse.SUPPRESS, type=str,
                         help='The path to where the output file will be created', required=True)

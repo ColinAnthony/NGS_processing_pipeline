@@ -151,7 +151,7 @@ def main(inpath, outfile):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='calculate stats on sample processing',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-i', '--inpath', default=argparse.SUPPRESS, type=str,
+    parser.add_argument('-in', '--inpath', default=argparse.SUPPRESS, type=str,
                         help='The path to where the output file will be created', required=True)
     parser.add_argument('-o', '--outfile', default=argparse.SUPPRESS, type=str,
                         help='The path and name for the stats output file', required=True)
