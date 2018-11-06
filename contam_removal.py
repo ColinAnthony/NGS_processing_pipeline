@@ -55,6 +55,11 @@ def blastn_seqs(infile, gene_region, outpath):
     :return: (bool) True or False depending on whether sequence is not hiv
     """
 
+    get_script_path = os.path.realpath(__file__)
+    script_folder = os.path.split(get_script_path)[0]
+    script_folder = os.path.abspath(script_folder)
+    blastdb_path = os.path.join(script_folder, "local_blast_db", "lanl_hiv_db")
+
     # assign temp file
     tmp_out_file = os.path.join(outpath, "tmp_blast.xml")
     target_gene = [gene_region.upper().split("_")[0]]
@@ -86,6 +91,7 @@ def blastn_seqs(infile, gene_region, outpath):
     #     handle.write(blast_results.read())
 
     # run local blast
+    blast_run_path = os.chdir(blastdb_path)
     blastn_cline = NcbiblastnCommandline(query=infile, db=blastdb, evalue=e_value, outfmt=outformat, perc_identity=80,
                                          out=tmp_out_file, num_threads=threads)
 
@@ -117,10 +123,11 @@ def blastn_seqs(infile, gene_region, outpath):
                     first_region = title_name.upper().split("_")[-1]
 
                 if region in target_gene:
-                    good_records[query_seq_name] = "_hiv_" + region.lower()
+                    good_records[query_seq_name] = "_hiv_" + region.upper()
+                    found = True
                     break
             if not found:
-                bad_records[query_seq_name] = "_hiv_" + first_region.lower()
+                bad_records[query_seq_name] = "_hiv_" + first_region.upper()
 
         else:
             # no hit in db
@@ -134,6 +141,8 @@ def blastn_seqs(infile, gene_region, outpath):
 def main(consensus, outpath, gene_region, logfile):
     print(consensus)
     # initialize file names
+    consensus = os.path.abspath(consensus)
+    outpath = os.path.abspath(outpath)
     cln_cons_name = os.path.split(consensus)[-1]
     cln_cons = cln_cons_name.replace("_clean.fasta", "_good.fasta")
     consensus_out = os.path.join(outpath, cln_cons)
@@ -153,6 +162,7 @@ def main(consensus, outpath, gene_region, logfile):
     all_sequences_d = fasta_to_dct(consensus)
 
     # checck for contam
+
     contam, not_contam = blastn_seqs(consensus, gene_region, outpath)
     # set all output names to uppercase to ensure input > output names match
     contam_names = [x.upper() for x in contam.keys()]
