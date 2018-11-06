@@ -90,8 +90,10 @@ def blastn_seqs(infile, gene_region, outpath):
     # with open(tmp_out_file, 'w') as handle:
     #     handle.write(blast_results.read())
 
+    #change path to allow blastdb to be detected
+    os.chdir(blastdb_path)
+
     # run local blast
-    blast_run_path = os.chdir(blastdb_path)
     blastn_cline = NcbiblastnCommandline(query=infile, db=blastdb, evalue=e_value, outfmt=outformat, perc_identity=80,
                                          out=tmp_out_file, num_threads=threads)
 
@@ -144,6 +146,7 @@ def main(consensus, outpath, gene_region, logfile):
     consensus = os.path.abspath(consensus)
     outpath = os.path.abspath(outpath)
     cln_cons_name = os.path.split(consensus)[-1]
+    original_path = os.getcwd()
     cln_cons = cln_cons_name.replace("_clean.fasta", "_good.fasta")
     consensus_out = os.path.join(outpath, cln_cons)
     contam_seqs = cln_cons_name.replace("_clean.fasta", "_contam_seqs.fasta")
@@ -164,6 +167,9 @@ def main(consensus, outpath, gene_region, logfile):
     # checck for contam
 
     contam, not_contam = blastn_seqs(consensus, gene_region, outpath)
+
+    # path changed back to original cwd (was changed in blastn_seqs for database location
+    os.chdir(original_path)
     # set all output names to uppercase to ensure input > output names match
     contam_names = [x.upper() for x in contam.keys()]
     not_contam_names = [x.upper() for x in not_contam.keys()]
