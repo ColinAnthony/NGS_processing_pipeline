@@ -264,6 +264,8 @@ def main(path, name, gene_region, sub_region, fwd_primer, cDNA_primer, nonoverla
                 print("Deleting exisiting folders")
                 rmtree(flder)
             os.makedirs(flder, exist_ok=True)
+            if folder == '1consensus_temp':
+                os.makedirs(os.path.join(flder, "binned"), exist_ok=True)
 
     new_data = os.path.join(path, "0new_data")
 
