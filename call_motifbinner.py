@@ -4,36 +4,58 @@ from __future__ import division
 import os
 import argparse
 import sys
-from glob import glob
 import subprocess
-from subprocess import DEVNULL
-#
+import regex
+
 
 __author__ = 'Colin Anthony'
 
 
-def get_primer_lens_score(primer):
+def get_primer_lens_score(primer, pid_primer):
 
-    count_Ns = 0
-    non_Ns = 0
-    bases = ['A', 'C', 'G', 'T', 'R', 'Y', 'M', 'K', 'S', 'W', 'H', 'B', 'V', 'D']
+    primer = primer.upper()
+    pid = False
 
-    for base in str(primer):
-        if base == 'N':
-            count_Ns += 1
-        elif base in bases:
-            non_Ns += 1
-        else:
-            sys.exit("Non standard character in primer sequence\nMust be one of: {} or 'N'".format(bases))
+    if primer.startswith("N"):
+        pid = True
+        pattern = r"(^[N]+)([ACGTRYMKSWHBVD]+[N]*[ACGTRYMKSWHBVDN]+[ACGT]$)"
+    else:
+        pattern = r"([^ACGT][ACGTRYMKSWHBVD]+[N]*[ACGTRYMKSWHBVDN]+[ACGT]$)"
 
-    if count_Ns == 0:
-        sys.exit("could not find primer ID in primer")
-    total = len(primer)
+    match = regex.match(pattern, primer.upper())
+    if not match:
+        print("invalid primer sequence", primer)
+        raise TypeError
 
-    if non_Ns < 1:
-        print("Error in primer {}".format(primer))
-    primer_lens = '1,' + str(count_Ns - 1) + "," + str(non_Ns)
-    primer_score = str(count_Ns + int((non_Ns * 0.8)))
+    if pid:
+        pid_str = match.group(1)
+        primer_seq = match.group(2)
+    else:
+        pid_str = ''
+        primer_seq = match.group(1)
+
+    len_pid = len(pid_str)
+    len_primer_seq  = len(primer_seq)
+    total_len = len(primer)
+    if len_pid + len_primer_seq != total_len:
+        print("invalid primer sequence, pid legnth and primer seq length don't add up to total length", primer)
+        raise ValueError
+
+    if pid and pid_primer and len_pid <= 7:
+        print("PID length too short")
+        raise ValueError
+
+    if len_primer_seq < 10:
+        print("Primer length too short")
+        raise ValueError
+
+    if len_pid > 14:
+        primer_lens = '4,' + str(len_pid - 4) + "," + str(len_primer_seq)
+    else:
+        primer_lens = '1,' + str(len_pid - 1) + "," + str(len_primer_seq)
+
+    primer_score = str(len_pid + int((len_primer_seq * 0.8)))
+
     return primer_lens, primer_score
 
 
@@ -91,8 +113,10 @@ def main(read1, read2, outpath, fwd_primer, cDNA_primer, name_prefix, counter, l
     cDNA_primer = cDNA_primer.upper()
 
     # calculate the primer lengths
-    fwd_primer_lens, fwd_primer_score = get_primer_lens_score(fwd_primer)
-    cDNA_primer_lens, cDNA_primer_score = get_primer_lens_score(cDNA_primer)
+    pid_primer = False
+    fwd_primer_lens, fwd_primer_score = get_primer_lens_score(fwd_primer, pid_primer)
+    pid_primer = True
+    cDNA_primer_lens, cDNA_primer_score = get_primer_lens_score(cDNA_primer, pid_primer)
 
     # run motifbinner call function
     run_motifbinner(logfile, read1, read2, outpath, fwd_primer, fwd_primer_lens, fwd_primer_score,
