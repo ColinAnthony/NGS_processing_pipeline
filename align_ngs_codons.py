@@ -14,6 +14,7 @@ import pandas as pd
 import regex
 import seqanpy
 from pprint import pprint
+from collections import Counter
 
 
 __author__ = 'Colin Anthony'
@@ -106,6 +107,83 @@ def get_order(sub_regions):
         full_order = None
 
     return full_order
+
+
+def get_most_common(lst):
+    """
+    get the most common item in a list
+    :param lst: a list of items
+    :return: the index of the most common item
+    """
+    data = Counter(lst)
+    most_common_item = max(lst, key=data.get)
+    idx_most_common = lst.index(most_common_item)
+    return idx_most_common
+
+
+def get_best_reference(seq_dictionary):
+    """
+    method to get a reference sequence for each time point
+    :param seq_dictionary: (dict) of name: dna sequence
+    :return:
+    """
+
+    # initialize dictionaries
+    ref_dict = collections.defaultdict(str)
+
+    # initialize dictionary to collect sequence for each time point
+    time_points_d = collections.defaultdict(list)
+
+    # sort sequences by time point into dict
+    for name, seq in seq_dictionary.items():
+        time = "_".join(name.split("_")[:2])
+        time_points_d[time].append(seq)
+
+    # for each time point a get seq with mostfet common length
+    for time, seq_list in time_points_d.items():
+        seq_lengths = [len(x) for x in seq_list]
+        most_common_len_idx = get_most_common(seq_lengths)
+        seq_most_common_len = seq_list[most_common_len_idx]
+        ref_dict[time] = seq_most_common_len
+
+    return ref_dict
+
+
+def get_refs_reading_frame(ref_dict):
+    """
+    take dict of ref sequences and get their reading frames
+    :param ref_dict: (dict) name: sequence
+    :return: (dict) name: sequence in reading frame
+    """
+
+    best_ref_in_frame_d = collections.defaultdict(str)
+    for name, seq in ref_dict.items():
+        # get reading frame of most abundant internal reference
+        internal_ref_frame_1 = seq
+        internal_ref_frame_2 = "N" + seq
+        internal_ref_frame_3 = "NN" + seq
+        frame_1_tr = translate_dna(internal_ref_frame_1)
+        frame_2_tr = translate_dna(internal_ref_frame_2)
+        frame_3_tr = translate_dna(internal_ref_frame_3)
+        frame_1_stops = frame_1_tr[:-1].count("Z")
+        frame_2_stops = frame_2_tr[:-1].count("Z")
+        frame_3_stops = frame_3_tr[:-1].count("Z")
+        if frame_1_stops < 1:
+            internal_reference = internal_ref_frame_1
+        elif frame_2_stops < 1:
+            internal_reference = internal_ref_frame_2
+        elif frame_3_stops < 1:
+            internal_reference = internal_ref_frame_3
+        else:
+            internal_reference = None
+
+        if internal_reference is not None:
+            best_ref_in_frame_d[name] = internal_reference
+
+        else:
+            best_ref_in_frame_d[name] = None
+
+    return best_ref_in_frame_d
 
 
 def pairwise_align_dna(sequence, reference, regex_complied, gene):
@@ -753,24 +831,32 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
     badfile = os.path.join(outpath, bad_name)
 
     # read in fasta file and reference
+    name_seq_d = fasta_to_dct(infile)
     in_seqs_d = fasta_to_dct_rev(infile)
+
+    # get internal reference
+    best_ref_dict = get_best_reference(name_seq_d)
 
     # generate seq_code to seq name list lookup dictionary
     first_look_up_d = collections.defaultdict(list)
     first_seq_code_d = collections.defaultdict(str)
 
-    # get internal reference
-    longest_seq = ''
-    seq_length = 200
+    # longest_seq = ''
+    # seq_length = 200
     for i, (seq, names_list) in enumerate(in_seqs_d.items()):
-        unique_id = str(i).zfill(4)
+        if "HXB2" in names_list[0]:
+            time = "HXB2"
+        else:
+            time = "_".join(names_list[0].split("_")[:2])
+
+        unique_id = time + "|" + str(i).zfill(4)
         first_look_up_d[unique_id] = names_list
         first_seq_code_d[seq] = unique_id
-        seq_len = len(seq)
-        seq_abundance = len(names_list)
-        if seq_len > seq_length and seq_abundance > 3:
-            seq_length = seq_len
-            longest_seq = seq
+    #     seq_len = len(seq)
+    #     seq_abundance = len(names_list)
+    #     if seq_len > seq_length and seq_abundance > 3:
+    #         seq_length = seq_len
+    #         longest_seq = seq
 
     # add hxb2 to the alignment
     first_look_up_d[hxb2_name] = [hxb2_name]
@@ -783,27 +869,29 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
 
     if not user_ref:
         # get reading frame of most abundant internal reference
-        internal_ref_frame_1 = longest_seq
-        internal_ref_frame_2 = "N" + longest_seq
-        internal_ref_frame_3 = "NN" + longest_seq
-        frame_1_tr = translate_dna(internal_ref_frame_1)
-        frame_2_tr = translate_dna(internal_ref_frame_2)
-        frame_3_tr = translate_dna(internal_ref_frame_3)
-        frame_1_stops = frame_1_tr[:-1].count("Z")
-        frame_2_stops = frame_2_tr[:-1].count("Z")
-        frame_3_stops = frame_3_tr[:-1].count("Z")
-        if frame_1_stops < 1:
-            internal_reference = internal_ref_frame_1
-        elif frame_2_stops < 1:
-            internal_reference = internal_ref_frame_2
-        elif frame_3_stops < 1:
-            internal_reference = internal_ref_frame_3
-        else:
-            internal_reference = None
+        best_ref_dict_in_frame = get_refs_reading_frame(best_ref_dict)
 
-        if internal_reference is not None:
-            reference = internal_reference
-            user_ref = True
+        # internal_ref_frame_1 = longest_seq
+        # internal_ref_frame_2 = "N" + longest_seq
+        # internal_ref_frame_3 = "NN" + longest_seq
+        # frame_1_tr = translate_dna(internal_ref_frame_1)
+        # frame_2_tr = translate_dna(internal_ref_frame_2)
+        # frame_3_tr = translate_dna(internal_ref_frame_3)
+        # frame_1_stops = frame_1_tr[:-1].count("Z")
+        # frame_2_stops = frame_2_tr[:-1].count("Z")
+        # frame_3_stops = frame_3_tr[:-1].count("Z")
+        # if frame_1_stops < 1:
+        #     internal_reference = internal_ref_frame_1
+        # elif frame_2_stops < 1:
+        #     internal_reference = internal_ref_frame_2
+        # elif frame_3_stops < 1:
+        #     internal_reference = internal_ref_frame_3
+        # else:
+        #     internal_reference = None
+        #
+        # if internal_reference is not None:
+        #     reference = internal_reference
+        #     user_ref = True
 
     # initialize dictionaries to collect cons and var regions and gap padded sequences
     cons_regions_dct = collections.defaultdict(dict)
@@ -827,26 +915,30 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
         ref_start, ref_end = get_ref_start_end(ref, sub_region, script_folder)
         reference = reference[ref_start:ref_end]
 
-    # compile the regex strings
-    # var_reg_regex_compiled_d = collections.OrderedDict()
-    # todo compile not working :(
-    # for var_region_name, var_seq in var_region_regex_dct.items():
-    #     regex_complied = regex.compile("({0}){{e<3}}".format(var_seq))
-    #     # print(regex_complied)
-    #     var_reg_regex_compiled_d[var_region_name] = regex_complied
-
     # open file for sequences that could not be properly translated (hence codon aligned)
     print("Processing sequences\n")
     bad_seq_counter = 0
     with open(badfile, 'w') as handle:
         for seq, code in first_seq_code_d.items():
             seq = seq.replace("-", "")
+            time = code.split("|")[0]
+            if not user_ref:
+                ref = best_ref_dict_in_frame[time]
+                if ref is not None:
+                    reference = ref
+
+            # get pairwise alignment fobest_ref_dict_in_framer query to reference
             var_region_index_dct = collections.defaultdict(dict)
-            # get pairwise alignment for query to reference
-            seq_align, ref_align, frame = pairwise_align_dna(seq, reference, regex_complied_1, gene)
+            if "HXB2" in code:
+                seq_align, ref_align, frame = None, None, None
+            else:
+                seq_align, ref_align, frame = pairwise_align_dna(seq, reference, regex_complied_1, gene)
 
             # pad indels with gaps
-            padded_sequence = gap_padding(seq_align, ref_align, frame, regex_complied_2)
+            if "HXB2" in code:
+                padded_sequence = seq
+            else:
+                padded_sequence = gap_padding(seq_align, ref_align, frame, regex_complied_2)
 
             # translate query
             prot_seq = translate_dna(padded_sequence)
