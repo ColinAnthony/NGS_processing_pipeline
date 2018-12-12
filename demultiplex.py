@@ -21,7 +21,7 @@ __author__ = "Colin Anthony, Jon Ambler, David Matten"
 __copyright__ = "Something"
 __credits__ = ["Colin Anthony", "Jon Ambler", "David Matten"]
 __license__ = "TBD"
-__version__ = "0.1"
+__version__ = "0.2"
 __maintainer__ = "Colin Anthony"
 __email__ = ""
 __status__ = "Testing"
@@ -172,7 +172,7 @@ def make_primer_dict(primer_file):
 def export_line_to_fastq(fileTag, headerLine, seqLine, plusLine, scoreLine, infast_name, out_dir, patient_list):
     """
     For the export of a fastq sequence, line by line.
-    :param fileTag:
+    :param fileTag: the gene region???
     :param headerLine:
     :param seqLine:
     :param plusLine:
@@ -181,7 +181,8 @@ def export_line_to_fastq(fileTag, headerLine, seqLine, plusLine, scoreLine, infa
     """
     out_file_name = infast_name.replace('multiplex', fileTag)
     out_file_path = out_dir + patient_list + '/' + fileTag + '/0new_data/'
-    with open(out_file_path + out_file_name, "a+") as handle:
+    outfile = os.path.join(out_file_path, out_file_name)
+    with open(outfile, "a+") as handle:
         handle.write(headerLine)
         handle.write(seqLine)
         handle.write(plusLine)
@@ -578,7 +579,7 @@ def process_input_dir(fastq_directory_path):
     for a_file in file_list:
         a_file = os.path.abspath(a_file)
         # rename file
-        print(a_file)
+
         if "R1" in a_file:
             path = os.path.split(a_file)[0]
             inf_R1_name = os.path.split(a_file)[-1]
