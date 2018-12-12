@@ -2,7 +2,7 @@
   "input_data":{
     "fwd_fastq_file":"/home/colin/google_drive/0projects/1SHIP_neut/testaligner/pipeline_test/CAP188_3100_030WPI_multiplex_R1.fastq",
     "rev_fastq_file":"/home/colin/google_drive/0projects/1SHIP_neut/testaligner/pipeline_test/CAP188_3100_030WPI_multiplex_R2.fastq",
-    "primer_csv":"/mnt/15C0E6BE056404C9/Dropbox/dev/NGS_processing_pipeline/master_primer_file.csv",
+    "primer_csv":"/home/colin/Dropbox/dev/NGS_processing_pipeline/template_master_primer_file.csv",
     "patient_list":["CAP188"],
     "out_folder":"/google_drive/0projects/1SHIP_neut/testaligner/pipeline_test"
   },
