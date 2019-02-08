@@ -38,7 +38,7 @@ def fasta_to_dct(file_name):
         if new_key in dct.keys():
             print("Duplicate sequence ids found. Exiting")
             raise KeyError("Duplicate sequence ids found")
-        dct[new_key] = str(v).replace("~", "_")
+        dct[new_key] = str(v).replace("~", "_").upper()
 
     return dct
 
@@ -148,7 +148,8 @@ def length_check(d):
     bad_d = collections.defaultdict(str)
 
     for name, seq in d.items():
-        if len(seq) < length:
+        seq_check = seq.replace("-", "")
+        if len(seq_check) < length:
             bad_d[name] = seq
             short += 1
         else:
