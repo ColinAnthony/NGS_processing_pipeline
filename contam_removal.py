@@ -140,33 +140,33 @@ def blastn_seqs(infile, gene_region, outpath):
     return bad_records, good_records
 
 
-def main(consensus, outpath, gene_region, logfile):
-    print(consensus)
+def main(infile, outpath, gene_region, logfile):
+    print(infile)
     # initialize file names
-    consensus = os.path.abspath(consensus)
+    infile = os.path.abspath(infile)
     outpath = os.path.abspath(outpath)
-    cln_cons_name = os.path.split(consensus)[-1]
+    cln_name = os.path.split(infile)[-1]
     original_path = os.getcwd()
-    cln_cons = cln_cons_name.replace("_clean.fasta", "_good.fasta")
-    consensus_out = os.path.join(outpath, cln_cons)
-    contam_seqs = cln_cons_name.replace("_clean.fasta", "_contam_seqs.fasta")
-    contam_out = os.path.join(outpath, contam_seqs)
+    cln_out_name = cln_name.replace("_clean.fasta", "_good.fasta")
+    outfile = os.path.join(outpath, cln_out_name)
+    contam_name = cln_name.replace("_clean.fasta", "_contam_seqs.fasta")
+    contam_outfile = os.path.join(outpath, contam_name)
 
     with open(logfile, 'a') as handle:
         handle.write("Contam removal step:\nSequences identified as contaminants (if any):")
 
     # clear out any existing outfiles for consensus
-    with open(consensus_out, 'w') as handle1:
+    with open(outfile, 'w') as handle1:
         handle1.write("")
-    with open(contam_out, 'w') as handle2:
+    with open(contam_outfile, 'w') as handle2:
         handle2.write("")
 
     # store all consensus seqs in a dict
-    all_sequences_d = fasta_to_dct(consensus)
+    all_sequences_d = fasta_to_dct(infile)
 
     # checck for contam
 
-    contam, not_contam = blastn_seqs(consensus, gene_region, outpath)
+    contam, not_contam = blastn_seqs(infile, gene_region, outpath)
 
     # path changed back to original cwd (was changed in blastn_seqs for database location
     os.chdir(original_path)
@@ -182,13 +182,13 @@ def main(consensus, outpath, gene_region, logfile):
         if name in contam_names:
             print("Non HIV sequence found:\n\t", name)
             new_name = name + contam[name]
-            with open(contam_out, 'a') as handle1:
+            with open(contam_outfile, 'a') as handle1:
                 outstr = ">{0}\n{1}\n".format(new_name, seq)
                 handle1.write(outstr)
 
         # if is not contam, to write to good outfile
         elif name in not_contam_names:
-            with open(consensus_out, 'a') as handle2:
+            with open(outfile, 'a') as handle2:
                 outstr = ">{0}\n{1}\n".format(name, seq)
                 handle2.write(outstr)
 
@@ -203,7 +203,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('-in', '--consensus', default=argparse.SUPPRESS, type=str,
+    parser.add_argument('-in', '--infile', default=argparse.SUPPRESS, type=str,
                         help='The read1 (R1) fastq file', required=True)
     parser.add_argument('-o', '--outpath', default=argparse.SUPPRESS, type=str,
                         help='The path to where the output file will be copied', required=True)
@@ -214,9 +214,9 @@ if __name__ == "__main__":
                         help='the genomic region being sequenced', required=True)
 
     args = parser.parse_args()
-    consensus = args.consensus
+    infile = args.infile
     outpath = args.outpath
     gene_region = args.gene_region
     logfile = args.logfile
 
-    main(consensus, outpath, gene_region, logfile)
+    main(infile, outpath, gene_region, logfile)

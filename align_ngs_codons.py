@@ -196,6 +196,7 @@ def pairwise_align_dna(sequence, reference, regex_complied, gene):
     :return: (str) aligned query sequence, (str) aligned ref sequence, (int) reading frame for query sequence
     """
     # do overlap pairwise alignment to not get truncated query sequence
+
     if gene == "ENV":
         overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-1, score_gapext=-3,
                                         score_gapopen=-14)
@@ -204,7 +205,6 @@ def pairwise_align_dna(sequence, reference, regex_complied, gene):
         overlap = seqanpy.align_overlap(sequence, reference, band=-1, score_match=4, score_mismatch=-2, score_gapext=-3,
                                         score_gapopen=-14)
     overlap = list(overlap)
-
     seq_align = overlap[1]
     ref_align = overlap[2]
     # print(">sqseq1\n{}\n".format(seq_align))
@@ -820,7 +820,6 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
     if not user_ref:
         gene_region = ref + "_" + gene
         reference = ref_seqs[gene_region]
-
     else:
         ref_seqs = fasta_to_dct(user_ref)
         reference = ref_seqs[list(ref_seqs)[0]]
@@ -922,9 +921,11 @@ def main(infile, outpath, name, ref, gene, var_align, sub_region, user_ref):
         for seq, code in first_seq_code_d.items():
             seq = seq.replace("-", "")
             time = code.split("|")[0]
+            print(reference)
+
             if not user_ref:
                 ref = best_ref_dict_in_frame[time]
-                if ref is not None:
+                if ref:
                     reference = ref
 
             # get pairwise alignment fobest_ref_dict_in_framer query to reference
