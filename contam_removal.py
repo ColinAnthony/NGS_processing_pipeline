@@ -118,7 +118,7 @@ def blastn_seqs(infile, gene_region, outpath):
         if blast_record.alignments:
             found = False
             first_region = ''
-            for i, alignment in enumerate(blast_record.alignments):
+            for i, alignment in enumerate(blast_record.alignments[:10]):
                 title_name = alignment.title.split(" ")[0]
                 region = title_name.upper().split("_")[-1]
                 if i == 0:
