@@ -1,6 +1,4 @@
 # !/usr/bin/python3
-from __future__ import print_function
-from __future__ import division
 import csv
 from subprocess import call
 from subprocess import Popen
@@ -578,8 +576,9 @@ def process_input_dir(fastq_directory_path):
 
     for a_file in file_list:
         a_file = os.path.abspath(a_file)
-        # rename file
-
+        file_parts = a_file.split("_")
+        if "None" in file_parts:
+            continue
         if "R1" in a_file:
             path = os.path.split(a_file)[0]
             inf_R1_name = os.path.split(a_file)[-1]
@@ -770,6 +769,7 @@ def main(config_file, main_pipeline, haplotype):
     prev_run_dict, log_file = check_for_previous_runs(data['input_data']['out_folder'], input_file_dict)
 
     patient_list = list(input_file_dict.keys())
+
     prev_run_patient_list = list(prev_run_dict.keys())
 
     # Catch to see if samples are added and being re-run
@@ -790,7 +790,7 @@ def main(config_file, main_pipeline, haplotype):
     if out_dir[-1] != '/':
         out_dir = out_dir + '/'
 
-        # ----------------------- Logging info -----------------------
+    # ----------------------- Logging info -----------------------
     timestr = time.strftime("%Y%m%d-%H%M%S")
     pipeline_logging_name = "Pipeline_{}.log".format(timestr)
     pipeline_logging_file = os.path.join(out_dir, pipeline_logging_name)
